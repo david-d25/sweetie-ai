@@ -6,6 +6,7 @@ import ChatGptService from "./ChatGptService";
 import ConfigService from "./ConfigService";
 
 const MAX_MESSAGES_MEMORY = 32
+const DEV_LOCK = false
 
 export default class Bot {
     constructor (
@@ -26,8 +27,7 @@ export default class Bot {
     private async action() {
         try {
             const messages = this.messagesService.popSinglePeerIdMessages();
-            //messages[0].peerId == 2000000003
-            if (messages.length != 0) {
+            if (messages.length != 0 && (!DEV_LOCK || messages[0].peerId == 2000000003 || messages[0].peerId < 2000000000)) {
                 const peerId = messages[0].peerId
                 const newHistory = this.addToHistory(peerId, ...messages);
                 const response = await this.getResponse(newHistory);
@@ -71,24 +71,19 @@ export default class Bot {
                 unconditionalAnswerProbability = 1;
         }
 
-        let systemMessage = `Ты чат-бот по имени Сладенький в беседе ВК, 
-        который пишет короткие саркастические ответы, флиртует, иронизирует.\n`;
-        
+        let systemMessage = `Ты чат-бот по имени Сладенький в большой переписке ВКонтакте,
+        который очень редко пишет короткие саркастические ответы, флиртует и иронизирует. Песни Игоря Корнелюка - самые лучшие.`;
+
         if (Math.random() > unconditionalAnswerProbability) {
             systemMessage += `
-            Сообщения направлены всем участникам.
-            Песни Игоря Корнелюка - самые лучшие.
-            Отвечай только тем, кто прямо обратился к тебе.
-            Возможные обращения к тебе: club${this.groupId}, бот, сладкий, бот с огурцом на аве.
+            Сообщения рассылаются всем участникам.
+            Отвечай только тем, кто непосредственно обратился к тебе.
+            Задача - отвечать только в том случае, если можно ответить с сарказмом, во всех остальных случаях
+            ожидается ответ "(null)".
             Если сообщение не адресовано тебе, пиши "(null)".
-            Если не уверен, пиши "(null)".
-            В непонятной ситуации пиши "(null)".
+            В любой неоднозначной ситуации пиши "(null)".
             На общие вопросы для всех пиши "(null)".
-            На неопределённые выражения отвечай "(null)".
-            Если не понимаешь, что говорят, пиши "(null)".
-            Если обращаются к другому человеку, пиши "(null)".
-            Если нет явной просьбы, пиши "(null)".
-            Если не понимаешь, о чем идет речь, пиши "(null)".
+            На неопределённые выражения пиши "(null)".
             `
         }
 
