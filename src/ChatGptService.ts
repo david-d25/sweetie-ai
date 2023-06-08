@@ -13,7 +13,7 @@ export default class ChatGptService {
         systemMessage: string,
         chatMessages: {
             role: string,
-            name: string | null,
+            name?: string,
             content: string
         }[]
     ): Promise<string> {
@@ -35,7 +35,7 @@ export default class ChatGptService {
         const body: any = {};
         body['messages'] = messages;
         body['model'] = 'gpt-3.5-turbo';
-        body['max_tokens'] = 256;
+        body['max_tokens'] = 368;
         body['temperature'] = 0.75;
         body['n'] = 1;
 

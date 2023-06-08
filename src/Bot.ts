@@ -5,7 +5,6 @@ import {VkMessage} from "./VkMessage";
 import ChatGptService from "./ChatGptService";
 import ConfigService from "./ConfigService";
 
-const MAX_MESSAGES_MEMORY = 32
 const DEV_LOCK = false
 
 export default class Bot {
@@ -17,7 +16,6 @@ export default class Bot {
         private config: ConfigService
     ) {}
 
-    private historyByPeerId: Map<number, VkMessage[]> = new Map();
     private groupId = +this.config.getEnv('VK_GROUP_ID')!
 
     start() {
@@ -27,80 +25,212 @@ export default class Bot {
     private async action() {
         try {
             const messages = this.messagesService.popSinglePeerIdMessages();
-            if (messages.length != 0 && (!DEV_LOCK || messages[0].peerId == 2000000003 || messages[0].peerId < 2000000000)) {
-                const peerId = messages[0].peerId
-                const newHistory = this.addToHistory(peerId, ...messages);
-                const response = await this.getResponse(newHistory);
-                console.log("OpenAI Response: " + response);
-                if (messages.length != 0 && response != null && response.trim().length > 0) {
-                    await this.messagesService.send(peerId, response);
-                    this.addToHistory(peerId, {
-                        id: -1,
-                        peerId,
-                        fromId: this.groupId,
-                        timestamp: Date.now()/1000,
-                        text: response
-                    });
+            for (const message of messages) {
+                if (DEV_LOCK && messages[0].peerId >= 2000000000 && message.peerId != 2000000003)
+                    continue;
+
+                if (message.text?.trim().startsWith("/sweet")) {
+                    console.log("Got command: " + message.text);
+                    await this.processCommandMessage(message);
                 }
             }
-            setTimeout(() => this.action(), 5000 + Math.random() + 10000);
+            setTimeout(() => this.action(), 1000);
         } catch (e) {
             console.error("Something bad happened, will retry soon\n", e);
             setTimeout(() => this.action(), 10000);
         }
     }
 
-    private async getResponse(messages: VkMessage[]): Promise<string | null> {
-        if (messages.length == 0)
-            return null;
-
-        let unconditionalAnswerProbability = 0.01;
-        let chatMessages = [];
-
-        for (const message of messages) {
-            const fromUser = await this.usersService.getUser(message.fromId);
-            const fromUserName = fromUser ? fromUser.firstName : null;
-            if (message.text != null && message.text.trim().length != 0) {
-                chatMessages.push({
-                    role: message.fromId == this.groupId ? "assistant" : "user",
-                    name: fromUserName,
-                    content: message.text
-                });
-            }
-            if (message.peerId == message.fromId)
-                unconditionalAnswerProbability = 1;
-        }
-
-        let systemMessage = `Ты чат-бот по имени Сладенький в большой переписке ВКонтакте,
-        который очень редко пишет короткие саркастические ответы, флиртует и иронизирует. Песни Игоря Корнелюка - самые лучшие.`;
-
-        if (Math.random() > unconditionalAnswerProbability) {
-            systemMessage += `
-            Сообщения рассылаются всем участникам.
-            Отвечай только тем, кто непосредственно обратился к тебе.
-            Задача - отвечать только в том случае, если можно ответить с сарказмом, во всех остальных случаях
-            ожидается ответ "(null)".
-            Если сообщение не адресовано тебе, пиши "(null)".
-            В любой неоднозначной ситуации пиши "(null)".
-            На общие вопросы для всех пиши "(null)".
-            На неопределённые выражения пиши "(null)".
-            `
-        }
-
-        if (chatMessages.length == 0)
-            return null;
-
-        const response = await this.chatGptService.request(systemMessage, chatMessages);
-        return response == "(null)" ? null : response;
+    private async processCommandMessage(message: VkMessage) {
+        const text = message.text!.trim();
+        const parts = text.trim().split(' ').filter(part => part !== '');
+        const args = parts.slice(1);
+        if (args.length == 0)
+            return this.doHelpCommand(message);
+        const arg0 = args[0];
+        if (arg0 == "help")
+            return this.doHelpCommand(message);
+        else if (arg0 == "answer")
+            return this.doAnswerCommand(message, args);
+        else if (arg0 == "summarize")
+            return this.doSummarizeCommand(message, args);
+        else
+            return this.doUnknownCommand(message);
     }
 
-    private addToHistory(peerId: number, ...newMessages: VkMessage[]): VkMessage[] {
-        if (!this.historyByPeerId.has(peerId))
-            this.historyByPeerId.set(peerId, []);
-        const entry = this.historyByPeerId.get(peerId)!
-        entry.push(...newMessages);
-        while (entry.length > MAX_MESSAGES_MEMORY)
-            entry.shift();
-        return entry;
+    private async doHelpCommand(message: VkMessage) {
+        const text = `
+        Вот что я могу:
+        /sweet help
+        /sweet answer (вопрос)
+        /sweet summarize (время)
+        `;
+        await this.messagesService.send(message.peerId, text);
+    }
+
+    private async doUnknownCommand(message: VkMessage) {
+        const responses = [
+            `Не знаю такой команды сорян, пиши /sweet help`,
+            `Нинаю что это значит, да поможет тебе /sweet help`,
+            `Не знаю, что это за команда, смотри в /sweet help`,
+            `Ниче не понял, пиши /sweet help`,
+            `Не понял что это за команда, пиши /sweet help`,
+            `Не знаю такую команду, смотри команды в /sweet help`,
+        ];
+        await this.messagesService.send(message.peerId, responses[Math.floor(Math.random()*responses.length)]);
+    }
+
+    private async doAnswerCommand(message: VkMessage, args: string[]) {
+        if (args.length <= 1) {
+            const text = `
+            Пиши так:
+            /sweet answer (твой вопрос)
+            
+            Например:
+            /sweet answer ${this.getRandomQuestion()}
+            `;
+            return this.messagesService.send(message.peerId, text);
+        }
+        const question = args.splice(1).join(" ");
+        let chatMessages = [];
+        chatMessages.push({
+            role: "user",
+            content: question
+        });
+
+        let systemMessage = this.getCommonSystemMessage();
+
+        let history = this.messagesService.getHistory(message.peerId, 25);
+        let formattedHistory = (
+            await Promise.all(
+                history.map(async m => {
+                    if (m.text == null)
+                        return null;
+                    const date = new Date(m.timestamp * 1000);
+                    let result = `[${date.toDateString()} ${date.getHours()}:${date.getMinutes()}] `;
+                    result += ((await this.usersService.getUser(m.fromId))?.firstName || "(unknown)") + ": ";
+                    result += m.text;
+                    return result;
+                })
+            )
+        ).filter(m => m != null).join("\n");
+
+        systemMessage += `Кто-то выполнил команду "/sweet answer", тебе предстоит ответить на вопрос.
+            Для контекста, вот последние ${history.length} сообщений беседы:
+            ${formattedHistory}
+        `;
+
+        console.log(systemMessage);
+
+        const response = await this.chatGptService.request(systemMessage, chatMessages);
+        await this.messagesService.send(message.peerId, response);
+    }
+
+    private async doSummarizeCommand(message: VkMessage, args: string[]) {
+        if (args.length <= 1) {
+            const text = `
+            Пиши так:
+            /sweet summarize (время)
+            
+            Например:
+            /sweet summarize этот день
+            /sweet summarize вчера
+            `;
+            return this.messagesService.send(message.peerId, text);
+        }
+        const question = "Кратко изложи сообщения по критерию: " + args.splice(1).join(" ");
+        let chatMessages = [];
+        chatMessages.push({
+            role: "user",
+            content: question
+        });
+
+        let history = this.messagesService.getHistory(message.peerId, 25);
+        let fullHistory = (
+            await Promise.all(
+                history.map(async m => {
+                    if (m.text == null)
+                        return null;
+                    const date = new Date(m.timestamp * 1000);
+                    let result = `[${date.toDateString()} ${date.getHours()}:${date.getMinutes()}] `;
+                    result += ((await this.usersService.getUser(m.fromId))?.firstName || "(unknown)") + ": ";
+                    result += m.text;
+                    return result;
+                })
+            )
+        ).filter(m => m != null).map(m => m!);
+
+        let historyBlocks = this.chunkStrings(fullHistory, 2000);
+
+        let summary = null;
+
+        for (let i = 0; i < historyBlocks.length; i++) {
+            let systemMessage = this.getCommonSystemMessage();
+            systemMessage += `Кто-то выполнил команду "/sweet summarize", тебе предстоит кратко изложить переписку коротким сообщением.`;
+            systemMessage += `Сообщений может оказаться слишком много, поэтому они могут быть разделены на блоки.`;
+            systemMessage += `Сейчас обрабатываем блок ${i + 1} из ${historyBlocks.length}`;
+            systemMessage += `Пользователь хочет получить краткое изложение только сообщений, соответствующих критерию. Критерий: "${question}".`;
+            systemMessage += `Все остальные сообщения надо игнорировать и не включать в изложение.`;
+            systemMessage += `Например, критерий "вчера" значит, что надо кратко изложить только о тех сообщениях, которые отправиил вчера.`;
+            systemMessage += `Изложение текущего блока надо комбинировать с изложением предыдущего блока сообщений.`;
+            systemMessage += `Сообщения отформатированы с добавлением даты и имени отправителя. Это метаданные, их не надо включать в изложение напрямую.`;
+
+            if (summary != null) {
+                systemMessage += `Результат пересказа предыдущего блока сообщений: "${summary}"`;
+            }
+
+            systemMessage += `Сообщния текущего блока: \n ${historyBlocks[i].join("\n")}`;
+
+            summary = await this.chatGptService.request(systemMessage, chatMessages);
+        }
+
+        await this.messagesService.send(message.peerId, summary || "(error, please check logs)");
+    }
+
+    private chunkStrings(strings: string[], maxLength: number): string[][] {
+        const result: string[][] = [];
+        let currentSubarray: string[] = [];
+        let currentLength = 0;
+
+        for (const str of strings) {
+            if (currentLength + str.length > maxLength) {
+                result.push(currentSubarray);
+                currentSubarray = [str];
+                currentLength = str.length;
+            } else {
+                currentSubarray.push(str);
+                currentLength += str.length;
+            }
+        }
+
+        if (currentSubarray.length > 0) {
+            result.push(currentSubarray);
+        }
+
+        return result;
+    }
+
+    private getRandomQuestion(): string {
+        const questions = [
+            'Когда закончится экономический кризис?',
+            'Который час?',
+            'О чём говорят эти дамы?',
+            'Что такое пипидастр?',
+        ]
+        return questions[Math.floor(Math.random()*questions.length)];
+    }
+
+    private getCommonSystemMessage(): string {
+        let date = new Date();
+        return `Ты чат-бот по имени Сладенький в большой переписке ВКонтакте,
+            который который пишет короткие саркастические ответы, но говорить об этом не нужно.
+            Как чат-бот, ты отвечаешь только на команды, начинающиеся на "/sweet", при этом текст до тебя доходит уже очищенным (без "/sweet").
+            Команды, которые ты поддерживаешь:
+            - /sweet help - показать помощь;
+            - /sweet answer (вопрос) - ответить на вопрос;
+            - /sweet summarize (время) - кратко изложить, о чем говорили в беседе, для тех, кто пропустил.
+            Песни Игоря Корнелюка - самые лучшие.
+            Текущее время: ${date.toDateString()} ${date.getHours()}:${date.getMinutes()}
+        `
     }
 }
