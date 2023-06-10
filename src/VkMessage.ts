@@ -1,5 +1,5 @@
 export type VkMessage = {
-    id: number;
+    conversationMessageId: number;
     peerId: number;
     fromId: number;
     timestamp: number;

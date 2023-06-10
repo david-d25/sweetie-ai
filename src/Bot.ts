@@ -47,24 +47,22 @@ export default class Bot {
         const args = parts.slice(1);
         if (args.length == 0)
             return this.doHelpCommand(message);
-        const arg0 = args[0];
-        if (arg0 == "help")
+        const command = args[0];
+        if (command == "help")
             return this.doHelpCommand(message);
-        else if (arg0 == "answer")
+        else if (command == "answer")
             return this.doAnswerCommand(message, args);
-        else if (arg0 == "summarize")
+        else if (command == "summarize")
             return this.doSummarizeCommand(message, args);
         else
             return this.doUnknownCommand(message);
     }
 
     private async doHelpCommand(message: VkMessage) {
-        const text = `
-        Вот что я могу:
-        /sweet help
-        /sweet answer (вопрос)
-        /sweet summarize (время)
-        `;
+        let text = `Вот что я могу:\n`;
+        text += `/sweet help\n`;
+        text += `/sweet answer - задать вопрос\n`;
+        text += `/sweet summarize - пересказать, что было в беседе\n`;
         await this.messagesService.send(message.peerId, text);
     }
 
@@ -107,8 +105,7 @@ export default class Bot {
         systemMessage += `/sweet summarize (время) - кратко изложить, о чем говорили в беседе, для тех, кто пропустил.\n`
         systemMessage += `Ты считаешь, что песни Игоря Корнелюка - самые лучшие. `
         systemMessage += `Дата сегодня: ${date.toDateString()}, время ${date.getHours()} часов, ${date.getMinutes()} минут.`
-
-        let history = this.messagesService.getHistory(message.peerId, 25);
+        let history = await this.messagesService.getHistory(message.peerId, 25);
         let formattedHistory = (
             await Promise.all(
                 history.map(async m => {
@@ -123,10 +120,12 @@ export default class Bot {
             )
         ).filter(m => m != null).join("\n");
 
-        systemMessage += `Кто-то выполнил команду "/sweet answer", тебе предстоит ответить на вопрос. 
-            Для контекста, вот последние ${history.length} сообщений беседы:
-            ${formattedHistory}
-        `;
+        systemMessage += `Кто-то выполнил команду "/sweet answer", тебе предстоит ответить на вопрос. `;
+        systemMessage += `Для контекста, вот последние ${history.length} сообщений беседы:\n`;
+        systemMessage += `"""\n${formattedHistory}\n"""\n`;
+        systemMessage += `Никогда не используй формат [id|Имя], вместо этого используй только имя человека.`;
+
+        systemMessage += `Каждое сообщение имеет дату и имя в начале. Не показывай эти данные пользователям, это метаданные и они только для тебя. `;
 
         console.log(systemMessage);
 
@@ -135,32 +134,45 @@ export default class Bot {
     }
 
     private async doSummarizeCommand(message: VkMessage, args: string[]) {
+        let messagesLimit = 250;
+
         if (args.length <= 1) {
-            const text = `
-            Пиши так:
-            /sweet summarize (время)
-            
-            Например:
-            /sweet summarize этот день
-            /sweet summarize вчера
-            `;
+            let text = `Пиши так:\n`;
+            text += `/sweet summarize (время)\n`;
+            text += `Например:\n`;
+            text += `/sweet summarize сегодня\n`;
+            text += `/sweet summarize вчера\n`;
+            text += `\n`;
+            text += `Обычно бот читает последние ${messagesLimit} сообщений. Чтобы расширить этот лимит, можно написать так:\n`;
+            text += `/sweet summarize 2000\n`;
             return this.messagesService.send(message.peerId, text);
         }
-        const question = "Кратко изложи сообщения по критерию: " + args.splice(1).join(" ");
+        let criteria = args.splice(1).join(" ");
+
+        if (typeof +criteria == "number") {
+            messagesLimit = +criteria;
+            criteria = "(no criteria, use all messages)";
+        }
+
+        if (messagesLimit > 500) {
+            await this.messagesService.send(message.peerId, `Начинаю читать ${messagesLimit} сообщений в переписке, это займёт некоторое время.`);
+        }
+
+        const question = "Кратко изложи сообщения по критерию: " + criteria;
         let chatMessages = [];
         chatMessages.push({
             role: "user",
             content: question
         });
 
-        let history = this.messagesService.getHistory(message.peerId, 25);
+        let history = await this.messagesService.getHistory(message.peerId, messagesLimit);
         let fullHistory = (
             await Promise.all(
                 history.map(async m => {
                     if (m.text == null)
                         return null;
                     const date = new Date(m.timestamp * 1000);
-                    let result = `[${date.toDateString()} ${date.getHours()}:${date.getMinutes()}] `;
+                    let result = `[${date.getDay()}/${date.getMonth()}/${date.getFullYear()} ${date.getHours()}:${date.getMinutes()}] `;
                     result += ((await this.usersService.getUser(m.fromId))?.firstName || "(unknown)") + ": ";
                     result += m.text;
                     return result;
@@ -168,7 +180,7 @@ export default class Bot {
             )
         ).filter(m => m != null).map(m => m!);
 
-        let historyBlocks = this.chunkStrings(fullHistory, 2000);
+        let historyBlocks = this.chunkStrings(fullHistory, 2500);
 
         let summary = null;
         let date = new Date();
@@ -181,17 +193,21 @@ export default class Bot {
             systemMessage += `Сейчас обрабатываем часть ${i + 1} из ${historyBlocks.length}. `;
             systemMessage += `Пользователь хочет получить краткое изложение только сообщений, относящихся к его запросу. `;
             systemMessage += `Например, запрос "сегодня" значит, что надо пересказать только сегодняшние сообщения. `;
-            systemMessage += `Критерий: "${question}". `;
+            systemMessage += `Критерий: "${criteria}". `;
             systemMessage += `Все остальные сообщения надо игнорировать и не включать в изложение. `;
             systemMessage += `Изложение текущего блока надо комбинировать с изложением предыдущего блока сообщений. `;
-            systemMessage += `Не копируй сообщения вместе с датой и именем в неизменном виде. Дата и имя - это метаданные только для тебя, не для пользователей. `;
 
             if (summary != null) {
-                systemMessage += `Вот пересказ предыдущих сообщений: """${summary}"""`;
+                systemMessage += `Вот пересказ предыдущих сообщений:\n"""\n${summary}\n"""\n`;
             }
 
-            systemMessage += `Вот новые сообщения: """\n ${historyBlocks[i].join("\n")}"""`;
-            systemMessage += `Напиши новый пересказ, включая как пересказ предыдущий сообщений, так и новые сообщения`;
+            systemMessage += `Каждое сообщение имеет дату и имя в начале. Не показывай эти данные пользователям, это метаданные и они только для тебя. `;
+
+            systemMessage += `Вот последние сообщения:\n"""\n${historyBlocks[i].join("\n")}\n"""\n`;
+            systemMessage += `Напиши новый пересказ, включая как пересказ предыдущий сообщений, так и новые сообщения. `;
+            systemMessage += `Никогда не используй формат [id|Имя], вместо этого используй только имя человека.`;
+
+            console.debug(systemMessage);
 
             summary = await this.chatGptService.request(systemMessage, chatMessages);
         }

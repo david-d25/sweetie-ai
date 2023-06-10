@@ -33,7 +33,9 @@ export default class VkUsersService {
                 fields: ["first_name_nom"],
             });
 
-            return { id, firstName: response[0].first_name_nom};
+            return {id, firstName: response[0].first_name_nom};
+        } else if (id == 0) { // This bot
+            return { id, firstName: "(me)"};
         } else { // Group, not user
             return { id, firstName: "__vk_group__"};
         }

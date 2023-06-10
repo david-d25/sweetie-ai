@@ -1,13 +1,12 @@
 import {VkMessage} from "./VkMessage";
 import {VK} from "vk-io";
+import VkMessagesOrmService from "./VkMessagesOrmService";
 
 export default class VkMessagesService {
     constructor (
-        private vk: VK
+        private vk: VK,
+        private messagesOrmService: VkMessagesOrmService
     ) {}
-
-    private static readonly HISTORY_MAX_MESSAGES = 4000;
-    private histories: Map<number, VkMessage[]> = new Map();
 
     private messagesByPeerId: Map<number, VkMessage[]> = new Map();
 
@@ -19,30 +18,33 @@ export default class VkMessagesService {
         });
 
         this.vk.updates.on('message_new', async (context, next) => {
-            const { id, senderId, peerId, text, createdAt } = context;
-
-            console.log(`Got message from id ${senderId}: '${text}'`);
+            const { conversationMessageId, senderId, peerId, text, createdAt } = context;
 
             if (!this.messagesByPeerId.has(peerId))
                 this.messagesByPeerId.set(peerId, []);
 
             const peerMessages = this.messagesByPeerId.get(peerId)!;
             const message = {
-                id,
-                peerId,
+                conversationMessageId: conversationMessageId!,
+                peerId: peerId,
                 fromId: senderId,
                 timestamp: createdAt,
                 text: typeof text == 'undefined' ? null : text
             };
+
+            console.log(`Got message from id ${message.fromId}: '${message.text}'`);
+
+            if (context.attachments.length > 0) {
+                if (message.text == null)
+                    message.text = '';
+                for (const attachment of context.attachments) {
+                    message.text += ` (attachment: ${attachment.type})`;
+                }
+            }
+
             peerMessages.push(message);
 
-            if (!this.histories.has(peerId))
-                this.histories.set(peerId, []);
-            const history = this.histories.get(peerId)!;
-            history.push(message);
-            if (history.length > VkMessagesService.HISTORY_MAX_MESSAGES)
-                history.shift();
-
+            await this.messagesOrmService.addMessage(message);
             await next();
         });
 
@@ -60,16 +62,8 @@ export default class VkMessagesService {
         return result;
     }
 
-    getHistory(peerId: number, count: number): VkMessage[] {
-        if (this.histories.has(peerId)) {
-            const history = this.histories.get(peerId)!;
-            if (history.length > count)
-                return history.slice(history.length - count);
-            else
-                return history;
-        } else {
-            return [];
-        }
+    async getHistory(peerId: number, count: number): Promise<VkMessage[]> {
+        return (await this.messagesOrmService.getMessagesByPeerIdWithLimitSortedByTimestamp(peerId, count)).reverse();
     }
 
     async send(toId: number, message: string) {
@@ -77,7 +71,14 @@ export default class VkMessagesService {
             peer_id: toId,
             random_id: Math.floor(Math.random()*10000000),
             message
-        }).then(() => {
+        }).then(async (res) => {
+            await this.messagesOrmService.addMessage({
+                fromId: 0,
+                conversationMessageId: res,
+                peerId: toId,
+                text: message,
+                timestamp: new Date().getTime()/1000
+            });
             console.log(`Sent message to id ${toId}: '${message}'`);
         }).catch(e => {
             console.error(`Failed to send message to id ${toId}: '${message}'`, e);
