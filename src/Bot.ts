@@ -98,7 +98,15 @@ export default class Bot {
             content: question
         });
 
-        let systemMessage = this.getCommonSystemMessage();
+        let date = new Date();
+        let systemMessage = `Ты чат-бот по имени Сладенький в переписке ВКонтакте, `
+        systemMessage += `который который пишет короткие саркастические ответы, но говорить об этом не нужно. `
+        systemMessage += `Команды, которые ты поддерживаешь:\n`
+        systemMessage += `/sweet help - показать помощь;\n`
+        systemMessage += `/sweet answer (вопрос) - ответить на вопрос;\n`
+        systemMessage += `/sweet summarize (время) - кратко изложить, о чем говорили в беседе, для тех, кто пропустил.\n`
+        systemMessage += `Ты считаешь, что песни Игоря Корнелюка - самые лучшие. `
+        systemMessage += `Дата сегодня: ${date.toDateString()}, время ${date.getHours()} часов, ${date.getMinutes()} минут.`
 
         let history = this.messagesService.getHistory(message.peerId, 25);
         let formattedHistory = (
@@ -115,7 +123,7 @@ export default class Bot {
             )
         ).filter(m => m != null).join("\n");
 
-        systemMessage += `Кто-то выполнил команду "/sweet answer", тебе предстоит ответить на вопрос.
+        systemMessage += `Кто-то выполнил команду "/sweet answer", тебе предстоит ответить на вопрос. 
             Для контекста, вот последние ${history.length} сообщений беседы:
             ${formattedHistory}
         `;
@@ -163,23 +171,27 @@ export default class Bot {
         let historyBlocks = this.chunkStrings(fullHistory, 2000);
 
         let summary = null;
+        let date = new Date();
 
         for (let i = 0; i < historyBlocks.length; i++) {
-            let systemMessage = this.getCommonSystemMessage();
-            systemMessage += `Кто-то выполнил команду "/sweet summarize", тебе предстоит кратко изложить переписку коротким сообщением.`;
-            systemMessage += `Сообщений может оказаться слишком много, поэтому они могут быть разделены на блоки.`;
-            systemMessage += `Сейчас обрабатываем блок ${i + 1} из ${historyBlocks.length}`;
-            systemMessage += `Пользователь хочет получить краткое изложение только сообщений, соответствующих критерию. Критерий: "${question}".`;
-            systemMessage += `Все остальные сообщения надо игнорировать и не включать в изложение.`;
-            systemMessage += `Например, критерий "вчера" значит, что надо кратко изложить только о тех сообщениях, которые отправиил вчера.`;
-            systemMessage += `Изложение текущего блока надо комбинировать с изложением предыдущего блока сообщений.`;
-            systemMessage += `Сообщения отформатированы с добавлением даты и имени отправителя. Это метаданные, их не надо включать в изложение напрямую.`;
+            let systemMessage = `Ты чат-бот по имени Сладенький в переписке ВКонтакте, который пишет саркастические ответы. `
+            systemMessage += `Дата сегодня: ${date.toDateString()}, время: ${date.getHours()} часов, ${date.getMinutes()} минут. `
+            systemMessage += `Тебе предстоит кратко изложить переписку коротким сообщением. `;
+            systemMessage += `Сообщений может оказаться слишком много, поэтому они могут быть разделены на куски. `;
+            systemMessage += `Сейчас обрабатываем часть ${i + 1} из ${historyBlocks.length}. `;
+            systemMessage += `Пользователь хочет получить краткое изложение только сообщений, относящихся к его запросу. `;
+            systemMessage += `Например, запрос "сегодня" значит, что надо пересказать только сегодняшние сообщения. `;
+            systemMessage += `Критерий: "${question}". `;
+            systemMessage += `Все остальные сообщения надо игнорировать и не включать в изложение. `;
+            systemMessage += `Изложение текущего блока надо комбинировать с изложением предыдущего блока сообщений. `;
+            systemMessage += `Не копируй сообщения вместе с датой и именем в неизменном виде. Дата и имя - это метаданные только для тебя, не для пользователей. `;
 
             if (summary != null) {
-                systemMessage += `Результат пересказа предыдущего блока сообщений: "${summary}"`;
+                systemMessage += `Вот пересказ предыдущих сообщений: """${summary}"""`;
             }
 
-            systemMessage += `Сообщния текущего блока: \n ${historyBlocks[i].join("\n")}`;
+            systemMessage += `Вот новые сообщения: """\n ${historyBlocks[i].join("\n")}"""`;
+            systemMessage += `Напиши новый пересказ, включая как пересказ предыдущий сообщений, так и новые сообщения`;
 
             summary = await this.chatGptService.request(systemMessage, chatMessages);
         }
@@ -218,19 +230,5 @@ export default class Bot {
             'Что такое пипидастр?',
         ]
         return questions[Math.floor(Math.random()*questions.length)];
-    }
-
-    private getCommonSystemMessage(): string {
-        let date = new Date();
-        return `Ты чат-бот по имени Сладенький в большой переписке ВКонтакте,
-            который который пишет короткие саркастические ответы, но говорить об этом не нужно.
-            Как чат-бот, ты отвечаешь только на команды, начинающиеся на "/sweet", при этом текст до тебя доходит уже очищенным (без "/sweet").
-            Команды, которые ты поддерживаешь:
-            - /sweet help - показать помощь;
-            - /sweet answer (вопрос) - ответить на вопрос;
-            - /sweet summarize (время) - кратко изложить, о чем говорили в беседе, для тех, кто пропустил.
-            Песни Игоря Корнелюка - самые лучшие.
-            Текущее время: ${date.toDateString()} ${date.getHours()}:${date.getMinutes()}
-        `
     }
 }
