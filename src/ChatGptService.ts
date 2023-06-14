@@ -34,9 +34,9 @@ export default class ChatGptService {
 
         const body: any = {};
         body['messages'] = messages;
-        body['model'] = 'gpt-3.5-turbo';
+        body['model'] = 'gpt-3.5-turbo-16k';
         body['max_tokens'] = 512;
-        body['temperature'] = 0.75;
+        body['temperature'] = 0.8;
         body['n'] = 1;
 
         const key = this.config.getEnv('OPENAI_SECRET_KEY');

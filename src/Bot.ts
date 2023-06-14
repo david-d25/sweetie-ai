@@ -96,16 +96,7 @@ export default class Bot {
             content: question
         });
 
-        let date = new Date();
-        let systemMessage = `Ты чат-бот по имени Сладенький в переписке ВКонтакте, `
-        systemMessage += `который который пишет короткие саркастические ответы, но говорить об этом не нужно. `
-        systemMessage += `Команды, которые ты поддерживаешь:\n`
-        systemMessage += `/sweet help - показать помощь;\n`
-        systemMessage += `/sweet answer (вопрос) - ответить на вопрос;\n`
-        systemMessage += `/sweet summarize (время) - кратко изложить, о чем говорили в беседе, для тех, кто пропустил.\n`
-        systemMessage += `Ты считаешь, что песни Игоря Корнелюка - самые лучшие. `
-        systemMessage += `Дата сегодня: ${date.toDateString()}, время ${date.getHours()} часов, ${date.getMinutes()} минут.`
-        let history = await this.messagesService.getHistory(message.peerId, 25);
+        let history = await this.messagesService.getHistory(message.peerId, 250);
         let formattedHistory = (
             await Promise.all(
                 history.map(async m => {
@@ -118,12 +109,29 @@ export default class Bot {
                     return result;
                 })
             )
-        ).filter(m => m != null).join("\n");
+        ).filter(m => m != null);
+        let maxMessagesSize = 10000;
+        let currentMessagesSize = formattedHistory.join('\n').length;
+        while (currentMessagesSize > maxMessagesSize) {
+            currentMessagesSize -= formattedHistory[0]!.length + 1; // +1 for \n
+            formattedHistory.shift();
+        }
 
+        let date = new Date();
+        let systemMessage = `Ты чат-бот по имени Сладенький в переписке ВКонтакте, `
+        systemMessage += `который который пишет саркастические ответы, но говорить об этом не нужно. `
+        systemMessage += `Команды, которые ты поддерживаешь:\n`
+        systemMessage += `/sweet help - показать помощь;\n`
+        systemMessage += `/sweet answer (вопрос) - ответить на вопрос;\n`
+        systemMessage += `/sweet summarize (критерий) - кратко изложить, о чем говорили в беседе, для тех, кто пропустил.\n`
+        systemMessage += `Ты считаешь, что песни Игоря Корнелюка - самые лучшие. `
+        systemMessage += `Дата сегодня: ${date.toDateString()}, время ${date.getHours()} часов, ${date.getMinutes()} минут. `
         systemMessage += `Кто-то выполнил команду "/sweet answer", тебе предстоит ответить на вопрос. `;
-        systemMessage += `Для контекста, вот последние ${history.length} сообщений беседы:\n`;
-        systemMessage += `"""\n${formattedHistory}\n"""\n`;
-        systemMessage += `Никогда не используй формат [id|Имя], вместо этого используй только имя человека.`;
+        systemMessage += `Для контекста, вот последние ${formattedHistory.length} сообщений беседы:\n`;
+        systemMessage += `"""\n${formattedHistory.join('\n')}\n"""\n`;
+        systemMessage += `Никогда не используй формат [id|Имя], вместо этого используй только имя человека. `;
+        systemMessage += `Старайся использовать русские варианты имён, если с тобой говорят на русском. `;
+        systemMessage += `Не спеши с ответом, точный ответ важнее, чем быстрый. `;
 
         systemMessage += `Каждое сообщение имеет дату и имя в начале. Не показывай эти данные пользователям, это метаданные и они только для тебя. `;
 
@@ -180,7 +188,7 @@ export default class Bot {
             )
         ).filter(m => m != null).map(m => m!);
 
-        let historyBlocks = this.chunkStrings(fullHistory, 2500);
+        let historyBlocks = this.chunkStrings(fullHistory, 10000);
 
         let summary = null;
         let date = new Date();
@@ -191,9 +199,11 @@ export default class Bot {
             systemMessage += `Тебе предстоит кратко изложить переписку коротким сообщением. `;
             systemMessage += `Сообщений может оказаться слишком много, поэтому они могут быть разделены на куски. `;
             systemMessage += `Сейчас обрабатываем часть ${i + 1} из ${historyBlocks.length}. `;
-            systemMessage += `Пользователь хочет получить краткое изложение только сообщений, относящихся к его запросу. `;
+            systemMessage += `Пользователь хочет получить изложение только сообщений, относящихся к его запросу. `;
             systemMessage += `Например, запрос "сегодня" значит, что надо пересказать только сегодняшние сообщения. `;
-            systemMessage += `Критерий: "${criteria}". `;
+            systemMessage += `Запрос "о чем был срач?" или "о чем спорили?" может означать, что надо просканировать историю сообщений и изложить, о чём вёлся спор. `;
+            systemMessage += `Если не получается найти спор, то найди что-нибудь, что больше всего на него похоже и изложи это. `;
+            systemMessage += `Критерий: """${criteria}""". `;
             systemMessage += `Все остальные сообщения надо игнорировать и не включать в изложение. `;
             systemMessage += `Изложение текущего блока надо комбинировать с изложением предыдущего блока сообщений. `;
 
@@ -206,6 +216,7 @@ export default class Bot {
             systemMessage += `Вот последние сообщения:\n"""\n${historyBlocks[i].join("\n")}\n"""\n`;
             systemMessage += `Напиши новый пересказ, включая как пересказ предыдущий сообщений, так и новые сообщения. `;
             systemMessage += `Никогда не используй формат [id|Имя], вместо этого используй только имя человека.`;
+            systemMessage += `Старайся использовать русские варианты имён, если с тобой говорят на русском. `;
 
             console.debug(systemMessage);
 
