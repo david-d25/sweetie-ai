@@ -157,7 +157,7 @@ export default class Bot {
         }
         let criteria = args.splice(1).join(" ");
 
-        if (typeof +criteria == "number") {
+        if (!isNaN(+criteria)) {
             messagesLimit = +criteria;
             criteria = "(no criteria, use all messages)";
         }
