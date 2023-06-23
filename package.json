@@ -1,10 +1,10 @@
 {
   "name": "vk-gpt-chatbot",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "",
   "scripts": {
     "build": "tsc",
-    "start": "ts-node-dev --respawn --transpile-only ./src/index.ts"
+    "dev": "ts-node-dev --respawn --transpile-only ./src/index.ts"
   },
   "repository": {
     "type": "git",
@@ -25,6 +25,7 @@
   "devDependencies": {
     "@types/node": "^18.16.0",
     "@types/pg": "^8.10.2",
+    "ts-loader": "^9.4.3",
     "ts-node-dev": "^2.0.0"
   }
 }

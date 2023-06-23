@@ -1,11 +1,9 @@
 import {VK} from "vk-io";
-import VkMessagesService from "./VkMessagesService";
-import VkUsersService from "./VkUsersService";
-import {VkMessage} from "./VkMessage";
-import ChatGptService from "./ChatGptService";
-import ConfigService from "./ConfigService";
-
-const DEV_LOCK = false
+import VkMessagesService, {VkMessage} from "service/VkMessagesService";
+import VkUsersService from "service/VkUsersService";
+import ChatGptService from "service/ChatGptService";
+import ConfigService from "service/ConfigService";
+import ChatSettingsService from "service/ChatSettingsService";
 
 export default class Bot {
     constructor (
@@ -13,10 +11,12 @@ export default class Bot {
         private messagesService: VkMessagesService,
         private usersService: VkUsersService,
         private chatGptService: ChatGptService,
-        private config: ConfigService
+        private config: ConfigService,
+        private chatSettingsService: ChatSettingsService
     ) {}
 
-    private groupId = +this.config.getEnv('VK_GROUP_ID')!
+    // private groupId = +this.config.getEnv('VK_GROUP_ID')!
+    private devLock = !!this.config.getEnv('DEV_LOCK')
 
     start() {
         this.action().then(_ => {});
@@ -26,7 +26,8 @@ export default class Bot {
         try {
             const messages = this.messagesService.popSinglePeerIdMessages();
             for (const message of messages) {
-                if (DEV_LOCK && messages[0].peerId >= 2000000000 && message.peerId != 2000000003)
+                // DevLock: ignore all messages except from personal accounts and in group
+                if (this.devLock && messages[0].peerId >= 2000000000 && message.peerId != 2000000003)
                     continue;
 
                 if (message.text?.trim().startsWith("/sweet")) {
@@ -48,34 +49,34 @@ export default class Bot {
         if (args.length == 0)
             return this.doHelpCommand(message);
         const command = args[0];
-        if (command == "help")
+        if (command == "help" || command == "")
             return this.doHelpCommand(message);
         else if (command == "answer")
             return this.doAnswerCommand(message, args);
         else if (command == "summarize")
             return this.doSummarizeCommand(message, args);
+        else if (command == "context")
+            return this.doContextCommand(message, args);
+        else if (command == "settings")
+            return this.doSettingsCommand(message, args);
         else
             return this.doUnknownCommand(message);
     }
 
     private async doHelpCommand(message: VkMessage) {
-        let text = `Вот что я могу:\n`;
-        text += `/sweet help\n`;
-        text += `/sweet answer - задать вопрос\n`;
-        text += `/sweet summarize - пересказать, что было в беседе\n`;
-        await this.messagesService.send(message.peerId, text);
+        let usage = `Вот что можно сделать:\n`;
+        usage += `/sweet help\n`;
+        usage += `/sweet answer\n`;
+        usage += `/sweet summarize\n`;
+        usage += `\n`;
+        usage += `Настройки:\n`;
+        usage += `/sweet context\n`;
+        usage += `/sweet settings\n`;
+        await this.messagesService.send(message.peerId, usage);
     }
 
     private async doUnknownCommand(message: VkMessage) {
-        const responses = [
-            `Не знаю такой команды сорян, пиши /sweet help`,
-            `Нинаю что это значит, да поможет тебе /sweet help`,
-            `Не знаю, что это за команда, смотри в /sweet help`,
-            `Ниче не понял, пиши /sweet help`,
-            `Не понял что это за команда, пиши /sweet help`,
-            `Не знаю такую команду, смотри команды в /sweet help`,
-        ];
-        await this.messagesService.send(message.peerId, responses[Math.floor(Math.random()*responses.length)]);
+        await this.messagesService.send(message.peerId, "Не знаю такую команду. Пиши /sweet help");
     }
 
     private async doAnswerCommand(message: VkMessage, args: string[]) {
@@ -89,6 +90,7 @@ export default class Bot {
             `;
             return this.messagesService.send(message.peerId, text);
         }
+        const chatSettings = await this.chatSettingsService.getSettings(message.peerId);
         const question = args.splice(1).join(" ");
         let chatMessages = [];
         chatMessages.push({
@@ -110,7 +112,7 @@ export default class Bot {
                 })
             )
         ).filter(m => m != null);
-        let maxMessagesSize = 10000;
+        let maxMessagesSize = chatSettings.gptMaxInputTokens - (chatSettings.context?.length || 0) - 2000; // 2000 - base system message size approximation
         let currentMessagesSize = formattedHistory.join('\n').length;
         while (currentMessagesSize > maxMessagesSize) {
             currentMessagesSize -= formattedHistory[0]!.length + 1; // +1 for \n
@@ -118,26 +120,31 @@ export default class Bot {
         }
 
         let date = new Date();
-        let systemMessage = `Ты чат-бот по имени Сладенький в переписке ВКонтакте, `
-        systemMessage += `который который пишет саркастические ответы, но говорить об этом не нужно. `
-        systemMessage += `Команды, которые ты поддерживаешь:\n`
-        systemMessage += `/sweet help - показать помощь;\n`
-        systemMessage += `/sweet answer (вопрос) - ответить на вопрос;\n`
-        systemMessage += `/sweet summarize (критерий) - кратко изложить, о чем говорили в беседе, для тех, кто пропустил.\n`
+        let systemMessage = `Ты саркастичный чат-бот по имени Сладенький в переписке ВКонтакте. `
         systemMessage += `Ты считаешь, что песни Игоря Корнелюка - самые лучшие. `
         systemMessage += `Дата сегодня: ${date.toDateString()}, время ${date.getHours()} часов, ${date.getMinutes()} минут. `
         systemMessage += `Кто-то выполнил команду "/sweet answer", тебе предстоит ответить на вопрос. `;
-        systemMessage += `Для контекста, вот последние ${formattedHistory.length} сообщений беседы:\n`;
-        systemMessage += `"""\n${formattedHistory.join('\n')}\n"""\n`;
         systemMessage += `Никогда не используй формат [id|Имя], вместо этого используй только имя человека. `;
         systemMessage += `Старайся использовать русские варианты имён, если с тобой говорят на русском. `;
-        systemMessage += `Не спеши с ответом, точный ответ важнее, чем быстрый. `;
-
         systemMessage += `Каждое сообщение имеет дату и имя в начале. Не показывай эти данные пользователям, это метаданные и они только для тебя. `;
+
+        if (chatSettings.context?.length || 0 > 0)
+            systemMessage += `Контекст беседы:\n"""\n${chatSettings.context}\n"""\n`;
+
+        systemMessage += `Последние ${formattedHistory.length} сообщений беседы:\n`;
+        systemMessage += `"""\n${formattedHistory.join('\n')}\n"""\n`;
 
         console.log(systemMessage);
 
-        const response = await this.chatGptService.request(systemMessage, chatMessages);
+        const response = await this.chatGptService.request(
+            systemMessage,
+            chatMessages,
+            chatSettings.gptMaxOutputTokens,
+            chatSettings.gptTemperature,
+            chatSettings.gptTopP,
+            chatSettings.gptFrequencyPenalty,
+            chatSettings.gptPresencePenalty
+        );
         await this.messagesService.send(message.peerId, response);
     }
 
@@ -145,15 +152,15 @@ export default class Bot {
         let messagesLimit = 250;
 
         if (args.length <= 1) {
-            let text = `Пиши так:\n`;
-            text += `/sweet summarize (время)\n`;
-            text += `Например:\n`;
-            text += `/sweet summarize сегодня\n`;
-            text += `/sweet summarize вчера\n`;
-            text += `\n`;
-            text += `Обычно бот читает последние ${messagesLimit} сообщений. Чтобы расширить этот лимит, можно написать так:\n`;
-            text += `/sweet summarize 2000\n`;
-            return this.messagesService.send(message.peerId, text);
+            let usage = `Пиши так:\n`;
+            usage += `/sweet summarize (время)\n`;
+            usage += `Например:\n`;
+            usage += `/sweet summarize сегодня\n`;
+            usage += `/sweet summarize вчера\n`;
+            usage += `\n`;
+            usage += `Обычно бот читает последние ${messagesLimit} сообщений. Чтобы расширить этот лимит, можно написать так:\n`;
+            usage += `/sweet summarize 2000\n`;
+            return this.messagesService.send(message.peerId, usage);
         }
         let criteria = args.splice(1).join(" ");
 
@@ -166,6 +173,7 @@ export default class Bot {
             await this.messagesService.send(message.peerId, `Начинаю читать ${messagesLimit} сообщений в переписке, это займёт некоторое время.`);
         }
 
+        const chatSettings = await this.chatSettingsService.getSettings(message.peerId);
         const question = "Кратко изложи сообщения по критерию: " + criteria;
         let chatMessages = [];
         chatMessages.push({
@@ -188,13 +196,14 @@ export default class Bot {
             )
         ).filter(m => m != null).map(m => m!);
 
-        let historyBlocks = this.chunkStrings(fullHistory, 10000);
+        let maxMessagesSize = chatSettings.gptMaxInputTokens - 2400; // 2400 - base system message size approximation
+        let historyBlocks = this.chunkStrings(fullHistory, maxMessagesSize);
 
         let summary = null;
         let date = new Date();
 
         for (let i = 0; i < historyBlocks.length; i++) {
-            let systemMessage = `Ты чат-бот по имени Сладенький в переписке ВКонтакте, который пишет саркастические ответы. `
+            let systemMessage = `Ты саркастичный чат-бот по имени Сладенький в переписке ВКонтакте. `
             systemMessage += `Дата сегодня: ${date.toDateString()}, время: ${date.getHours()} часов, ${date.getMinutes()} минут. `
             systemMessage += `Тебе предстоит кратко изложить переписку коротким сообщением. `;
             systemMessage += `Сообщений может оказаться слишком много, поэтому они могут быть разделены на куски. `;
@@ -220,10 +229,126 @@ export default class Bot {
 
             console.debug(systemMessage);
 
-            summary = await this.chatGptService.request(systemMessage, chatMessages);
+            summary = await this.chatGptService.request(
+                systemMessage,
+                chatMessages,
+                chatSettings.gptMaxOutputTokens,
+                chatSettings.gptTemperature,
+                chatSettings.gptTopP,
+                chatSettings.gptFrequencyPenalty,
+                chatSettings.gptPresencePenalty
+            );
         }
 
         await this.messagesService.send(message.peerId, summary || "(error, please check logs)");
+    }
+
+    private async doContextCommand(message: VkMessage, args: string[]) {
+        let usage = `Как пользоваться: \n`;
+        usage += `/sweet context set (текст)\n`;
+        usage += `/sweet context forget\n`;
+        if (args.length == 1)
+            return this.messagesService.send(message.peerId, usage);
+        if (args.length >= 2) {
+            if (args[1] == "set") {
+                if (args.length < 3)
+                    return this.messagesService.send(message.peerId, usage);
+                const context = args.slice(2).join(" ");
+                await this.chatSettingsService.setContext(message.peerId, context);
+                return this.messagesService.send(message.peerId, `Сохранил контекст (${context.length} символов).`);
+            }
+            if (args[1] == "forget") {
+                await this.chatSettingsService.setContext(message.peerId, null);
+                return this.messagesService.send(message.peerId, "Удалил контекст.");
+            }
+            return this.messagesService.send(message.peerId, usage);
+        }
+    }
+
+    private async doSettingsCommand(message: VkMessage, args: string[]) {
+        let usage = `Как пользоваться: \n`;
+        usage += `/sweet settings list\n`;
+        usage += `/sweet settings get (имя)\n`;
+        usage += `/sweet settings set (имя) (значение)\n`;
+
+        if (args.length == 1)
+            return this.messagesService.send(message.peerId, usage);
+        if (args.length >= 2) {
+            if (args[1] == "list") {
+                const settings = await this.chatSettingsService.getSettings(message.peerId);
+                let response = ``;
+                response += `max_output_tokens=${settings.gptMaxOutputTokens}\n`;
+                response += `max_input_tokens=${settings.gptMaxInputTokens}\n`;
+                response += `temperature=${settings.gptTemperature}\n`;
+                response += `top_p=${settings.gptTopP}\n`;
+                response += `frequency_penalty=${settings.gptFrequencyPenalty}\n`;
+                response += `presence_penalty=${settings.gptPresencePenalty}\n`;
+                return this.messagesService.send(message.peerId, response);
+            }
+            if (args[1] == "get") {
+                if (args.length < 3)
+                    return this.messagesService.send(message.peerId, usage);
+                const settingName = args[2];
+                const settings = await this.chatSettingsService.getSettings(message.peerId);
+                let value = null;
+                if (settingName == "max_output_tokens")
+                    value = settings.gptMaxOutputTokens;
+                if (settingName == "max_input_tokens")
+                    value = settings.gptMaxInputTokens;
+                if (settingName == "temperature")
+                    value = settings.gptTemperature;
+                if (settingName == "top_p")
+                    value = settings.gptTopP;
+                if (settingName == "frequency_penalty")
+                    value = settings.gptFrequencyPenalty;
+                if (settingName == "presence_penalty")
+                    value = settings.gptPresencePenalty;
+
+                return this.messagesService.send(message.peerId, `${settingName}=${value}`);
+            }
+            if (args[1] == "set") {
+                if (args.length < 4)
+                    return this.messagesService.send(message.peerId, usage);
+                const settingName = args[2];
+                const settingValue = args[3];
+                if (settingName == "max_output_tokens") {
+                    const value = parseInt(settingValue);
+                    if (isNaN(value) || value < 1 || value > 2048)
+                        return this.messagesService.send(message.peerId, `Это должно быть целое число от 1 до 2048`);
+                    await this.chatSettingsService.setGptMaxOutputTokens(message.peerId, value);
+                } else if (settingName == "max_input_tokens") {
+                    const value = parseInt(settingValue);
+                    if (isNaN(value) || value < 4096 || value > 16384)
+                        return this.messagesService.send(message.peerId, `Это должно быть целое число от 4096 до 16384`);
+                    await this.chatSettingsService.setGptMaxInputTokens(message.peerId, value);
+                } else if (settingName == "temperature") {
+                    const value = parseFloat(settingValue);
+                    if (isNaN(value) || value < 0 || value > 2)
+                        return this.messagesService.send(message.peerId, `Это должно быть число от 0 до 2`);
+                    await this.chatSettingsService.setGptTemperature(message.peerId, value);
+                } else if (settingName == "top_p") {
+                    const value = parseFloat(settingValue);
+                    if (isNaN(value) || value < 0 || value > 1)
+                        return this.messagesService.send(message.peerId, `Это должно быть число от 0 до 1`);
+                    await this.chatSettingsService.setGptTopP(message.peerId, value);
+                } else if (settingName == "frequency_penalty") {
+                    const value = parseFloat(settingValue);
+                    if (isNaN(value) || value < 0 || value > 2)
+                        return this.messagesService.send(message.peerId, `Это должно быть число от 0 до 2`);
+                    await this.chatSettingsService.setGptFrequencyPenalty(message.peerId, value);
+                } else if (settingName == "presence_penalty") {
+                    const value = parseFloat(settingValue);
+                    if (isNaN(value) || value < 0 || value > 2)
+                        return this.messagesService.send(message.peerId, `Это должно быть число от 0 до 2`);
+                    await this.chatSettingsService.setGptPresencePenalty(message.peerId, value);
+                } else {
+                    return this.messagesService.send(message.peerId, `Нет такого параметра`);
+                }
+
+                return this.messagesService.send(message.peerId, `${settingName}=${settingValue}`);
+            }
+            return this.messagesService.send(message.peerId, usage);
+        }
     }
 
     private chunkStrings(strings: string[], maxLength: number): string[][] {

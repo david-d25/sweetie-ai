@@ -1,5 +1,9 @@
 import {VK} from "vk-io";
-import {VkUser} from "./VkUser";
+
+export type VkUser = {
+    id: number,
+    firstName: string
+}
 
 const CACHE_TTL = 15 * 60 * 1000;
 

@@ -1,12 +1,12 @@
 import {Client} from 'pg';
-import {VkMessage} from "./VkMessage";
+import {VkMessage} from "service/VkMessagesService";
 
 export default class VkMessagesOrmService {
     constructor(
         private client: Client
     ) {}
 
-    start() {
+    async start() {
         return this.client.query(`
             create table if not exists vk_messages (
                 conversation_message_id bigint,

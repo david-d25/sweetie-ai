@@ -15,7 +15,12 @@ export default class ChatGptService {
             role: string,
             name?: string,
             content: string
-        }[]
+        }[],
+        maxTokens: number,
+        temperature: number,
+        topP: number,
+        frequencyPenalty: number,
+        presencePenalty: number
     ): Promise<string> {
         const messages = [];
 
@@ -35,8 +40,11 @@ export default class ChatGptService {
         const body: any = {};
         body['messages'] = messages;
         body['model'] = 'gpt-3.5-turbo-16k';
-        body['max_tokens'] = 512;
-        body['temperature'] = 0.8;
+        body['max_tokens'] = maxTokens;
+        body['temperature'] = temperature;
+        body['top_p'] = topP;
+        body['frequency_penalty'] = frequencyPenalty;
+        body['presence_penalty'] = presencePenalty;
         body['n'] = 1;
 
         const key = this.config.getEnv('OPENAI_SECRET_KEY');

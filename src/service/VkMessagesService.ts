@@ -1,6 +1,13 @@
-import {VkMessage} from "./VkMessage";
 import {VK} from "vk-io";
-import VkMessagesOrmService from "./VkMessagesOrmService";
+import VkMessagesOrmService from "orm/VkMessagesOrmService";
+
+export type VkMessage = {
+    conversationMessageId: number;
+    peerId: number;
+    fromId: number;
+    timestamp: number;
+    text: string | null;
+}
 
 export default class VkMessagesService {
     constructor (

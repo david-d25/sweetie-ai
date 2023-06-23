@@ -1,11 +1,13 @@
 import {VK} from "vk-io";
 import {Client} from 'pg';
-import VkMessagesService from "./VkMessagesService";
-import VkUsersService from "./VkUsersService";
+import VkMessagesService from "./service/VkMessagesService";
+import VkUsersService from "./service/VkUsersService";
 import Bot from "./Bot";
-import ChatGptService from "./ChatGptService";
-import ConfigService from "./ConfigService";
-import VkMessagesOrmService from "./VkMessagesOrmService";
+import ChatGptService from "./service/ChatGptService";
+import ConfigService from "./service/ConfigService";
+import VkMessagesOrmService from "./orm/VkMessagesOrmService";
+import ChatSettingsOrmService from "./orm/ChatSettingsOrmService";
+import ChatSettingsService from "./service/ChatSettingsService";
 
 const config = new ConfigService();
 
@@ -33,6 +35,9 @@ client.connect((error: any) => {
 });
 
 async function ready() {
+    const chatSettingsOrmService = new ChatSettingsOrmService(client);
+    await chatSettingsOrmService.start();
+
     const messagesOrmService = new VkMessagesOrmService(client);
     await messagesOrmService.start();
 
@@ -41,6 +46,7 @@ async function ready() {
 
     const usersService = new VkUsersService(vk);
     const chatGptService = new ChatGptService(config);
+    const chatSettingsService = new ChatSettingsService(chatSettingsOrmService);
 
-    new Bot(vk, messagesService, usersService, chatGptService, config).start();
+    new Bot(vk, messagesService, usersService, chatGptService, config, chatSettingsService).start();
 }
