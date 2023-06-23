@@ -5,7 +5,7 @@ export default class ChatSettingsOrmService {
         private client: Client
     ) {}
 
-    // Good sample: t=1.75, tp=0.92, f=1.75, pp=1.7
+    // Good sample: t=1.75, tp=0.92, f=0.72, pp=1.7
     async start() {
         return this.client.query(`
             create table if not exists chat_settings (
