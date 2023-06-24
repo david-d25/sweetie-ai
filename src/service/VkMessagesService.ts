@@ -1,5 +1,9 @@
 import {VK} from "vk-io";
 import VkMessagesOrmService from "orm/VkMessagesOrmService";
+import fs from "fs";
+import axios from "axios";
+import FormData from "form-data";
+import {response} from "../template/HelpCommandTemplates";
 
 export type VkMessage = {
     conversationMessageId: number;
@@ -73,12 +77,54 @@ export default class VkMessagesService {
         return (await this.messagesOrmService.getMessagesByPeerIdWithLimitSortedByTimestamp(peerId, count)).reverse();
     }
 
-    async send(toId: number, message: string) {
-        await this.vk.api.messages.send({
+    async send(toId: number, message: string, attachedImageUrls: string[] = []) {
+        let requestBody = {
             peer_id: toId,
             random_id: Math.floor(Math.random()*10000000),
-            message
-        }).then(async (res) => {
+            message,
+            attachment: undefined as string | undefined
+        };
+
+        try {
+            if (attachedImageUrls.length > 0) {
+                const uploadServerResponse = await this.vk.api.photos.getMessagesUploadServer({});
+                const uploadServerUrl = uploadServerResponse.upload_url;
+
+                const attachments = [];
+                for (const imageUrl of attachedImageUrls) {
+                    let formData = new FormData();
+                    const downloadResponse = await axios({
+                        method: 'GET',
+                        url: imageUrl,
+                        responseType: 'arraybuffer',
+                    });
+                    const imageData = downloadResponse.data;
+                    formData.append('photo', Buffer.from(imageData), {
+                        filename: 'image.jpg',
+                        contentType: 'image/jpeg',
+                    });
+                    const response = await axios.post(uploadServerUrl, formData, {
+                        headers: {
+                            ...formData.getHeaders(),
+                        },
+                    });
+                    const saveResponse = await this.vk.api.photos.saveMessagesPhoto({
+                        server: response.data.server,
+                        photo: response.data.photo,
+                        hash: response.data.hash
+                    });
+                    const photo = saveResponse[0];
+                    attachments.push(`photo${photo.owner_id}_${photo.id}`);
+                }
+
+                requestBody.attachment = attachments.join(',');
+            }
+        } catch (e) {
+            console.error('Failed to attach image', e);
+            requestBody.message += "\n\n(не получилось прикрепить картинку)";
+        }
+
+        await this.vk.api.messages.send(requestBody).then(async (res) => {
             await this.messagesOrmService.addMessage({
                 fromId: 0,
                 conversationMessageId: res,

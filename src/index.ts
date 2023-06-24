@@ -8,6 +8,7 @@ import ConfigService from "./service/ConfigService";
 import VkMessagesOrmService from "./orm/VkMessagesOrmService";
 import ChatSettingsOrmService from "./orm/ChatSettingsOrmService";
 import ChatSettingsService from "./service/ChatSettingsService";
+import ImageGenerationService from "./service/ImageGenerationService";
 
 const config = new ConfigService();
 
@@ -46,7 +47,16 @@ async function ready() {
 
     const usersService = new VkUsersService(vk);
     const chatGptService = new ChatGptService(config);
+    const imageGenerationService = new ImageGenerationService(config);
     const chatSettingsService = new ChatSettingsService(chatSettingsOrmService);
 
-    new Bot(vk, messagesService, usersService, chatGptService, config, chatSettingsService).start();
+    new Bot(
+        vk,
+        messagesService,
+        usersService,
+        chatGptService,
+        config,
+        chatSettingsService,
+        imageGenerationService
+    ).start();
 }

@@ -1,5 +1,5 @@
 import axios, {AxiosResponse} from "axios";
-import ConfigService from "./ConfigService";
+import ConfigService from "service/ConfigService";
 
 export default class ChatGptService {
     constructor(

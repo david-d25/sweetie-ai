@@ -4,6 +4,9 @@ import VkUsersService from "service/VkUsersService";
 import ChatGptService from "service/ChatGptService";
 import ConfigService from "service/ConfigService";
 import ChatSettingsService from "service/ChatSettingsService";
+import {response as helpResponse} from "./template/HelpCommandTemplates"
+import * as AnswerCommandTemplates from "./template/AnswerCommandTemplates";
+import ImageGenerationService from "service/ImageGenerationService";
 
 export default class Bot {
     constructor (
@@ -12,7 +15,8 @@ export default class Bot {
         private usersService: VkUsersService,
         private chatGptService: ChatGptService,
         private config: ConfigService,
-        private chatSettingsService: ChatSettingsService
+        private chatSettingsService: ChatSettingsService,
+        private imageGenerationService: ImageGenerationService
     ) {}
 
     // private groupId = +this.config.getEnv('VK_GROUP_ID')!
@@ -64,15 +68,7 @@ export default class Bot {
     }
 
     private async doHelpCommand(message: VkMessage) {
-        let usage = `Вот что можно сделать:\n`;
-        usage += `/sweet help\n`;
-        usage += `/sweet answer\n`;
-        usage += `/sweet summarize\n`;
-        usage += `\n`;
-        usage += `Настройки:\n`;
-        usage += `/sweet context\n`;
-        usage += `/sweet settings\n`;
-        await this.messagesService.send(message.peerId, usage);
+        await this.messagesService.send(message.peerId, helpResponse);
     }
 
     private async doUnknownCommand(message: VkMessage) {
@@ -83,7 +79,7 @@ export default class Bot {
         if (args.length <= 1) {
             const text = `
             Пиши так:
-            /sweet answer (твой вопрос)
+            /sweet answer (вопрос)
             
             Например:
             /sweet answer ${this.getRandomQuestion()}
@@ -98,45 +94,36 @@ export default class Bot {
             content: question
         });
 
-        let history = await this.messagesService.getHistory(message.peerId, 250);
+        let history = await this.messagesService.getHistory(message.peerId, 300);
         let formattedHistory = (
             await Promise.all(
                 history.map(async m => {
                     if (m.text == null)
                         return null;
                     const date = new Date(m.timestamp * 1000);
-                    let result = `[${date.toDateString()} ${date.getHours()}:${date.getMinutes()}] `;
+                    let result = `[${date.getDate().toString()}/${(date.getMonth() + 1).toString()}/${date.getFullYear().toString()} ${date.getHours()}:${date.getMinutes()}] `;
                     result += ((await this.usersService.getUser(m.fromId))?.firstName || "(unknown)") + ": ";
                     result += m.text;
                     return result;
                 })
             )
-        ).filter(m => m != null);
-        let maxMessagesSize = chatSettings.gptMaxInputTokens - (chatSettings.context?.length || 0) - 2000; // 2000 - base system message size approximation
+        ).filter(m => m != null) as string[];
+        let maxMessagesSize = chatSettings.gptMaxInputTokens - (chatSettings.context?.length || 0) - AnswerCommandTemplates.getBaseTemplateSize();
         let currentMessagesSize = formattedHistory.join('\n').length;
         while (currentMessagesSize > maxMessagesSize) {
             currentMessagesSize -= formattedHistory[0]!.length + 1; // +1 for \n
             formattedHistory.shift();
         }
 
-        let date = new Date();
-        let systemMessage = `Ты саркастичный чат-бот по имени Сладенький в переписке ВКонтакте. `
-        systemMessage += `Ты считаешь, что песни Игоря Корнелюка - самые лучшие. `
-        systemMessage += `Дата сегодня: ${date.toDateString()}, время ${date.getHours()} часов, ${date.getMinutes()} минут. `
-        systemMessage += `Кто-то выполнил команду "/sweet answer", тебе предстоит ответить на вопрос. `;
-        systemMessage += `Никогда не используй формат [id|Имя], вместо этого используй только имя человека. `;
-        systemMessage += `Старайся использовать русские варианты имён, если с тобой говорят на русском. `;
-        systemMessage += `Каждое сообщение имеет дату и имя в начале. Не показывай эти данные пользователям, это метаданные и они только для тебя. `;
+        let systemMessage = AnswerCommandTemplates.generateSystemMessage(
+            new Date(),
+            chatSettings.context,
+            formattedHistory
+        );
 
-        if (chatSettings.context?.length || 0 > 0)
-            systemMessage += `Контекст беседы:\n"""\n${chatSettings.context}\n"""\n`;
+        console.log("System message: " + systemMessage.replaceAll("\n", "\\n"));
 
-        systemMessage += `Последние ${formattedHistory.length} сообщений беседы:\n`;
-        systemMessage += `"""\n${formattedHistory.join('\n')}\n"""\n`;
-
-        console.log(systemMessage);
-
-        const response = await this.chatGptService.request(
+        let response = await this.chatGptService.request(
             systemMessage,
             chatMessages,
             chatSettings.gptMaxOutputTokens,
@@ -145,7 +132,32 @@ export default class Bot {
             chatSettings.gptFrequencyPenalty,
             chatSettings.gptPresencePenalty
         );
-        await this.messagesService.send(message.peerId, response);
+
+        const imageRequests = [...response.matchAll(/{@imgreq:(.*?)}/g)].map(item => item[1]);
+        const imageUrls = [];
+
+        console.log("Raw message: " + response.replaceAll("\n", "\\n"));
+
+        let errors = false;
+        for (let imageRequest of imageRequests) {
+            const url = await this.imageGenerationService.request(imageRequest)
+            if (url != null)
+                imageUrls.push(url);
+            else
+                errors = true;
+        }
+
+        response = response.replaceAll(/{@imgreq:(.*?)}/g, "");
+        if (errors) {
+            response += "\n\n(некоторые картинки не удалось сгенерировать)";
+        }
+
+        try {
+            await this.messagesService.send(message.peerId, response, imageUrls);
+        } catch (e) {
+            console.error(e);
+            await this.messagesService.send(message.peerId, "(что-то сломалось, проверьте логи)");
+        }
     }
 
     private async doSummarizeCommand(message: VkMessage, args: string[]) {
@@ -174,7 +186,7 @@ export default class Bot {
         }
 
         const chatSettings = await this.chatSettingsService.getSettings(message.peerId);
-        const question = "Кратко изложи сообщения по критерию: " + criteria;
+        const question = "Перескажи сообщения в соответствии с вопросом или критерием: " + criteria;
         let chatMessages = [];
         chatMessages.push({
             role: "user",
