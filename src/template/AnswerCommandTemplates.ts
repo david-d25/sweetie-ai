@@ -10,7 +10,7 @@ For context, VK API provided the last {messages_num} messages from chat:
 """
 {messages}
 """
-You can generate images on request by adding "{@imgreq:your prompt}" at the beginning of the message.
+You can generate images on request by adding "{@imgreq:your prompt}" at the end of the message.
 The prompt itself must be in English, but you can use Russian in the description.
 Examples:
 """
