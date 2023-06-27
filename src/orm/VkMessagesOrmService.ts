@@ -16,11 +16,17 @@ export default class VkMessagesOrmService {
                 text text,
                 primary key (conversation_message_id, peer_id)
             );
-        `).then(
-            () => this.client.query(`
+        `).then(() => {
+            this.client.query(`
                 create index if not exists timestamp_index on vk_messages(timestamp);
-            `)
-        );
+            `);
+            this.client.query(`
+                create index if not exists peer_id_index on vk_messages(peer_id);
+            `);
+            this.client.query(`
+                create index if not exists peer_id_timestamp_index ON vk_messages(peer_id, timestamp desc);
+            `);
+        });
     }
 
     async addMessage(message: VkMessage) {

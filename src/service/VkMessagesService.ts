@@ -82,7 +82,7 @@ export default class VkMessagesService {
             peer_id: toId,
             random_id: Math.floor(Math.random()*10000000),
             message,
-            attachment: undefined as string | undefined
+            attachment: undefined as object | undefined
         };
 
         try {
@@ -90,34 +90,19 @@ export default class VkMessagesService {
                 const uploadServerResponse = await this.vk.api.photos.getMessagesUploadServer({});
                 const uploadServerUrl = uploadServerResponse.upload_url;
 
-                const attachments = [];
                 for (const imageUrl of attachedImageUrls) {
-                    let formData = new FormData();
-                    const downloadResponse = await axios({
-                        method: 'GET',
-                        url: imageUrl,
-                        responseType: 'arraybuffer',
-                    });
-                    const imageData = downloadResponse.data;
-                    formData.append('photo', Buffer.from(imageData), {
-                        filename: 'image.jpg',
-                        contentType: 'image/jpeg',
-                    });
-                    const response = await axios.post(uploadServerUrl, formData, {
-                        headers: {
-                            ...formData.getHeaders(),
-                        },
-                    });
-                    const saveResponse = await this.vk.api.photos.saveMessagesPhoto({
-                        server: response.data.server,
-                        photo: response.data.photo,
-                        hash: response.data.hash
-                    });
-                    const photo = saveResponse[0];
-                    attachments.push(`photo${photo.owner_id}_${photo.id}`);
+                    requestBody.attachment = await this.vk.upload.messagePhoto({
+                        peer_id: toId,
+                        source: {
+                            uploadUrl: uploadServerUrl,
+                            values: attachedImageUrls.map(url => {
+                                return {
+                                    value: url
+                                }
+                            })
+                        }
+                    })
                 }
-
-                requestBody.attachment = attachments.join(',');
             }
         } catch (e) {
             console.error('Failed to attach image', e);

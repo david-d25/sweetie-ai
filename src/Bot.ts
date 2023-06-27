@@ -20,7 +20,7 @@ export default class Bot {
     ) {}
 
     // private groupId = +this.config.getEnv('VK_GROUP_ID')!
-    private devLock = !!this.config.getEnv('DEV_LOCK')
+    private devLock = this.config.getEnv('DEV_LOCK') == 'true'
 
     start() {
         this.action().then(_ => {});
@@ -94,6 +94,7 @@ export default class Bot {
             content: question
         });
 
+        console.log(`[${message.peerId}] Retrieving history...`);
         let history = await this.messagesService.getHistory(message.peerId, 300);
         let formattedHistory = (
             await Promise.all(
@@ -115,14 +116,19 @@ export default class Bot {
             formattedHistory.shift();
         }
 
+        console.log(`[${message.peerId}] Will pass ${formattedHistory.length} messages for context`);
+
         let systemMessage = AnswerCommandTemplates.generateSystemMessage(
             new Date(),
             chatSettings.context,
             formattedHistory
         );
 
-        console.log("System message: " + systemMessage.replaceAll("\n", "\\n"));
+        console.log(`[${message.peerId}] Length of system message: ${systemMessage.length}`);
 
+        // console.log("System message: " + systemMessage.replaceAll("\n", "\\n"));
+
+        console.log(`[${message.peerId}] Requesting response from GPT...`);
         let response = await this.chatGptService.request(
             systemMessage,
             chatMessages,
@@ -136,10 +142,14 @@ export default class Bot {
         const imageRequests = [...response.matchAll(/{@imgreq:(.*?)}/g)].map(item => item[1]);
         const imageUrls = [];
 
-        console.log("Raw message: " + response.replaceAll("\n", "\\n"));
+        console.log(`[${message.peerId}] Got GPT response with ${imageRequests.length} image generation requests`);
+
+        // console.log("Raw message: " + response.replaceAll("\n", "\\n"));
 
         let errors = false;
-        for (let imageRequest of imageRequests) {
+        for (let i in imageRequests) {
+            const imageRequest = imageRequests[i];
+            console.log(`[${message.peerId}] Requesting image generation ${+i+1}/${imageRequests.length}: ${imageRequest.replaceAll("\n", "\\n")}`);
             const url = await this.imageGenerationService.request(imageRequest)
             if (url != null)
                 imageUrls.push(url);
@@ -152,6 +162,7 @@ export default class Bot {
             response += "\n\n(некоторые картинки не удалось сгенерировать)";
         }
 
+        console.log(`[${message.peerId}] Sending response...`);
         try {
             await this.messagesService.send(message.peerId, response, imageUrls);
         } catch (e) {
