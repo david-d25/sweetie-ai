@@ -96,14 +96,21 @@ export default class Bot {
 
         console.log(`[${message.peerId}] Retrieving history...`);
         let history = await this.messagesService.getHistory(message.peerId, 300);
+        const userIds = new Set(history.map(m => +m.fromId));
+        const userById = await this.usersService.getUsers([...userIds]);
+        console.log(userById);
         let formattedHistory = (
             await Promise.all(
                 history.map(async m => {
                     if (m.text == null)
                         return null;
+                    const user = userById.get(+m.fromId)!;
+                    console.log(m);
+                    console.log(user);
+                    const displayName = user ? (user.firstName + " " + user.lastName) : "(unknown)";
                     const date = new Date(m.timestamp * 1000);
                     let result = `[${date.getDate().toString()}/${(date.getMonth() + 1).toString()}/${date.getFullYear().toString()} ${date.getHours()}:${date.getMinutes()}] `;
-                    result += ((await this.usersService.getUser(m.fromId))?.firstName || "(unknown)") + ": ";
+                    result += displayName + ": ";
                     result += m.text;
                     return result;
                 })
