@@ -130,8 +130,6 @@ export default class Bot {
 
         console.log(`[${message.peerId}] Length of system message: ${systemMessage.length}`);
 
-        // console.log("System message: " + systemMessage.replaceAll("\n", "\\n"));
-
         console.log(`[${message.peerId}] Requesting response from GPT...`);
         let response = await this.chatGptService.request(
             systemMessage,
@@ -147,8 +145,6 @@ export default class Bot {
         const imageUrls = [];
 
         console.log(`[${message.peerId}] Got GPT response with ${imageRequests.length} image generation requests`);
-
-        // console.log("Raw message: " + response.replaceAll("\n", "\\n"));
 
         let errors = false;
         for (let i in imageRequests) {
@@ -196,7 +192,7 @@ export default class Bot {
             criteria = "(no criteria, use all messages)";
         }
 
-        if (messagesLimit > 500) {
+        if (messagesLimit > 400) {
             await this.messagesService.send(message.peerId, `Начинаю читать ${messagesLimit} сообщений в переписке, это займёт некоторое время.`);
         }
 
@@ -237,8 +233,6 @@ export default class Bot {
             systemMessage += `Сейчас обрабатываем часть ${i + 1} из ${historyBlocks.length}. `;
             systemMessage += `Пользователь хочет получить изложение только сообщений, относящихся к его запросу. `;
             systemMessage += `Например, запрос "сегодня" значит, что надо пересказать только сегодняшние сообщения. `;
-            systemMessage += `Запрос "о чем был срач?" или "о чем спорили?" может означать, что надо просканировать историю сообщений и изложить, о чём вёлся спор. `;
-            systemMessage += `Если не получается найти спор, то найди что-нибудь, что больше всего на него похоже и изложи это. `;
             systemMessage += `Критерий: """${criteria}""". `;
             systemMessage += `Все остальные сообщения надо игнорировать и не включать в изложение. `;
             systemMessage += `Изложение текущего блока надо комбинировать с изложением предыдущего блока сообщений. `;

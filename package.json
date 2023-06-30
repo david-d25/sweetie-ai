@@ -24,7 +24,7 @@
     "vk-io": "^4.8.3"
   },
   "devDependencies": {
-    "@types/node": "^18.16.0",
+    "@types/node": "^18.16.18",
     "@types/pg": "^8.10.2",
     "ts-loader": "^9.4.3",
     "ts-node-dev": "^2.0.0"

@@ -1,9 +1,5 @@
 import {VK} from "vk-io";
 import VkMessagesOrmService from "orm/VkMessagesOrmService";
-import fs from "fs";
-import axios from "axios";
-import FormData from "form-data";
-import {response} from "../template/HelpCommandTemplates";
 
 export type VkMessage = {
     conversationMessageId: number;
@@ -23,7 +19,7 @@ export default class VkMessagesService {
 
     start() {
         this.vk.updates.start().then(() => {
-            console.log("Started");
+            console.log("Started VK messages long polling");
         }).catch(error => {
             console.error('Error starting Long Polling:', error);
         });
