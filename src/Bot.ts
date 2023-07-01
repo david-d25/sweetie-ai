@@ -215,7 +215,7 @@ export default class Bot {
             prompt = prompt.slice(1, prompt.length - 1); // remove quotes
 
             console.log(`[${message.peerId}] Downloading image...`)
-            axios({
+            await axios({
                 url: photoAttachment.largeSizeUrl,
                 responseType: 'arraybuffer'
             })
@@ -271,14 +271,12 @@ export default class Bot {
                 .then(async buffer => {
                     // fs.writeFileSync("test.png", buffer);
                     console.log(`[${message.peerId}] Sending image editing request...`)
-                    attachedImagesUrls.push(this.imageGenerationService.editImage(buffer, prompt));
+                    const result = await this.imageGenerationService.editImage(buffer, prompt);
+                    if (result != null)
+                        attachedImagesUrls.push(result);
+                    else
+                        errors = true;
                 });
-
-            const url = await this.imageGenerationService.generateImage(request)
-            if (url != null)
-                attachedImagesUrls.push(url);
-            else
-                errors = true;
         }
 
         response = response.replaceAll(/{@imgreq:(.*?)}/g, "");
