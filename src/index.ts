@@ -2,33 +2,40 @@ import {VK} from "vk-io";
 import {Client} from 'pg';
 import VkMessagesService from "./service/VkMessagesService";
 import VkUsersService from "./service/VkUsersService";
-import Bot from "./Bot";
+import BotService from "./service/BotService";
 import ChatGptService from "./service/ChatGptService";
 import ConfigService from "./service/ConfigService";
 import VkMessagesOrmService from "./orm/VkMessagesOrmService";
 import ChatSettingsOrmService from "./orm/ChatSettingsOrmService";
 import ChatSettingsService from "./service/ChatSettingsService";
 import ImageGenerationService from "./service/ImageGenerationService";
+import {Context} from "./Context";
+import HelpCommand from "./command/HelpCommand";
+import AnswerCommand from "./command/AnswerCommand";
+import ContextCommand from "./command/ContextCommand";
+import SettingsCommand from "./command/SettingsCommand";
+import {exit} from 'node:process';
+import DisableCommand from "./command/DisableCommand";
 
-const config = new ConfigService();
+const configService = new ConfigService();
 
 const vk = new VK({
-    token: config.requireEnv('VK_ACCESS_TOKEN')!,
-    pollingGroupId: +config.requireEnv('VK_GROUP_ID')!
+    token: configService.requireEnv('VK_ACCESS_TOKEN')!,
+    pollingGroupId: +configService.requireEnv('VK_GROUP_ID')!
 });
 
-const client = new Client({
-    user: config.requireEnv('DB_USER'),
-    host: config.requireEnv('DB_HOST'),
-    database: config.requireEnv('DB_NAME'),
-    password: config.requireEnv('DB_PASSWORD'),
-    port: +(config.getEnv('DB_PORT') || 5432),
+const postgresClient = new Client({
+    user: configService.requireEnv('DB_USER'),
+    host: configService.requireEnv('DB_HOST'),
+    database: configService.requireEnv('DB_NAME'),
+    password: configService.requireEnv('DB_PASSWORD'),
+    port: +(configService.getEnv('DB_PORT') || 5432),
 });
 
-client.connect((error: any) => {
+postgresClient.connect((error: any) => {
     if (error) {
         console.error("Couldn't connect to database", error);
-        process.exit(1);
+        exit(1);
     } else {
         console.log("Connected to database");
         ready().then(ignored => {});
@@ -36,27 +43,29 @@ client.connect((error: any) => {
 });
 
 async function ready() {
-    const chatSettingsOrmService = new ChatSettingsOrmService(client);
-    await chatSettingsOrmService.start();
+    const context = new Context();
 
-    const messagesOrmService = new VkMessagesOrmService(client);
-    await messagesOrmService.start();
+    context.configService = configService;
+    context.postgresClient = postgresClient;
+    context.vk = vk;
 
-    const messagesService = new VkMessagesService(vk, messagesOrmService);
-    messagesService.start();
+    context.chatSettingsOrmService = new ChatSettingsOrmService(context);
+    context.vkMessagesOrmService = new VkMessagesOrmService(context);
+    context.vkMessagesService = new VkMessagesService(context);
+    context.vkUsersService = new VkUsersService(context);
+    context.chatGptService = new ChatGptService(context);
+    context.imageGenerationService = new ImageGenerationService(context);
+    context.chatSettingsService = new ChatSettingsService(context);
+    context.botService = new BotService(context);
 
-    const usersService = new VkUsersService(vk);
-    const chatGptService = new ChatGptService(config);
-    const imageGenerationService = new ImageGenerationService(config);
-    const chatSettingsService = new ChatSettingsService(chatSettingsOrmService);
+    context.ready();
 
-    new Bot(
-        vk,
-        messagesService,
-        usersService,
-        chatGptService,
-        config,
-        chatSettingsService,
-        imageGenerationService
-    ).start();
+    context.botService.addCommandHandlers(
+        new HelpCommand(context),
+        new AnswerCommand(context),
+        // new SummarizeCommand(context),
+        new ContextCommand(context),
+        new SettingsCommand(context),
+        new DisableCommand(context),
+    );
 }

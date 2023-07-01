@@ -1,5 +1,6 @@
 import {Attachment, AttachmentType, ExternalAttachment, PhotoAttachment, VK} from "vk-io";
 import VkMessagesOrmService from "orm/VkMessagesOrmService";
+import {Context} from "../Context";
 
 export type VkMessage = {
     conversationMessageId: number;
@@ -11,14 +12,20 @@ export type VkMessage = {
 }
 
 export default class VkMessagesService {
-    constructor (
-        private vk: VK,
-        private messagesOrmService: VkMessagesOrmService
-    ) {}
+    private static readonly MAX_ATTACHMENTS_PER_MESSAGE = 10;
+    private vk!: VK;
+    private messagesOrmService!: VkMessagesOrmService;
+
+    constructor (private context: Context) {
+        context.onReady(this.start.bind(this));
+    }
 
     private messagesByPeerId: Map<number, VkMessage[]> = new Map();
 
-    start() {
+    private start() {
+        this.vk = this.context.vk!;
+        this.messagesOrmService = this.context.vkMessagesOrmService!;
+
         this.vk.updates.start().then(() => {
             console.log("Started VK messages long polling");
         }).catch(error => {
@@ -55,7 +62,7 @@ export default class VkMessagesService {
 
             peerMessages.push(message);
 
-            await this.messagesOrmService.addMessage(message);
+            await this.messagesOrmService!.addMessage(message);
             await next();
         });
 
@@ -74,7 +81,7 @@ export default class VkMessagesService {
     }
 
     async getHistory(peerId: number, count: number): Promise<VkMessage[]> {
-        return (await this.messagesOrmService.getMessagesByPeerIdWithLimitSortedByTimestamp(peerId, count)).reverse();
+        return (await this.messagesOrmService!.getMessagesByPeerIdWithLimitSortedByTimestamp(peerId, count)).reverse();
     }
 
     async send(toId: number, message: string, attachedImageUrls: string[] = []) {
@@ -109,7 +116,7 @@ export default class VkMessagesService {
             requestBody.message += "\n\n(не получилось прикрепить картинку)";
         }
 
-        await this.vk.api.messages.send(requestBody).then(async (res) => {
+        await this.vk!.api.messages.send(requestBody).then(async (res) => {
             await this.messagesOrmService.addMessage({
                 fromId: 0,
                 conversationMessageId: res,

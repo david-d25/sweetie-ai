@@ -1,12 +1,15 @@
 import {Client} from 'pg';
 import {VkMessage} from "service/VkMessagesService";
+import {Context} from "../Context";
 
 export default class VkMessagesOrmService {
-    constructor(
-        private client: Client
-    ) {}
+    private client!: Client;
+    constructor(private context: Context) {
+        context.onReady(this.start.bind(this));
+    }
 
     async start() {
+        this.client = this.context.postgresClient!;
         return this.client.query(`
             create table if not exists vk_messages (
                 conversation_message_id bigint,

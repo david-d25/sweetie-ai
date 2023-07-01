@@ -1,11 +1,15 @@
 import ConfigService from "service/ConfigService";
 import axios, {AxiosResponse} from "axios";
 import FormData from "form-data";
+import {Context} from "../Context";
 
 export default class ImageGenerationService {
-    constructor(
-        private config: ConfigService
-    ) {}
+    private config!: ConfigService;
+    constructor(private context: Context) {
+        context.onReady(() => {
+            this.config = this.context.configService;
+        });
+    }
 
     private generationsApiUrl = "https://api.openai.com/v1/images/generations";
     private editsApiUrl = "https://api.openai.com/v1/images/edits";

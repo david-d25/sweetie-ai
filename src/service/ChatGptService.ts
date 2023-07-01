@@ -1,10 +1,16 @@
 import axios, {AxiosResponse} from "axios";
 import ConfigService from "service/ConfigService";
+import {Context} from "../Context";
 
 export default class ChatGptService {
-    constructor(
-        private config: ConfigService
-    ) {}
+
+    private config!: ConfigService;
+
+    constructor(context: Context) {
+        context.onReady(() => {
+            this.config = context.configService!;
+        });
+    }
 
     private apiUrl = "https://api.openai.com/v1/chat/completions";
     private jsonMediaType = "application/json; charset=utf-8";

@@ -1,4 +1,5 @@
 import {VK} from "vk-io";
+import {Context} from "../Context";
 
 export type VkUser = {
     id: number,
@@ -9,9 +10,13 @@ export type VkUser = {
 const CACHE_TTL = 15 * 60 * 1000;
 
 export default class VkUsersService {
-    constructor(
-        private vk: VK
-    ) {}
+    private vk!: VK;
+
+    constructor(private context: Context) {
+        context.onReady(() => {
+            this.vk = this.context.vk!;
+        });
+    }
 
     private cache: Map<number, { user: VkUser; timer: NodeJS.Timeout }> = new Map();
 
