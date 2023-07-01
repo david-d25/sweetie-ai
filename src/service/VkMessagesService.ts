@@ -1,4 +1,4 @@
-import {VK} from "vk-io";
+import {Attachment, AttachmentType, ExternalAttachment, PhotoAttachment, VK} from "vk-io";
 import VkMessagesOrmService from "orm/VkMessagesOrmService";
 
 export type VkMessage = {
@@ -6,6 +6,7 @@ export type VkMessage = {
     peerId: number;
     fromId: number;
     timestamp: number;
+    attachments: (Attachment | ExternalAttachment)[];
     text: string | null;
 }
 
@@ -31,11 +32,12 @@ export default class VkMessagesService {
                 this.messagesByPeerId.set(peerId, []);
 
             const peerMessages = this.messagesByPeerId.get(peerId)!;
-            const message = {
+            const message: VkMessage = {
                 conversationMessageId: conversationMessageId!,
                 peerId: peerId,
                 fromId: senderId,
                 timestamp: createdAt,
+                attachments: [],
                 text: typeof text == 'undefined' ? null : text
             };
 
@@ -44,8 +46,10 @@ export default class VkMessagesService {
             if (context.attachments.length > 0) {
                 if (message.text == null)
                     message.text = '';
-                for (const attachment of context.attachments) {
-                    message.text += ` (attachment: ${attachment.type})`;
+                for (const i in context.attachments) {
+                    const attachment = context.attachments[i];
+                    message.attachments.push(attachment);
+                    message.text += ` (attachment:${attachment.type}, id=${i})`;
                 }
             }
 
@@ -111,6 +115,7 @@ export default class VkMessagesService {
                 conversationMessageId: res,
                 peerId: toId,
                 text: message,
+                attachments: [],
                 timestamp: new Date().getTime()/1000
             });
             console.log(`Sent message to id ${toId}: '${message}'`);

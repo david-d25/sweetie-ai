@@ -1,4 +1,4 @@
-import {VK} from "vk-io";
+import {PhotoAttachment, VK} from "vk-io";
 import VkMessagesService, {VkMessage} from "service/VkMessagesService";
 import VkUsersService from "service/VkUsersService";
 import ChatGptService from "service/ChatGptService";
@@ -7,6 +7,10 @@ import ChatSettingsService from "service/ChatSettingsService";
 import {response as helpResponse} from "./template/HelpCommandTemplates"
 import * as AnswerCommandTemplates from "./template/AnswerCommandTemplates";
 import ImageGenerationService from "service/ImageGenerationService";
+import axios from "axios";
+import sharp from "sharp";
+import {hexToRgb} from "./util/ColorUtil";
+import * as fs from "fs";
 
 export default class Bot {
     constructor (
@@ -98,6 +102,7 @@ export default class Bot {
         let history = await this.messagesService.getHistory(message.peerId, 300);
         const userIds = new Set(history.map(m => +m.fromId));
         const userById = await this.usersService.getUsers([...userIds]);
+
         let formattedHistory = (
             await Promise.all(
                 history.map(async m => {
@@ -113,6 +118,7 @@ export default class Bot {
                 })
             )
         ).filter(m => m != null) as string[];
+
         let maxMessagesSize = chatSettings.gptMaxInputTokens - (chatSettings.context?.length || 0) - AnswerCommandTemplates.getBaseTemplateSize();
         let currentMessagesSize = formattedHistory.join('\n').length;
         while (currentMessagesSize > maxMessagesSize) {
@@ -141,30 +147,149 @@ export default class Bot {
             chatSettings.gptPresencePenalty
         );
 
-        const imageRequests = [...response.matchAll(/{@imgreq:(.*?)}/g)].map(item => item[1]);
-        const imageUrls = [];
+        // {
+        //   attachments: [
+        //     PhotoAttachment <photo89446514_457278434_d0d51be2713a6d80d9> {
+        //       id: 457278434,
+        //       ownerId: 89446514,
+        //       accessKey: 'd0d51be2713a6d80d9',
+        //       userId: undefined,
+        //       albumId: -3,
+        //       text: '',
+        //       createdAt: 1688166607,
+        //       height: undefined,
+        //       width: undefined,
+        //       smallSizeUrl: 'https://sun9-42.userapi.com/impg/3Fm1YVrhb78QLI6NJTAcx8e5LM7h3QiMWCizrQ/GkY6U4LtD1s.jpg?size=130x20&quality=96&sign=5d935b53b38e9ba2941a599ea6a8e7b3&c_uniq_tag=e7Ukni9y6dFyhYGTvnR1kur3g42u8F0q2z3XVmHmXYk&type=album',
+        //       mediumSizeUrl: 'https://sun9-42.userapi.com/impg/3Fm1YVrhb78QLI6NJTAcx8e5LM7h3QiMWCizrQ/GkY6U4LtD1s.jpg?size=807x124&quality=96&sign=07c2d9d24b9e31aa50187974a365d08a&c_uniq_tag=DEQgIWJ65Xa7FtzS1H6ZWLD-eGT1vqfe8N2IJt_Xnmo&type=album',
+        //       largeSizeUrl: 'https://sun9-42.userapi.com/impg/3Fm1YVrhb78QLI6NJTAcx8e5LM7h3QiMWCizrQ/GkY6U4LtD1s.jpg?size=1200x184&quality=96&sign=059ec109a846d2a87df47a30c46419ef&c_uniq_tag=kI6uzm0sR5W6PCsJDDBy_EdNcql4-iJwoOBwabffKBo&type=album',
+        //     }
+        //   ],
+        // }
+        const attachedImagesUrls = [];
+        const imageGenerationRequests = [...response.matchAll(/{@imgreq:(.*?)}/g)].map(item => item[1]);
+        const imageEditingRequests = [...response.matchAll(/{@imgedit:(.*?)}/g)].map(item => item[1]);
 
-        console.log(`[${message.peerId}] Got GPT response with ${imageRequests.length} image generation requests`);
+        console.log(`[${message.peerId}] Got GPT response (${imageGenerationRequests.length} imgreq, ${imageEditingRequests.length} imgedit)`);
 
         let errors = false;
-        for (let i in imageRequests) {
-            const imageRequest = imageRequests[i];
-            console.log(`[${message.peerId}] Requesting image generation ${+i+1}/${imageRequests.length}: ${imageRequest.replaceAll("\n", "\\n")}`);
-            const url = await this.imageGenerationService.request(imageRequest)
+        for (let i in imageGenerationRequests) {
+            const imageRequest = imageGenerationRequests[i];
+            console.log(`[${message.peerId}] Requesting image generation ${+i+1}/${imageGenerationRequests.length}: ${imageRequest.replaceAll("\n", "\\n")}`);
+            const url = await this.imageGenerationService.generateImage(imageRequest)
             if (url != null)
-                imageUrls.push(url);
+                attachedImagesUrls.push(url);
+            else
+                errors = true;
+        }
+
+        for (let i in imageEditingRequests) {
+            const request = imageEditingRequests[i];
+            console.log(`[${message.peerId}] Requesting image editing ${+i+1}/${imageEditingRequests.length}: ${request.replaceAll("\n", "\\n")}`);
+            const split = request.split(",")
+            if (split.length < 3) {
+                console.log(`[${message.peerId}] Invalid image editing request: ${request}`)
+                errors = true;
+                continue;
+            }
+            const attachment = message.attachments[+split[0]];
+            if (attachment == undefined) {
+                console.log(`[${message.peerId}] Could not find attachment with local id '${split[0]}'`)
+                errors = true;
+                continue;
+            }
+            if (attachment.type != "photo") {
+                console.log(`[${message.peerId}] Attachment with local id '${split[0]}' is not a photo`)
+                errors = true;
+                continue;
+            }
+            const photoAttachment = attachment as PhotoAttachment;
+            const color = split[1];
+            const maskColorRgb = hexToRgb(color);
+            if (maskColorRgb == null) {
+                console.log(`[${message.peerId}] Invalid color '${color}'`)
+                errors = true;
+                continue;
+            }
+            console.log(`[${message.peerId}] Using mask r=${maskColorRgb.r} g=${maskColorRgb.g} b=${maskColorRgb.b}`)
+            let prompt = split.slice(2).join(",");
+            prompt = prompt.slice(1, prompt.length - 1); // remove quotes
+
+            console.log(`[${message.peerId}] Downloading image...`)
+            axios({
+                url: photoAttachment.largeSizeUrl,
+                responseType: 'arraybuffer'
+            })
+                .then(async response =>
+                    sharp(Buffer.from(response.data))
+                        .toColorspace('srgb')
+                        .raw()
+                        .toBuffer({ resolveWithObject: true })
+                        .then(({ data, info }) => {
+                            const { width, height, channels } = info;
+                            let newWidth = width;
+                            let newHeight = height;
+                            let leftOffset = 0;
+                            let topOffset = 0;
+                            if (width > height) {
+                                // noinspection JSSuspiciousNameCombination
+                                newWidth = height;
+                                leftOffset = Math.round((width - height) / 2);
+                            }
+                            else if (height > width) {
+                                // noinspection JSSuspiciousNameCombination
+                                newHeight = width;
+                                topOffset = Math.round((height - width) / 2);
+                            }
+                            return sharp(data, { raw: { width, height, channels } })
+                                .extract({
+                                    left: leftOffset,
+                                    top: topOffset,
+                                    width: newWidth,
+                                    height: newHeight
+                                })
+                                .ensureAlpha()
+                                .raw()
+                                .toBuffer({ resolveWithObject: true })
+                        })
+                )
+                .then(async ({ data, info }) => {
+                    console.log(`[${message.peerId}] Applying mask...`)
+                    const { width, height, channels } = info;
+                    for (let i = 0; i < width * height * channels; i += channels) {
+                        const r = data[i];
+                        const g = data[i + 1];
+                        const b = data[i + 2];
+                        if (Math.abs(r - maskColorRgb.r) < 10
+                            && Math.abs(g - maskColorRgb.g) < 10
+                            && Math.abs(b - maskColorRgb.b) < 10
+                        ) {
+                            data[i + 3] = 0;
+                        }
+                    }
+                    return sharp(data, { raw: { width, height, channels } }).png().toBuffer();
+                })
+                .then(async buffer => {
+                    // fs.writeFileSync("test.png", buffer);
+                    console.log(`[${message.peerId}] Sending image editing request...`)
+                    attachedImagesUrls.push(this.imageGenerationService.editImage(buffer, prompt));
+                });
+
+            const url = await this.imageGenerationService.generateImage(request)
+            if (url != null)
+                attachedImagesUrls.push(url);
             else
                 errors = true;
         }
 
         response = response.replaceAll(/{@imgreq:(.*?)}/g, "");
+        response = response.replaceAll(/{@imgedit:(.*?)}/g, "");
         if (errors) {
             response += "\n\n(некоторые картинки не удалось сгенерировать)";
         }
 
         console.log(`[${message.peerId}] Sending response...`);
         try {
-            await this.messagesService.send(message.peerId, response, imageUrls);
+            await this.messagesService.send(message.peerId, response, attachedImagesUrls);
         } catch (e) {
             console.error(e);
             await this.messagesService.send(message.peerId, "(что-то сломалось, проверьте логи)");

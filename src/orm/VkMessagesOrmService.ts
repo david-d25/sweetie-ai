@@ -48,7 +48,8 @@ export default class VkMessagesOrmService {
                 peerId: row['peer_id'],
                 fromId: row['from_id'],
                 timestamp: new Date(row['timestamp']).getTime()/1000,
-                text: row['text']
+                text: row['text'],
+                attachments: []
             }
         });
     }

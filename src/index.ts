@@ -27,10 +27,10 @@ const client = new Client({
 
 client.connect((error: any) => {
     if (error) {
-        console.error("Couldn't connect to database.", error);
+        console.error("Couldn't connect to database", error);
         process.exit(1);
     } else {
-        console.log("Connected to database.");
+        console.log("Connected to database");
         ready().then(ignored => {});
     }
 });
