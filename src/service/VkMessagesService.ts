@@ -1,4 +1,4 @@
-import {Attachment, AttachmentType, ExternalAttachment, PhotoAttachment, VK} from "vk-io";
+import {Attachment, ExternalAttachment, VK} from "vk-io";
 import VkMessagesOrmService from "orm/VkMessagesOrmService";
 import {Context} from "../Context";
 
@@ -116,7 +116,7 @@ export default class VkMessagesService {
             requestBody.message += "\n\n(не получилось прикрепить картинку)";
         }
 
-        await this.vk!.api.messages.send(requestBody).then(async (res) => {
+        await this.vk.api.messages.send(requestBody).then(async (res) => {
             await this.messagesOrmService.addMessage({
                 fromId: 0,
                 conversationMessageId: res,

@@ -90,10 +90,10 @@ export default class AnswerCommand extends Command {
         );
 
         const attachedImagesUrls = [];
-        const imageGenerationRequests = [...response.matchAll(/{@imgreq:(.*?)}/g)].map(item => item[1]);
+        const imageGenerationRequests = [...response.matchAll(/{@imggen:(.*?)}/g)].map(item => item[1]);
         const imageEditingRequests = [...response.matchAll(/{@imgedit:(.*?)}/g)].map(item => item[1]);
 
-        console.log(`[${message.peerId}] Got GPT response (${imageGenerationRequests.length} imgreq, ${imageEditingRequests.length} imgedit)`);
+        console.log(`[${message.peerId}] Got GPT response (${imageGenerationRequests.length} imggen, ${imageEditingRequests.length} imgedit)`);
 
         let errors = false;
         for (let i in imageGenerationRequests) {
@@ -183,9 +183,9 @@ export default class AnswerCommand extends Command {
                         const r = data[i];
                         const g = data[i + 1];
                         const b = data[i + 2];
-                        if (Math.abs(r - maskColorRgb.r) < 10
-                            && Math.abs(g - maskColorRgb.g) < 10
-                            && Math.abs(b - maskColorRgb.b) < 10
+                        if (Math.abs(r - maskColorRgb.r) < 25
+                            && Math.abs(g - maskColorRgb.g) < 25
+                            && Math.abs(b - maskColorRgb.b) < 25
                         ) {
                             data[i + 3] = 0;
                         }
@@ -203,7 +203,8 @@ export default class AnswerCommand extends Command {
                 });
         }
 
-        response = response.replaceAll(/{@imgreq:(.*?)}/g, "");
+        const originalResponse = response;
+        response = response.replaceAll(/{@imggen:(.*?)}/g, "");
         response = response.replaceAll(/{@imgedit:(.*?)}/g, "");
         if (errors) {
             response += "\n\n(некоторые картинки не удалось сгенерировать)";
