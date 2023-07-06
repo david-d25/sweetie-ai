@@ -22,6 +22,7 @@ export default class ChatGptService {
             name?: string,
             content: string
         }[],
+        model: string,
         maxTokens: number,
         temperature: number,
         topP: number,
@@ -45,7 +46,7 @@ export default class ChatGptService {
 
         const body: any = {};
         body['messages'] = messages;
-        body['model'] = 'gpt-3.5-turbo-16k';
+        body['model'] = model;
         body['max_tokens'] = maxTokens;
         body['temperature'] = temperature;
         body['top_p'] = topP;

@@ -30,6 +30,10 @@ export default class ChatSettingsService {
         return await this.changeSettings(peerId, model => model.memory = memory)
     }
 
+    async setGptModel(peerId: number, gptModel: string) {
+        return await this.changeSettings(peerId, model => model.gptModel = gptModel);
+    }
+
     async setGptMaxOutputTokens(peerId: number, gptMaxOutputTokens: number): Promise<ChatSettingsModel> {
         return await this.changeSettings(peerId, model => model.gptMaxOutputTokens = gptMaxOutputTokens)
     }
@@ -68,6 +72,7 @@ export type ChatSettingsModel = {
     botEnabled: boolean,
     context: string | null,
     memory: string | null,
+    gptModel: string,
     gptMaxOutputTokens: number,
     gptMaxInputTokens: number,
     gptTemperature: number,

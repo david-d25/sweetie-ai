@@ -27,6 +27,7 @@ export default class SettingsCommand extends Command {
 
         if (subCommand == "list") {
             let response = ``;
+            response += `model=${settings.gptModel}\n`;
             response += `max_output_tokens=${settings.gptMaxOutputTokens}\n`;
             response += `max_input_tokens=${settings.gptMaxInputTokens}\n`;
             response += `temperature=${settings.gptTemperature}\n`;
@@ -41,6 +42,8 @@ export default class SettingsCommand extends Command {
                 return vkMessagesService.send(message.peerId, this.getUsage());
             const settingName = text;
             let value = null;
+            if (settingName == "model")
+                value = settings.gptModel;
             if (settingName == "max_output_tokens")
                 value = settings.gptMaxOutputTokens;
             if (settingName == "max_input_tokens")
@@ -68,7 +71,12 @@ export default class SettingsCommand extends Command {
 
             const settingName = args[0];
             const settingValue = args[1];
-            if (settingName == "max_output_tokens") {
+            if (settingName == "model") {
+                const possibleModels = ["gpt-3.5-turbo", "gpt-3.5-turbo-16k", "gpt-4", "gpt-4-32k"];
+                if (possibleModels.indexOf(settingValue) == -1)
+                    return vkMessagesService.send(message.peerId, `Это должен быть один из следующих вариантов:\n${possibleModels.join('\n')}`);
+                await chatSettingsService.setGptModel(message.peerId, settingValue);
+            } else if (settingName == "max_output_tokens") {
                 const value = parseInt(settingValue);
                 if (isNaN(value) || value < 1 || value > 2048)
                     return vkMessagesService.send(message.peerId, `Это должно быть целое число от 1 до 2048`);

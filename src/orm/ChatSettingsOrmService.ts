@@ -26,6 +26,9 @@ export default class ChatSettingsOrmService {
         await this.client.query(
             `alter table chat_settings add column if not exists bot_enabled boolean default true;`
         );
+        await this.client.query(
+            `alter table chat_settings add column if not exists gpt_model varchar default 'gpt-3.5-turbo-16k';`
+        );
     }
 
     async getSettings(peerId: number): Promise<ChatSettingsModel | null> {
@@ -53,9 +56,10 @@ export default class ChatSettingsOrmService {
                    gpt_top_p,
                    gpt_frequency_penalty,
                    gpt_presence_penalty,
-                   bot_enabled
+                   bot_enabled,
+                   gpt_model
                 ) values (
-                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
                 ) on conflict (peer_id) do update set
                      context = $2,
                      memory = $3,
@@ -65,7 +69,8 @@ export default class ChatSettingsOrmService {
                      gpt_top_p = $7,
                      gpt_frequency_penalty = $8,
                      gpt_presence_penalty = $9,
-                     bot_enabled = $10
+                     bot_enabled = $10,
+                     gpt_model = $11
                 returning *
             `,
             [
@@ -78,7 +83,8 @@ export default class ChatSettingsOrmService {
                 entity.gpt_top_p,
                 entity.gpt_frequency_penalty,
                 entity.gpt_presence_penalty,
-                entity.bot_enabled
+                entity.bot_enabled,
+                entity.gpt_model,
             ]
         );
         if (rows.rows.length === 0) {
@@ -104,6 +110,7 @@ export default class ChatSettingsOrmService {
             bot_enabled: model.botEnabled,
             context: model.context,
             memory: model.memory,
+            gpt_model: model.gptModel,
             gpt_max_output_tokens: model.gptMaxOutputTokens,
             gpt_max_input_tokens: model.gptMaxInputTokens,
             gpt_temperature: model.gptTemperature,
@@ -118,6 +125,7 @@ export default class ChatSettingsOrmService {
             botEnabled: entity.bot_enabled,
             context: entity.context,
             memory: entity.memory,
+            gptModel: entity.gpt_model,
             gptMaxOutputTokens: entity.gpt_max_output_tokens,
             gptMaxInputTokens: entity.gpt_max_input_tokens,
             gptTemperature: entity.gpt_temperature,
@@ -133,6 +141,7 @@ export type ChatSettingsEntity = {
     bot_enabled: boolean,
     context: string | null,
     memory: string | null,
+    gpt_model: string,
     gpt_max_output_tokens: number,
     gpt_max_input_tokens: number,
     gpt_temperature: number,

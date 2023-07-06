@@ -82,6 +82,7 @@ export default class AnswerCommand extends Command {
         let response = await chatGptService.request(
             systemMessage,
             chatMessages,
+            chatSettings.gptModel,
             chatSettings.gptMaxOutputTokens,
             chatSettings.gptTemperature,
             chatSettings.gptTopP,
