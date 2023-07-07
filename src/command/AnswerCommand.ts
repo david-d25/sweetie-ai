@@ -63,7 +63,7 @@ export default class AnswerCommand extends Command {
 
         let maxMessagesSize = chatSettings.gptMaxInputTokens - (chatSettings.context?.length || 0) - AnswerCommandTemplates.getBaseTemplateSize();
         let currentMessagesSize = formattedHistory.join('\n').length;
-        while (currentMessagesSize > maxMessagesSize) {
+        while (formattedHistory.length > 0 && currentMessagesSize > maxMessagesSize) {
             currentMessagesSize -= formattedHistory[0]!.length + 1; // +1 for \n
             formattedHistory.shift();
         }

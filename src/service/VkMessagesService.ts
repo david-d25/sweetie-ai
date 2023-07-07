@@ -1,4 +1,4 @@
-import {Attachment, ExternalAttachment, VK} from "vk-io";
+import {Attachment, ExternalAttachment, PhotoAttachment, VK} from "vk-io";
 import VkMessagesOrmService from "orm/VkMessagesOrmService";
 import {Context} from "../Context";
 
@@ -89,7 +89,7 @@ export default class VkMessagesService {
             peer_id: toId,
             random_id: Math.floor(Math.random()*10000000),
             message,
-            attachment: undefined as object | undefined
+            attachment: undefined as string | undefined
         };
 
         try {
@@ -97,22 +97,25 @@ export default class VkMessagesService {
                 const uploadServerResponse = await this.vk.api.photos.getMessagesUploadServer({});
                 const uploadServerUrl = uploadServerResponse.upload_url;
 
-                for (const imageUrl of attachedImageUrls) {
-                    requestBody.attachment = await this.vk.upload.messagePhoto({
+                function photoToString(photo: PhotoAttachment) {
+                    return `photo${photo.ownerId}_${photo.id}${photo.accessKey ? `_${photo.accessKey}` : ''}`;
+                }
+
+                const attachments = await Promise.all(
+                    attachedImageUrls.map(url => this.vk.upload.messagePhoto({
                         peer_id: toId,
                         source: {
                             uploadUrl: uploadServerUrl,
-                            values: attachedImageUrls.map(url => {
-                                return {
-                                    value: url
-                                }
-                            })
+                            values: [{
+                                value: url
+                            }]
                         }
-                    })
-                }
+                    }))
+                );
+                requestBody.attachment = attachments.map(photoToString).join(',');
             }
         } catch (e) {
-            console.error('Failed to attach image', e);
+            console.error('Failed to attach image:', e);
             requestBody.message += "\n\n(не получилось прикрепить картинку)";
         }
 
