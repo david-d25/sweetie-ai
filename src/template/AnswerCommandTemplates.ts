@@ -31,6 +31,8 @@ Response: Конечно, держи: {@imgedit:0,#ffffff,"a girl with a cat"}
 """
 Ты можешь вставить несколько мета-запросов друг за другом.
 Весь текст внутри мета-запросов обязательно на английском.
+Обрати внимание, что сообщение от пользователя поступит в формате "[datetime] User Name: текст сообщения", но
+твой ответ должен содержать только текст ответа, без даты и имени.
 `.trim();
 
 export function generateSystemMessage(date: Date, chatContext: string | null, messages: string[]) {

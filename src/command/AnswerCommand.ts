@@ -20,6 +20,13 @@ export default class AnswerCommand extends Command {
         return command === 'answer';
     }
 
+    private formatVkMessage(date: Date, message: VkMessage, displayName: string): string {
+        let result = `[${date.getDate().toString()}/${(date.getMonth() + 1).toString()}/${date.getFullYear().toString()} ${date.getHours()}:${date.getMinutes()}] `;
+        result += displayName + ": ";
+        result += message.text;
+        return result;
+    }
+
     async handle(command: string, rawArguments: string, message: VkMessage): Promise<void> {
         const { vkMessagesService, chatSettingsService, chatGptService, vkUsersService, imageGenerationService } = this.context;
         if (rawArguments.length == 0) {
@@ -33,12 +40,6 @@ export default class AnswerCommand extends Command {
             return vkMessagesService.send(message.peerId, text);
         }
         const chatSettings = await chatSettingsService.getSettingsOrCreateDefault(message.peerId);
-        const question = rawArguments;
-        let chatMessages = [];
-        chatMessages.push({
-            role: "user",
-            content: question
-        });
 
         console.log(`[${message.peerId}] Retrieving history...`);
         let history = await vkMessagesService.getHistory(message.peerId, 300);
@@ -47,16 +48,13 @@ export default class AnswerCommand extends Command {
 
         let formattedHistory = (
             await Promise.all(
-                history.map(async m => {
-                    if (m.text == null)
+                history.map(async msg => {
+                    if (msg.text == null)
                         return null;
-                    const user = userById.get(+m.fromId)!;
+                    const user = userById.get(+msg.fromId)!;
                     const displayName = user ? (user.firstName + " " + user.lastName) : "(unknown)";
-                    const date = new Date(m.timestamp * 1000);
-                    let result = `[${date.getDate().toString()}/${(date.getMonth() + 1).toString()}/${date.getFullYear().toString()} ${date.getHours()}:${date.getMinutes()}] `;
-                    result += displayName + ": ";
-                    result += m.text;
-                    return result;
+                    const date = new Date(msg.timestamp * 1000);
+                    return this.formatVkMessage(date, msg, displayName);
                 })
             )
         ).filter(m => m != null) as string[];
@@ -67,6 +65,16 @@ export default class AnswerCommand extends Command {
             currentMessagesSize -= formattedHistory[0]!.length + 1; // +1 for \n
             formattedHistory.shift();
         }
+
+        let chatMessages = [];
+        const userMessageDate = new Date(message.timestamp * 1000);
+        const user = userById.get(+message.fromId)!;
+        const displayName = user ? (user.firstName + " " + user.lastName) : "(unknown)";
+        const userMessage = this.formatVkMessage(userMessageDate, message, displayName);
+        chatMessages.push({
+            role: "user",
+            content: userMessage
+        });
 
         console.log(`[${message.peerId}] Will pass ${formattedHistory.length} messages for context`);
 
@@ -194,7 +202,6 @@ export default class AnswerCommand extends Command {
                     return sharp(data, { raw: { width, height, channels } }).png().toBuffer();
                 })
                 .then(async buffer => {
-                    // fs.writeFileSync("test.png", buffer);
                     console.log(`[${message.peerId}] Sending image editing request...`)
                     const result = await imageGenerationService.editImage(buffer, prompt);
                     if (result != null)
@@ -204,7 +211,6 @@ export default class AnswerCommand extends Command {
                 });
         }
 
-        const originalResponse = response;
         response = response.replaceAll(/{@imggen:(.*?)}/g, "");
         response = response.replaceAll(/{@imgedit:(.*?)}/g, "");
         if (errors) {
