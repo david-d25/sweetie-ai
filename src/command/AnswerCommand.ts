@@ -101,8 +101,9 @@ export default class AnswerCommand extends Command {
         const attachedImagesUrls = [];
         const imageGenerationRequests = [...response.matchAll(/{@imggen:(.*?)}/g)].map(item => item[1]);
         const imageEditingRequests = [...response.matchAll(/{@imgedit:(.*?)}/g)].map(item => item[1]);
+        const imageVariationsRequests = [...response.matchAll(/{@imgvar:(.*?)}/g)].map(item => item[1]);
 
-        console.log(`[${message.peerId}] Got GPT response (${imageGenerationRequests.length} imggen, ${imageEditingRequests.length} imgedit)`);
+        console.log(`[${message.peerId}] Got GPT response (${imageGenerationRequests.length} imggen, ${imageEditingRequests.length} imgedit, ${imageVariationsRequests.length} imgvar)`);
 
         let errors = false;
         for (let i in imageGenerationRequests) {
@@ -113,6 +114,75 @@ export default class AnswerCommand extends Command {
                 attachedImagesUrls.push(url);
             else
                 errors = true;
+        }
+
+        for (let i in imageVariationsRequests) {
+            const imageRequest = imageVariationsRequests[i];
+            console.log(`[${message.peerId}] Requesting image variations ${+i+1}/${imageVariationsRequests.length}: ${imageRequest.replaceAll("\n", "\\n")}`);
+            const split = imageRequest.split(",");
+            if (split.length < 2) {
+                console.log(`[${message.peerId}] Invalid image variations request: ${imageRequest}`)
+                errors = true;
+                continue;
+            }
+            const attachment = message.attachments[+split[0]];
+            if (attachment == undefined) {
+                console.log(`[${message.peerId}] Could not find attachment with local id '${split[0]}'`)
+                errors = true;
+                continue;
+            }
+            if (attachment.type != "photo") {
+                console.log(`[${message.peerId}] Attachment with local id '${split[0]}' is not a photo`)
+                errors = true;
+                continue;
+            }
+            const photoAttachment = attachment as PhotoAttachment;
+            const numVariations = +split[1];
+            console.log(`[${message.peerId}] Downloading image...`)
+            await axios({
+                url: photoAttachment.largeSizeUrl,
+                responseType: 'arraybuffer'
+            })
+                .then(async response =>
+                    sharp(Buffer.from(response.data))
+                        .toColorspace('srgb')
+                        .raw()
+                        .toBuffer({ resolveWithObject: true })
+                        .then(({ data, info }) => {
+                            const { width, height, channels } = info;
+                            let newWidth = width;
+                            let newHeight = height;
+                            let leftOffset = 0;
+                            let topOffset = 0;
+                            if (width > height) {
+                                // noinspection JSSuspiciousNameCombination
+                                newWidth = height;
+                                leftOffset = Math.round((width - height) / 2);
+                            }
+                            else if (height > width) {
+                                // noinspection JSSuspiciousNameCombination
+                                newHeight = width;
+                                topOffset = Math.round((height - width) / 2);
+                            }
+                            return sharp(data, { raw: { width, height, channels } })
+                                .extract({
+                                    left: leftOffset,
+                                    top: topOffset,
+                                    width: newWidth,
+                                    height: newHeight
+                                })
+                                .png()
+                                .toBuffer()
+                        })
+                )
+                .then(async buffer => {
+                    console.log(`[${message.peerId}] Sending image variations request...`)
+                    const result = await imageGenerationService.generateImageVariations(buffer, numVariations);
+                    if (result != null)
+                        attachedImagesUrls.push(...result);
+                    else
+                        errors = true;
+                });
         }
 
         for (let i in imageEditingRequests) {
@@ -213,6 +283,7 @@ export default class AnswerCommand extends Command {
 
         response = response.replaceAll(/{@imggen:(.*?)}/g, "");
         response = response.replaceAll(/{@imgedit:(.*?)}/g, "");
+        response = response.replaceAll(/{@imgvar:(.*?)}/g, "");
         if (errors) {
             response += "\n\n(некоторые картинки не удалось сгенерировать)";
         }
