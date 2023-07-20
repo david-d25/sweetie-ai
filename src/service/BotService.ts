@@ -14,6 +14,8 @@ export default class BotService {
     private config!: ConfigService;
     private chatSettingsService!: ChatSettingsService;
     private commandHandlers: Command[] = [];
+    private taggingHandler: Command | null = null;
+    private groupId!: number;
 
     constructor (private context: Context) {
         context.onReady(this.start.bind(this));
@@ -23,8 +25,8 @@ export default class BotService {
         this.commandHandlers.push(...command);
     }
 
-    getCommandHandlers(): Command[] {
-        return this.commandHandlers;
+    setTaggingHandler(handler: Command) {
+        this.taggingHandler = handler;
     }
 
     private start() {
@@ -32,6 +34,7 @@ export default class BotService {
         this.messagesService = this.context.vkMessagesService;
         this.config = this.context.configService;
         this.chatSettingsService = this.context.chatSettingsService;
+        this.groupId = +this.context.configService.requireEnv('VK_GROUP_ID')!
         this.action().then(_ => {});
     }
 
@@ -39,7 +42,9 @@ export default class BotService {
         try {
             const messages = this.messagesService.popSinglePeerIdMessages();
             for (const message of messages) {
-                if (message.text?.trim().startsWith(BotService.TRIGGER_WORD))
+                if (this.taggingHandler != null && this.isSweetieTaggedInThisMessage(message))
+                    await this.taggingHandler.handle("", message.text!, message)
+                else if (message.text?.trim().startsWith(BotService.TRIGGER_WORD))
                     await this.processCommandMessage(message);
             }
             setTimeout(() => this.action(), 1000);
@@ -87,5 +92,11 @@ export default class BotService {
 
     private async handleUnknownCommand(message: VkMessage) {
         await this.messagesService.send(message.peerId, "Не знаю такую команду. Пиши /sweet help");
+    }
+
+    private isSweetieTaggedInThisMessage(message: VkMessage): boolean {
+        if (message.text == null)
+            return false;
+        return new RegExp("\\[club220063847\\|.*]").test(message.text)
     }
 }

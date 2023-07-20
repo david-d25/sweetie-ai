@@ -60,9 +60,11 @@ async function ready() {
 
     context.ready();
 
+    const answerCommand = new AnswerCommand(context);
+    context.botService.setTaggingHandler(answerCommand);
     context.botService.addCommandHandlers(
         new HelpCommand(context),
-        new AnswerCommand(context),
+        answerCommand,
         // new SummarizeCommand(context),
         new ContextCommand(context),
         new SettingsCommand(context),
