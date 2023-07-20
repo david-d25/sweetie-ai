@@ -66,7 +66,7 @@ export default class AnswerCommand extends Command {
                 chatSettings.gptPresencePenalty
             );
         } catch (e: any) {
-            response.text = "Сладенький умер.\n" + e.message;
+            response.text = "Сладенький не смог ответить:\n" + e.message;
         }
         const metaRequests = this.extractMetaRequests(response.text).map(result => {
             if (result.parsingError) {
