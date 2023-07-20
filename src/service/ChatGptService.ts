@@ -1,6 +1,7 @@
 import axios, {AxiosResponse} from "axios";
 import ConfigService from "service/ConfigService";
 import {Context} from "../Context";
+import {AxiosError} from "axios/index";
 
 export default class ChatGptService {
 
@@ -62,14 +63,26 @@ export default class ChatGptService {
             }
         }
 
-        let result = "";
         try {
             const response = await axios.post(this.apiUrl, body, config);
-            result = this.parseResponse(response);
+            return  this.parseResponse(response);
         } catch (e) {
-            console.error(e);
+            if (axios.isAxiosError(e)) {
+                const axiosError = e as AxiosError
+                if (axiosError.response && axiosError.response.data) {
+                    const data = axiosError.response.data as any;
+                    const message = data.error.message || axiosError.message;
+                    throw new Error("OpenAI: " + message)
+                } else {
+                    throw new Error("API call failed: " + axiosError.message)
+                }
+            } else if (e instanceof Error) {
+                const error = e as Error
+                throw new Error("Service call failed: " + error.message)
+            } else {
+                throw new Error("Unknown problem, please check logs")
+            }
         }
-        return result;
     }
 
     private parseResponse(response: AxiosResponse): string {

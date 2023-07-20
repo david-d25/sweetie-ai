@@ -98,5 +98,4 @@ export default class EditImageMetaRequestHandler implements MetaRequestHandler {
             response.metaRequestErrors.push(`Не получилось отредактировать картинку (${e.message})`);
         }
     }
-
 }

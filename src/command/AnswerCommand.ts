@@ -54,16 +54,20 @@ export default class AnswerCommand extends Command {
         );
         console.log(`[${message.peerId}] Length of system message: ${systemMessage.length}`);
         console.log(`[${message.peerId}] Requesting response from GPT...`);
-        response.text = await chatGptService.request(
-            systemMessage,
-            chatMessages,
-            chatSettings.gptModel,
-            chatSettings.gptMaxOutputTokens,
-            chatSettings.gptTemperature,
-            chatSettings.gptTopP,
-            chatSettings.gptFrequencyPenalty,
-            chatSettings.gptPresencePenalty
-        );
+        try {
+            response.text = await chatGptService.request(
+                systemMessage,
+                chatMessages,
+                chatSettings.gptModel,
+                chatSettings.gptMaxOutputTokens,
+                chatSettings.gptTemperature,
+                chatSettings.gptTopP,
+                chatSettings.gptFrequencyPenalty,
+                chatSettings.gptPresencePenalty
+            );
+        } catch (e: any) {
+            response.text = "Сладенький умер.\n" + e.message;
+        }
         const metaRequests = this.extractMetaRequests(response.text).map(result => {
             if (result.parsingError) {
                 console.log(`[${message.peerId}] Parsing error: ${result.raw}`);
