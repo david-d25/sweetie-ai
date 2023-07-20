@@ -83,8 +83,8 @@ export default class SettingsCommand extends Command {
                 await chatSettingsService.setGptMaxOutputTokens(message.peerId, value);
             } else if (settingName == "max_input_tokens") {
                 const value = parseInt(settingValue);
-                if (isNaN(value) || value < 4096 || value > 16384)
-                    return vkMessagesService.send(message.peerId, `Это должно быть целое число от 4096 до 16384`);
+                if (isNaN(value) || value < 0 || value > 16384)
+                    return vkMessagesService.send(message.peerId, `Это должно быть целое число от 0 до 16384`);
                 await chatSettingsService.setGptMaxInputTokens(message.peerId, value);
             } else if (settingName == "temperature") {
                 const value = parseFloat(settingValue);

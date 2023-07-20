@@ -84,41 +84,32 @@ export default class VkMessagesService {
         return (await this.messagesOrmService!.getMessagesByPeerIdWithLimitSortedByTimestamp(peerId, count)).reverse();
     }
 
-    async send(toId: number, message: string, attachedImageUrls: string[] = []) {
+    async uploadPhotoAttachmentsByUrl(toId: number, urls: string[]): Promise<string[]> {
+        const uploadServerResponse = await this.vk.api.photos.getMessagesUploadServer({});
+        const uploadServerUrl = uploadServerResponse.upload_url;
+        const attachments = await Promise.all(
+            urls.map(url => this.vk.upload.messagePhoto({
+                peer_id: toId,
+                source: {
+                    uploadUrl: uploadServerUrl,
+                    values: [{
+                        value: url
+                    }]
+                }
+            }))
+        );
+        return attachments.map(it => `photo${it.ownerId}_${it.id}${it.accessKey ? `_${it.accessKey}` : ''}`);
+    }
+
+    async send(toId: number, message: string, attachments: string[] = []) {
+        if (message.trim().length == 0)
+            message = "(empty message)";
         let requestBody = {
             peer_id: toId,
             random_id: Math.floor(Math.random()*10000000),
             message,
-            attachment: undefined as string | undefined
+            attachment: attachments.join(',')
         };
-
-        try {
-            if (attachedImageUrls.length > 0) {
-                const uploadServerResponse = await this.vk.api.photos.getMessagesUploadServer({});
-                const uploadServerUrl = uploadServerResponse.upload_url;
-
-                function photoToString(photo: PhotoAttachment) {
-                    return `photo${photo.ownerId}_${photo.id}${photo.accessKey ? `_${photo.accessKey}` : ''}`;
-                }
-
-                const attachments = await Promise.all(
-                    attachedImageUrls.map(url => this.vk.upload.messagePhoto({
-                        peer_id: toId,
-                        source: {
-                            uploadUrl: uploadServerUrl,
-                            values: [{
-                                value: url
-                            }]
-                        }
-                    }))
-                );
-                requestBody.attachment = attachments.map(photoToString).join(',');
-            }
-        } catch (e) {
-            console.error('Failed to attach image:', e);
-            requestBody.message += "\n\n(не получилось прикрепить картинку)";
-        }
-
         await this.vk.api.messages.send(requestBody).then(async (res) => {
             await this.messagesOrmService.addMessage({
                 fromId: 0,

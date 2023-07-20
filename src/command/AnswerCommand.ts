@@ -2,49 +2,137 @@ import Command from "./Command";
 import {Context} from "../Context";
 import {VkMessage} from "../service/VkMessagesService";
 import * as AnswerCommandTemplates from "../template/AnswerCommandTemplates";
-import {PhotoAttachment} from "vk-io";
-import {hexToRgb} from "../util/ColorUtil";
-import axios from "axios";
-import sharp from "sharp";
+import {MetaRequest} from "./answer/MetaRequest";
+import {ResponseMessage} from "./answer/ResponseMessage";
+import {MetaRequestHandler} from "./answer/MetaRequestHandler";
+import GenerateImageMetaRequestHandler from "./answer/GenerateImageMetaRequestHandler";
+import EditImageMetaRequestHandler from "./answer/EditImageMetaRequestHandler";
+import ImageVariationsMetaRequestHandler from "./answer/ImageVariationsMetaRequestHandler";
 
 export default class AnswerCommand extends Command {
+    private metaRequestHandlers: MetaRequestHandler[];
+
     constructor(context: Context) {
         super(context);
+        this.metaRequestHandlers = [
+            new GenerateImageMetaRequestHandler(context),
+            new EditImageMetaRequestHandler(context),
+            new ImageVariationsMetaRequestHandler(context)
+        ];
     }
 
     getCommandShortUsage(): string {
-        return '/sweetie answer (текст)';
+        return '/sweet answer (текст)';
     }
 
     canYouHandleThisCommand(command: string, message: VkMessage): boolean {
         return command === 'answer';
     }
 
-    private formatVkMessage(date: Date, message: VkMessage, displayName: string): string {
-        let result = `[${date.getDate().toString()}/${(date.getMonth() + 1).toString()}/${date.getFullYear().toString()} ${date.getHours()}:${date.getMinutes()}] `;
-        result += displayName + ": ";
-        result += message.text;
+    async handle(command: string, rawArguments: string, message: VkMessage): Promise<void> {
+        const { vkMessagesService, chatSettingsService, chatGptService, vkUsersService } = this.context;
+        if (rawArguments.length == 0)
+            return this.sendUsage(message.peerId);
+        let response: ResponseMessage = { text: "", attachments: [], metaRequestErrors: [] };
+        const chatSettings = await chatSettingsService.getSettingsOrCreateDefault(message.peerId);
+        let maxMessagesSize = chatSettings.gptMaxInputTokens - (chatSettings.context?.length || 0) - AnswerCommandTemplates.getBaseTemplateSize();
+        let formattedHistory = await this.getFormattedHistory(message.peerId, 300, maxMessagesSize);
+        let chatMessages = [];
+        const userMessageDate = new Date(message.timestamp * 1000);
+        const user = await vkUsersService.getUser(+message.fromId)!;
+        const displayName = user ? (user.firstName + " " + user.lastName) : "(unknown)";
+        const userMessage = this.formatVkMessage(userMessageDate, message, displayName);
+        chatMessages.push({
+            role: "user",
+            content: userMessage
+        });
+        console.log(`[${message.peerId}] Will pass ${formattedHistory.length} messages for context`);
+        let systemMessage = AnswerCommandTemplates.generateSystemMessage(
+            new Date(),
+            chatSettings.context,
+            formattedHistory
+        );
+        console.log(`[${message.peerId}] Length of system message: ${systemMessage.length}`);
+        console.log(`[${message.peerId}] Requesting response from GPT...`);
+        response.text = await chatGptService.request(
+            systemMessage,
+            chatMessages,
+            chatSettings.gptModel,
+            chatSettings.gptMaxOutputTokens,
+            chatSettings.gptTemperature,
+            chatSettings.gptTopP,
+            chatSettings.gptFrequencyPenalty,
+            chatSettings.gptPresencePenalty
+        );
+        const metaRequests = this.extractMetaRequests(response.text).map(result => {
+            if (result.parsingError) {
+                console.log(`[${message.peerId}] Parsing error: ${result.raw}`);
+                return null;
+            } else {
+                return result.request;
+            }
+        }).filter(request => request != null) as MetaRequest[];
+        console.log(`[${message.peerId}] Got GPT response (length ${response.text.length}, ${metaRequests.length} meta-requests)`);
+        await this.handleMetaRequests(metaRequests, message, response);
+        if (response.metaRequestErrors.length > 2) {
+            response.text += `\n\n---\n`;
+            response.text += response.metaRequestErrors.map((it, i) => `${i + 1}. ${it}`).join('\n');
+        } else if (response.metaRequestErrors.length == 1) {
+            response.text += `\n\n---\n`;
+            response.text += response.metaRequestErrors[0];
+        }
+        console.log(`[${message.peerId}] Sending response...`);
+        try {
+            await vkMessagesService.send(message.peerId, response.text, response.attachments);
+        } catch (e) {
+            console.error(e);
+            await vkMessagesService.send(message.peerId, "(Что-то сломалось, проверьте логи)");
+        }
+    }
+
+    private async handleMetaRequests(requests: MetaRequest[], message: VkMessage, responseMessage: ResponseMessage): Promise<void> {
+        for (let i in requests) {
+            const request = requests[i];
+            console.log(`[${message.peerId}] Handling meta-request ${+i+1}/${requests.length}: ${request.functionName}`);
+
+            const handler = this.metaRequestHandlers.find(it => it.canYouHandleThis(request.functionName));
+            if (handler == null) {
+                responseMessage.metaRequestErrors.push(`Сладенький попытался выполнить неизвестную команду '${request.functionName}'`);
+                console.log(`[${message.peerId}] Unknown meta-request function: ${request.functionName}`);
+                continue;
+            }
+            try {
+                await handler.handle(message, request, responseMessage);
+            } catch (e) {
+                responseMessage.metaRequestErrors.push(`Сладенький вызвал команду '${request.functionName}', но она провалилась без объяснения причин`);
+                console.log(`[${message.peerId}] Handler threw exception: ${e}`);
+            }
+        }
+        responseMessage.text = responseMessage.text.replaceAll(/@call:(\w+)\((.*?)\)\n?/g, "");
+    }
+
+    private extractMetaRequests(text: string): MetaRequestParsingResult[] {
+        const regex = /@call:(\w+)\((.*?)\)/g;
+        const result = [];
+        let match;
+        while ((match = regex.exec(text)) !== null) {
+            const functionName = match[1];
+            const rawArgs = match[2];
+            try {
+                const args = JSON.parse('[' + rawArgs + ']');
+                result.push({ request: { functionName, args }, raw: match[0], parsingError: false });
+            } catch (error) {
+                result.push({ request: { functionName, args: [] }, raw: match[0], parsingError: true });
+            }
+        }
         return result;
     }
 
-    async handle(command: string, rawArguments: string, message: VkMessage): Promise<void> {
-        const { vkMessagesService, chatSettingsService, chatGptService, vkUsersService, imageGenerationService } = this.context;
-        if (rawArguments.length == 0) {
-            const text = `
-            Пиши так:
-            /sweet answer (вопрос)
-            
-            Например:
-            /sweet answer Когда закончится экономический кризис?
-            `;
-            return vkMessagesService.send(message.peerId, text);
-        }
-        const chatSettings = await chatSettingsService.getSettingsOrCreateDefault(message.peerId);
-
-        console.log(`[${message.peerId}] Retrieving history...`);
-        let history = await vkMessagesService.getHistory(message.peerId, 300);
+    private async getFormattedHistory(peerId: number, maxMessages: number, maxTotalSize: number): Promise<string[]> {
+        console.log(`[${peerId}] Retrieving history...`);
+        let history = await this.context.vkMessagesService.getHistory(peerId, maxMessages);
         const userIds = new Set(history.map(m => +m.fromId));
-        const userById = await vkUsersService.getUsers([...userIds]);
+        const userById = await this.context.vkUsersService.getUsers([...userIds]);
 
         let formattedHistory = (
             await Promise.all(
@@ -59,241 +147,33 @@ export default class AnswerCommand extends Command {
             )
         ).filter(m => m != null) as string[];
 
-        let maxMessagesSize = chatSettings.gptMaxInputTokens - (chatSettings.context?.length || 0) - AnswerCommandTemplates.getBaseTemplateSize();
         let currentMessagesSize = formattedHistory.join('\n').length;
-        while (formattedHistory.length > 0 && currentMessagesSize > maxMessagesSize) {
+        while (formattedHistory.length > 0 && currentMessagesSize > maxTotalSize) {
             currentMessagesSize -= formattedHistory[0]!.length + 1; // +1 for \n
             formattedHistory.shift();
         }
-
-        let chatMessages = [];
-        const userMessageDate = new Date(message.timestamp * 1000);
-        const user = userById.get(+message.fromId)!;
-        const displayName = user ? (user.firstName + " " + user.lastName) : "(unknown)";
-        const userMessage = this.formatVkMessage(userMessageDate, message, displayName);
-        chatMessages.push({
-            role: "user",
-            content: userMessage
-        });
-
-        console.log(`[${message.peerId}] Will pass ${formattedHistory.length} messages for context`);
-
-        let systemMessage = AnswerCommandTemplates.generateSystemMessage(
-            new Date(),
-            chatSettings.context,
-            formattedHistory
-        );
-
-        console.log(`[${message.peerId}] Length of system message: ${systemMessage.length}`);
-
-        console.log(`[${message.peerId}] Requesting response from GPT...`);
-        let response = await chatGptService.request(
-            systemMessage,
-            chatMessages,
-            chatSettings.gptModel,
-            chatSettings.gptMaxOutputTokens,
-            chatSettings.gptTemperature,
-            chatSettings.gptTopP,
-            chatSettings.gptFrequencyPenalty,
-            chatSettings.gptPresencePenalty
-        );
-
-        const attachedImagesUrls = [];
-        const imageGenerationRequests = [...response.matchAll(/{@imggen:(.*?)}/g)].map(item => item[1]);
-        const imageEditingRequests = [...response.matchAll(/{@imgedit:(.*?)}/g)].map(item => item[1]);
-        const imageVariationsRequests = [...response.matchAll(/{@imgvar:(.*?)}/g)].map(item => item[1]);
-
-        console.log(`[${message.peerId}] Got GPT response (${imageGenerationRequests.length} imggen, ${imageEditingRequests.length} imgedit, ${imageVariationsRequests.length} imgvar)`);
-
-        let errors = false;
-        for (let i in imageGenerationRequests) {
-            const imageRequest = imageGenerationRequests[i];
-            console.log(`[${message.peerId}] Requesting image generation ${+i+1}/${imageGenerationRequests.length}: ${imageRequest.replaceAll("\n", "\\n")}`);
-            const url = await imageGenerationService.generateImage(imageRequest)
-            if (url != null)
-                attachedImagesUrls.push(url);
-            else
-                errors = true;
-        }
-
-        for (let i in imageVariationsRequests) {
-            const imageRequest = imageVariationsRequests[i];
-            console.log(`[${message.peerId}] Requesting image variations ${+i+1}/${imageVariationsRequests.length}: ${imageRequest.replaceAll("\n", "\\n")}`);
-            const split = imageRequest.split(",");
-            if (split.length < 2) {
-                console.log(`[${message.peerId}] Invalid image variations request: ${imageRequest}`)
-                errors = true;
-                continue;
-            }
-            const attachment = message.attachments[+split[0]];
-            if (attachment == undefined) {
-                console.log(`[${message.peerId}] Could not find attachment with local id '${split[0]}'`)
-                errors = true;
-                continue;
-            }
-            if (attachment.type != "photo") {
-                console.log(`[${message.peerId}] Attachment with local id '${split[0]}' is not a photo`)
-                errors = true;
-                continue;
-            }
-            const photoAttachment = attachment as PhotoAttachment;
-            const numVariations = +split[1];
-            console.log(`[${message.peerId}] Downloading image...`)
-            await axios({
-                url: photoAttachment.largeSizeUrl,
-                responseType: 'arraybuffer'
-            })
-                .then(async response =>
-                    sharp(Buffer.from(response.data))
-                        .toColorspace('srgb')
-                        .raw()
-                        .toBuffer({ resolveWithObject: true })
-                        .then(({ data, info }) => {
-                            const { width, height, channels } = info;
-                            let newWidth = width;
-                            let newHeight = height;
-                            let leftOffset = 0;
-                            let topOffset = 0;
-                            if (width > height) {
-                                // noinspection JSSuspiciousNameCombination
-                                newWidth = height;
-                                leftOffset = Math.round((width - height) / 2);
-                            }
-                            else if (height > width) {
-                                // noinspection JSSuspiciousNameCombination
-                                newHeight = width;
-                                topOffset = Math.round((height - width) / 2);
-                            }
-                            return sharp(data, { raw: { width, height, channels } })
-                                .extract({
-                                    left: leftOffset,
-                                    top: topOffset,
-                                    width: newWidth,
-                                    height: newHeight
-                                })
-                                .png()
-                                .toBuffer()
-                        })
-                )
-                .then(async buffer => {
-                    console.log(`[${message.peerId}] Sending image variations request...`)
-                    const result = await imageGenerationService.generateImageVariations(buffer, numVariations);
-                    if (result != null)
-                        attachedImagesUrls.push(...result);
-                    else
-                        errors = true;
-                });
-        }
-
-        for (let i in imageEditingRequests) {
-            const request = imageEditingRequests[i];
-            console.log(`[${message.peerId}] Requesting image editing ${+i+1}/${imageEditingRequests.length}: ${request.replaceAll("\n", "\\n")}`);
-            const split = request.split(",")
-            if (split.length < 3) {
-                console.log(`[${message.peerId}] Invalid image editing request: ${request}`)
-                errors = true;
-                continue;
-            }
-            const attachment = message.attachments[+split[0]];
-            if (attachment == undefined) {
-                console.log(`[${message.peerId}] Could not find attachment with local id '${split[0]}'`)
-                errors = true;
-                continue;
-            }
-            if (attachment.type != "photo") {
-                console.log(`[${message.peerId}] Attachment with local id '${split[0]}' is not a photo`)
-                errors = true;
-                continue;
-            }
-            const photoAttachment = attachment as PhotoAttachment;
-            const color = split[1];
-            const maskColorRgb = hexToRgb(color);
-            if (maskColorRgb == null) {
-                console.log(`[${message.peerId}] Invalid color '${color}'`)
-                errors = true;
-                continue;
-            }
-            console.log(`[${message.peerId}] Using mask r=${maskColorRgb.r} g=${maskColorRgb.g} b=${maskColorRgb.b}`)
-            let prompt = split.slice(2).join(",");
-            prompt = prompt.slice(1, prompt.length - 1); // remove quotes
-
-            console.log(`[${message.peerId}] Downloading image...`)
-            await axios({
-                url: photoAttachment.largeSizeUrl,
-                responseType: 'arraybuffer'
-            })
-                .then(async response =>
-                    sharp(Buffer.from(response.data))
-                        .toColorspace('srgb')
-                        .raw()
-                        .toBuffer({ resolveWithObject: true })
-                        .then(({ data, info }) => {
-                            const { width, height, channels } = info;
-                            let newWidth = width;
-                            let newHeight = height;
-                            let leftOffset = 0;
-                            let topOffset = 0;
-                            if (width > height) {
-                                // noinspection JSSuspiciousNameCombination
-                                newWidth = height;
-                                leftOffset = Math.round((width - height) / 2);
-                            }
-                            else if (height > width) {
-                                // noinspection JSSuspiciousNameCombination
-                                newHeight = width;
-                                topOffset = Math.round((height - width) / 2);
-                            }
-                            return sharp(data, { raw: { width, height, channels } })
-                                .extract({
-                                    left: leftOffset,
-                                    top: topOffset,
-                                    width: newWidth,
-                                    height: newHeight
-                                })
-                                .ensureAlpha()
-                                .raw()
-                                .toBuffer({ resolveWithObject: true })
-                        })
-                )
-                .then(async ({ data, info }) => {
-                    console.log(`[${message.peerId}] Applying mask...`)
-                    const { width, height, channels } = info;
-                    for (let i = 0; i < width * height * channels; i += channels) {
-                        const r = data[i];
-                        const g = data[i + 1];
-                        const b = data[i + 2];
-                        if (Math.abs(r - maskColorRgb.r) < 25
-                            && Math.abs(g - maskColorRgb.g) < 25
-                            && Math.abs(b - maskColorRgb.b) < 25
-                        ) {
-                            data[i + 3] = 0;
-                        }
-                    }
-                    return sharp(data, { raw: { width, height, channels } }).png().toBuffer();
-                })
-                .then(async buffer => {
-                    console.log(`[${message.peerId}] Sending image editing request...`)
-                    const result = await imageGenerationService.editImage(buffer, prompt);
-                    if (result != null)
-                        attachedImagesUrls.push(result);
-                    else
-                        errors = true;
-                });
-        }
-
-        response = response.replaceAll(/{@imggen:(.*?)}/g, "");
-        response = response.replaceAll(/{@imgedit:(.*?)}/g, "");
-        response = response.replaceAll(/{@imgvar:(.*?)}/g, "");
-        if (errors) {
-            response += "\n\n(некоторые картинки не удалось сгенерировать)";
-        }
-
-        console.log(`[${message.peerId}] Sending response...`);
-        try {
-            await vkMessagesService.send(message.peerId, response, attachedImagesUrls);
-        } catch (e) {
-            console.error(e);
-            await vkMessagesService.send(message.peerId, "(что-то сломалось, проверьте логи)");
-        }
+        return formattedHistory;
     }
+
+    private async sendUsage(peerId: number): Promise<void> {
+        const text = `Пиши так:\n`
+            + `/sweet answer (вопрос)\n`
+            + `\n`
+            + `Например:\n`
+            + `/sweet answer Когда закончится экономический кризис?\n`;
+        return this.context.vkMessagesService.send(peerId, text);
+    }
+
+    private formatVkMessage(date: Date, message: VkMessage, displayName: string): string {
+        let result = `[${date.getDate().toString()}/${(date.getMonth() + 1).toString()}/${date.getFullYear().toString()} ${date.getHours()}:${date.getMinutes()}] `;
+        result += displayName + ": ";
+        result += message.text;
+        return result;
+    }
+}
+
+type MetaRequestParsingResult = {
+    request: MetaRequest;
+    raw: string;
+    parsingError: boolean;
 }

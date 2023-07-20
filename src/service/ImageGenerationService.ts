@@ -1,5 +1,5 @@
 import ConfigService from "service/ConfigService";
-import axios, {AxiosResponse} from "axios";
+import axios, {AxiosError, AxiosResponse} from "axios";
 import FormData from "form-data";
 import {Context} from "../Context";
 
@@ -16,7 +16,7 @@ export default class ImageGenerationService {
     private editsApiUrl = "https://api.openai.com/v1/images/edits";
     private jsonMediaType = "application/json; charset=utf-8";
 
-    async generateImage(prompt: string): Promise<string | null> {
+    async generateImage(prompt: string): Promise<string> {
         const key = this.config.getEnv('OPENAI_SECRET_KEY');
         const config = {
             headers: {
@@ -30,13 +30,13 @@ export default class ImageGenerationService {
         try {
             const response = await axios.post(this.generationsApiUrl, body, config);
             return this.extractSingleImageUrl(response);
-        } catch (e) {
-            console.error(e);
+        } catch (e: unknown) {
+            console.log(e);
+            throw this.createWrapperError(e);
         }
-        return null;
     }
 
-    async generateImageVariations(imageBuffer: Buffer, variationsNum: number): Promise<string[] | null> {
+    async generateImageVariations(imageBuffer: Buffer, variationsNum: number): Promise<string[]> {
         const key = this.config.getEnv('OPENAI_SECRET_KEY');
         const form = new FormData();
         form.append('image', imageBuffer, {
@@ -56,13 +56,13 @@ export default class ImageGenerationService {
         try {
             const response = await axios.post(this.variationsApiUrl, form, config);
             return this.extractImageUrls(response);
-        } catch (e) {
-            console.error(e);
+        } catch (e: unknown) {
+            console.log(e);
+            throw this.createWrapperError(e);
         }
-        return null;
     }
 
-    async editImage(buffer: Buffer, prompt: string): Promise<string | null> {
+    async editImage(buffer: Buffer, prompt: string): Promise<string> {
         const key = this.config.getEnv('OPENAI_SECRET_KEY');
         const form = new FormData();
         form.append('image', buffer, {
@@ -82,10 +82,28 @@ export default class ImageGenerationService {
         try {
             const response = await axios.post(this.editsApiUrl, form, config);
             return this.extractSingleImageUrl(response);
-        } catch (e) {
-            console.error(e);
+        } catch (e: unknown) {
+            console.log(e);
+            throw this.createWrapperError(e);
         }
-        return null;
+    }
+
+    private createWrapperError(e: unknown) {
+        if (axios.isAxiosError(e)) {
+            const axiosError = e as AxiosError
+            if (axiosError.response && axiosError.response.data) {
+                const data = axiosError.response.data as any;
+                const message = data.error.message || axiosError.message;
+                return new Error("OpenAI: " + message)
+            } else {
+                return new Error("API call failed: " + axiosError.message)
+            }
+        } else if (e instanceof Error) {
+            const error = e as Error
+            return new Error("Service call failed: " + error.message)
+        } else {
+            return new Error("Unknown problem, please check logs")
+        }
     }
 
     private extractSingleImageUrl(response: AxiosResponse): string {

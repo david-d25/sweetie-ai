@@ -8,7 +8,7 @@ export default class HelpCommand extends Command {
     }
 
     getCommandShortUsage(): string {
-        return '/sweetie help';
+        return '/sweet help';
     }
 
     canYouHandleThisCommand(command: string, message: VkMessage): boolean {

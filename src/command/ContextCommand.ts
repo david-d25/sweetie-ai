@@ -8,7 +8,7 @@ export default class ContextCommand extends Command {
     }
 
     getCommandShortUsage(): string {
-        return '/sweetie context (текст)';
+        return '/sweet context (текст)';
     }
 
     canYouHandleThisCommand(command: string, message: VkMessage): boolean {
