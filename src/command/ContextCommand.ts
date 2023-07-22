@@ -18,7 +18,7 @@ export default class ContextCommand extends Command {
     async handle(command: string, rawArguments: string, message: VkMessage): Promise<void> {
         const { vkMessagesService, chatSettingsService } = this.context;
         if (rawArguments.length == 0)
-            return vkMessagesService.send(message.peerId, this.getUsage());
+            await vkMessagesService.send(message.peerId, this.getUsage());
 
         const subCommand = rawArguments.split(" ")[0];
         const text = rawArguments.slice(subCommand.length).trim();
@@ -27,25 +27,25 @@ export default class ContextCommand extends Command {
         if (subCommand == "show") {
             const chatContext = chatSettings.context;
             if (chatContext == null)
-                return vkMessagesService.send(message.peerId, "Контекст не задан.");
-            return vkMessagesService.send(message.peerId, `Контекст:\n${chatContext}`);
+                await vkMessagesService.send(message.peerId, "Контекст не задан.");
+            await vkMessagesService.send(message.peerId, `Контекст:\n${chatContext}`);
         } else if (subCommand == "set") {
             if (text.length == 0)
-                return vkMessagesService.send(message.peerId, this.getUsage());
+                await vkMessagesService.send(message.peerId, this.getUsage());
             await chatSettingsService.setContext(message.peerId, text);
-            return vkMessagesService.send(message.peerId, `Сохранил контекст (${text.length} символов).`);
+            await vkMessagesService.send(message.peerId, `Сохранил контекст (${text.length} символов).`);
         } else if (subCommand == "add") {
             if (text.length == 0)
-                return vkMessagesService.send(message.peerId, this.getUsage());
+                await vkMessagesService.send(message.peerId, this.getUsage());
             const chatContext = chatSettings.context || "";
             const newChatContext = chatContext + "\n" + text;
             await chatSettingsService.setContext(message.peerId, newChatContext);
-            return vkMessagesService.send(message.peerId, `Сохранил контекст (${chatContext.length} -> ${newChatContext.length} символов).`);
+            await vkMessagesService.send(message.peerId, `Сохранил контекст (${chatContext.length} -> ${newChatContext.length} символов).`);
         } else if (subCommand == "forget") {
             await chatSettingsService.setContext(message.peerId, null);
-            return vkMessagesService.send(message.peerId, "Удалил контекст.");
+            await vkMessagesService.send(message.peerId, "Удалил контекст.");
         } else {
-            return vkMessagesService.send(message.peerId, this.getUsage());
+            await vkMessagesService.send(message.peerId, this.getUsage());
         }
     }
 

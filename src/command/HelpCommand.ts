@@ -27,6 +27,6 @@ export default class HelpCommand extends Command {
         response += `/sweet settings\n`
         response += `/sweet enable\n`
         response += `/sweet disable\n`
-        return vkMessagesService.send(message.peerId, response);
+        await vkMessagesService.send(message.peerId, response);
     }
 }

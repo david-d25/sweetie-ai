@@ -19,6 +19,6 @@ export default class DisableCommand extends Command {
     async handle(command: string, rawArguments: string, message: VkMessage): Promise<void> {
         const { vkMessagesService, chatSettingsService } = this.context;
         await chatSettingsService.setBotEnabled(message.peerId, false);
-        return vkMessagesService.send(message.peerId, getRandomBotDisablingPhrase());
+        await vkMessagesService.send(message.peerId, getRandomBotDisablingPhrase());
     }
 }
