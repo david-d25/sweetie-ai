@@ -1,5 +1,6 @@
-export type ResponseMessage = {
-    text: string;
-    attachments: string[];
-    metaRequestErrors: string[];
+export class ResponseMessage {
+    text: string = "";
+    attachments: string[] = [];
+    metaRequestResults: string[] = [];
+    metaRequestErrors: string[] = [];
 }

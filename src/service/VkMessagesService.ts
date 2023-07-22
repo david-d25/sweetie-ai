@@ -101,7 +101,7 @@ export default class VkMessagesService {
         return attachments.map(it => `photo${it.ownerId}_${it.id}${it.accessKey ? `_${it.accessKey}` : ''}`);
     }
 
-    async send(toId: number, message: string, attachments: string[] = []) {
+    async send(toId: number, message: string, attachments: string[] = [], saveToHistory: boolean = true): Promise<number> {
         if (message.trim().length == 0)
             message = "(empty message)";
         let requestBody = {
@@ -110,18 +110,18 @@ export default class VkMessagesService {
             message,
             attachment: attachments.join(',')
         };
-        await this.vk.api.messages.send(requestBody).then(async (res) => {
-            await this.messagesOrmService.addMessage({
-                fromId: 0,
-                conversationMessageId: res,
-                peerId: toId,
-                text: message,
-                attachments: [],
-                timestamp: new Date().getTime()/1000
-            });
-            console.log(`Sent message to id ${toId}: '${message}'`);
-        }).catch(e => {
-            console.error(`Failed to send message to id ${toId}: '${message}'`, e);
+        return await this.vk.api.messages.send(requestBody).then(async (res) => {
+            if (saveToHistory) {
+                await this.messagesOrmService.addMessage({
+                    fromId: 0,
+                    conversationMessageId: res,
+                    peerId: toId,
+                    text: message,
+                    attachments: [],
+                    timestamp: new Date().getTime() / 1000
+                });
+            }
+            return res;
         });
     }
 }

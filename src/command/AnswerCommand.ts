@@ -8,6 +8,9 @@ import {MetaRequestHandler} from "./answer/MetaRequestHandler";
 import GenerateImageMetaRequestHandler from "./answer/GenerateImageMetaRequestHandler";
 import EditImageMetaRequestHandler from "./answer/EditImageMetaRequestHandler";
 import ImageVariationsMetaRequestHandler from "./answer/ImageVariationsMetaRequestHandler";
+import {ChatSettingsModel} from "../service/ChatSettingsService";
+import GetUsersListMetaRequestHandler from "./answer/GetUsersListMetaRequestHandler";
+import DrawStatisticsMetaRequestHandler from "./answer/DrawStatisticsMetaRequestHandler";
 
 export default class AnswerCommand extends Command {
     private metaRequestHandlers: MetaRequestHandler[];
@@ -17,7 +20,9 @@ export default class AnswerCommand extends Command {
         this.metaRequestHandlers = [
             new GenerateImageMetaRequestHandler(context),
             new EditImageMetaRequestHandler(context),
-            new ImageVariationsMetaRequestHandler(context)
+            new ImageVariationsMetaRequestHandler(context),
+            new GetUsersListMetaRequestHandler(context),
+            new DrawStatisticsMetaRequestHandler(context)
         ];
     }
 
@@ -33,64 +38,70 @@ export default class AnswerCommand extends Command {
         const { vkMessagesService, chatSettingsService, chatGptService, vkUsersService } = this.context;
         if (rawArguments.length == 0)
             return this.sendUsage(message.peerId);
-        let response: ResponseMessage = { text: "", attachments: [], metaRequestErrors: [] };
+
+        let response = new ResponseMessage();
         const chatSettings = await chatSettingsService.getSettingsOrCreateDefault(message.peerId);
-        let maxMessagesSize = chatSettings.gptMaxInputTokens - (chatSettings.context?.length || 0) - AnswerCommandTemplates.getBaseTemplateSize();
-        let formattedHistory = await this.getFormattedHistory(message.peerId, 300, maxMessagesSize);
-        let chatMessages = [];
         const userMessageDate = new Date(message.timestamp * 1000);
         const user = await vkUsersService.getUser(+message.fromId)!;
         const displayName = user ? (user.firstName + " " + user.lastName) : "(unknown)";
         const userMessage = this.formatVkMessage(userMessageDate, message, displayName);
-        chatMessages.push({
-            role: "user",
-            content: userMessage
-        });
-        console.log(`[${message.peerId}] Will pass ${formattedHistory.length} messages for context`);
-        let systemMessage = AnswerCommandTemplates.generateSystemMessage(
-            new Date(),
-            chatSettings.context,
-            formattedHistory
-        );
-        console.log(`[${message.peerId}] Length of system message: ${systemMessage.length}`);
-        console.log(`[${message.peerId}] Requesting response from GPT...`);
-        try {
-            response.text = await chatGptService.request(
-                systemMessage,
-                chatMessages,
-                chatSettings.gptModel,
-                chatSettings.gptMaxOutputTokens,
-                chatSettings.gptTemperature,
-                chatSettings.gptTopP,
-                chatSettings.gptFrequencyPenalty,
-                chatSettings.gptPresencePenalty
-            );
-        } catch (e: any) {
-            response.text = "Сладенький не смог ответить:\n" + e.message;
-        }
-        const metaRequests = this.extractMetaRequests(response.text).map(result => {
-            if (result.parsingError) {
-                console.log(`[${message.peerId}] Parsing error: ${result.raw}`);
-                return null;
-            } else {
-                return result.request;
+
+        let gptRequestIterations = 0;
+        const maxGptRequestIterations = 3;
+        do {
+            let chatMessages = this.buildChatMessages(userMessage, response.metaRequestResults);
+            response.metaRequestResults = [];
+            let maxMessagesSize = this.calculateMaxHistoryMessagesSize(chatSettings, chatMessages);
+            await this.prependFormattedHistory(message.peerId, chatMessages, 300, maxMessagesSize);
+
+            let systemMessage = AnswerCommandTemplates.generateSystemMessage(new Date(), chatSettings.context);
+            console.log(`[${message.peerId}] Length of system message: ${systemMessage.length}`);
+            console.log(`[${message.peerId}] Requesting response from GPT...`);
+            try {
+                response.text = await chatGptService.request(
+                    systemMessage,
+                    chatMessages,
+                    chatSettings.gptModel,
+                    chatSettings.gptMaxOutputTokens,
+                    chatSettings.gptTemperature,
+                    chatSettings.gptTopP,
+                    chatSettings.gptFrequencyPenalty,
+                    chatSettings.gptPresencePenalty
+                );
+            } catch (e: any) {
+                response.text = "Сладенький не смог ответить:\n" + e.message;
             }
-        }).filter(request => request != null) as MetaRequest[];
-        console.log(`[${message.peerId}] Got GPT response (length ${response.text.length}, ${metaRequests.length} meta-requests)`);
-        await this.handleMetaRequests(metaRequests, message, response);
-        if (response.metaRequestErrors.length > 2) {
-            response.text += `\n\n---\n`;
-            response.text += response.metaRequestErrors.map((it, i) => `${i + 1}. ${it}`).join('\n');
-        } else if (response.metaRequestErrors.length == 1) {
-            response.text += `\n\n---\n`;
-            response.text += response.metaRequestErrors[0];
-        }
+            const metaRequests = this.extractMetaRequests(response.text).map(result => {
+                if (result.parsingError) {
+                    console.log(`[${message.peerId}] Parsing error: ${result.raw}`);
+                    return null;
+                } else {
+                    return result.request;
+                }
+            }).filter(request => request != null) as MetaRequest[];
+            console.log(`[${message.peerId}] Got GPT response (length ${response.text.length}, ${metaRequests.length} meta-requests)`);
+            await this.handleMetaRequests(metaRequests, message, response);
+            if (response.metaRequestResults.length != 0)
+                console.log(`[${message.peerId}] Response contains ${response.metaRequestResults.length} meta-request results, will repeat request`);
+            gptRequestIterations++;
+        } while (response.metaRequestResults.length != 0 && gptRequestIterations < maxGptRequestIterations);
+        this.addMetaRequestErrorsToResponse(response);
         console.log(`[${message.peerId}] Sending response...`);
         try {
             await vkMessagesService.send(message.peerId, response.text, response.attachments);
         } catch (e) {
             console.error(e);
             await vkMessagesService.send(message.peerId, "(Что-то сломалось, проверьте логи)");
+        }
+    }
+
+    private addMetaRequestErrorsToResponse(response: ResponseMessage) {
+        if (response.metaRequestErrors.length > 2) {
+            response.text += `\n\n---\n`;
+            response.text += response.metaRequestErrors.map((it, i) => `${i + 1}. ${it}`).join('\n');
+        } else if (response.metaRequestErrors.length == 1) {
+            response.text += `\n\n---\n`;
+            response.text += response.metaRequestErrors[0];
         }
     }
 
@@ -115,6 +126,23 @@ export default class AnswerCommand extends Command {
         responseMessage.text = responseMessage.text.replaceAll(/@call:(\w+)\((.*?)\)\n?/g, "");
     }
 
+    private calculateMaxHistoryMessagesSize(
+        chatSettings: ChatSettingsModel,
+        chatMessages: { role: string, content: string }[]
+    ): number {
+        const chatMessagesSize = chatMessages.map(it => it.content.length).reduce((a, b) => a + b, 0);
+        const contextSize = chatSettings.context?.length || 0
+        return chatSettings.gptMaxInputTokens - AnswerCommandTemplates.getBaseTemplateSize() - chatMessagesSize - contextSize;
+    }
+
+    private buildChatMessages(userMessage: string, metaRequestResults: string[]): { role: string, content: string }[] {
+        const result = [];
+        result.push({ role: 'user', content: userMessage });
+        for (const it of metaRequestResults)
+            result.push({ role: 'assistant', content: it });
+        return result;
+    }
+
     private extractMetaRequests(text: string): MetaRequestParsingResult[] {
         const regex = /@call:(\w+)\((.*?)\)/g;
         const result = [];
@@ -132,11 +160,14 @@ export default class AnswerCommand extends Command {
         return result;
     }
 
-    private async getFormattedHistory(peerId: number, maxMessages: number, maxTotalSize: number): Promise<string[]> {
+    private async prependFormattedHistory(peerId: number, chatMessages: { role: string, content: string }[], maxMessages: number, maxTotalSize: number) {
         console.log(`[${peerId}] Retrieving history...`);
         let history = await this.context.vkMessagesService.getHistory(peerId, maxMessages);
         const userIds = new Set(history.map(m => +m.fromId));
         const userById = await this.context.vkUsersService.getUsers([...userIds]);
+        const contentPrefix = 'Messages history:\n"""\n';
+        const contentPostfix = '\n"""\n';
+        const maxMessagesSize = maxTotalSize - contentPrefix.length - contentPostfix.length;
 
         let formattedHistory = (
             await Promise.all(
@@ -152,11 +183,15 @@ export default class AnswerCommand extends Command {
         ).filter(m => m != null) as string[];
 
         let currentMessagesSize = formattedHistory.join('\n').length;
-        while (formattedHistory.length > 0 && currentMessagesSize > maxTotalSize) {
+        while (formattedHistory.length > 0 && currentMessagesSize > maxMessagesSize) {
             currentMessagesSize -= formattedHistory[0]!.length + 1; // +1 for \n
             formattedHistory.shift();
         }
-        return formattedHistory;
+        const messagesString = formattedHistory.join("\n");
+        chatMessages.unshift({
+            role: 'assistant',
+            content: contentPrefix + messagesString + contentPostfix
+        });
     }
 
     private async sendUsage(peerId: number): Promise<void> {
@@ -165,7 +200,7 @@ export default class AnswerCommand extends Command {
             + `\n`
             + `Например:\n`
             + `/sweet answer Когда закончится экономический кризис?\n`;
-        return this.context.vkMessagesService.send(peerId, text);
+        await this.context.vkMessagesService.send(peerId, text);
     }
 
     private formatVkMessage(date: Date, message: VkMessage, displayName: string): string {
