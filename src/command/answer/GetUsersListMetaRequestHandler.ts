@@ -25,7 +25,6 @@ export default class GetUsersListMetaRequestHandler implements MetaRequestHandle
         const members = await this.context.vk.api.messages.getConversationMembers({
             peer_id: message.peerId
         });
-        console.dir(members);
         const userById = new Map<number, UsersUserFull>();
         const groupById = new Map<number, GroupsGroupFull>();
         members.profiles?.forEach(it => userById.set(it.id, it));

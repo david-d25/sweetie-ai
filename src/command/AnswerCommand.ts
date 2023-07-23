@@ -120,7 +120,8 @@ export default class AnswerCommand extends Command {
                 await handler.handle(message, request, responseMessage);
             } catch (e) {
                 responseMessage.metaRequestErrors.push(`Сладенький вызвал команду '${request.functionName}', но она провалилась без объяснения причин`);
-                console.log(`[${message.peerId}] Handler threw exception: ${e}`);
+                console.log(`[${message.peerId}] Handler threw exception:`);
+                console.error(e);
             }
         }
         responseMessage.text = responseMessage.text.replaceAll(/@call:(\w+)\((.*?)\)\n?/g, "");

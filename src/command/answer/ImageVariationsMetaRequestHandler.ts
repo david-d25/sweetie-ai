@@ -67,7 +67,7 @@ export default class ImageVariationsMetaRequestHandler implements MetaRequestHan
                         .toBuffer()
                 })
             const result = await this.context.imageGenerationService.generateImageVariations(buffer, numVariations);
-            const attachments = await this.context.vkMessagesService.uploadPhotoAttachmentsByUrl(message.peerId, result);
+            const attachments = await this.context.vkMessagesService.uploadPhotoAttachments(message.peerId, result);
             response.attachments.push(...attachments);
         } catch (e: any) {
             console.log(`[${message.peerId}] Failed to generate image variations: ${e}`);

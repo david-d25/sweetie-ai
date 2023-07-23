@@ -26,7 +26,7 @@ export default class GenerateImageMetaRequestHandler implements MetaRequestHandl
         }
         let attachments;
         try {
-            attachments = await this.context.vkMessagesService.uploadPhotoAttachmentsByUrl(message.peerId, [url]);
+            attachments = await this.context.vkMessagesService.uploadPhotoAttachments(message.peerId, [url]);
         } catch (e: any) {
             response.metaRequestErrors.push(`Не получилось прикрепить картинку (${e.message})`);
             return;

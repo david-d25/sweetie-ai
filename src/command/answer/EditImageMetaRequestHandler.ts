@@ -91,7 +91,7 @@ export default class EditImageMetaRequestHandler implements MetaRequestHandler {
             const imageBuffer = await sharp(resizedImageBuffer.data, { raw: { width, height, channels } }).png().toBuffer();
             console.log(`[${message.peerId}] Sending image editing request...`)
             const result = await this.context.imageGenerationService.editImage(imageBuffer, prompt);
-            const attachments = await this.context.vkMessagesService.uploadPhotoAttachmentsByUrl(message.peerId, [result]);
+            const attachments = await this.context.vkMessagesService.uploadPhotoAttachments(message.peerId, [result]);
             response.attachments.push(...attachments);
         } catch (e: any) {
             console.log(`[${message.peerId}] Failed to generate image variations: ${e}`);

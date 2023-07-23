@@ -1,4 +1,4 @@
-import {Attachment, ExternalAttachment, PhotoAttachment, VK} from "vk-io";
+import {Attachment, ExternalAttachment, VK} from "vk-io";
 import VkMessagesOrmService from "orm/VkMessagesOrmService";
 import {Context} from "../Context";
 
@@ -84,16 +84,16 @@ export default class VkMessagesService {
         return (await this.messagesOrmService!.getMessagesByPeerIdWithLimitSortedByTimestamp(peerId, count)).reverse();
     }
 
-    async uploadPhotoAttachmentsByUrl(toId: number, urls: string[]): Promise<string[]> {
+    async uploadPhotoAttachments(toId: number, images: (string | Buffer)[]): Promise<string[]> {
         const uploadServerResponse = await this.vk.api.photos.getMessagesUploadServer({});
         const uploadServerUrl = uploadServerResponse.upload_url;
         const attachments = await Promise.all(
-            urls.map(url => this.vk.upload.messagePhoto({
+            images.map(image => this.vk.upload.messagePhoto({
                 peer_id: toId,
                 source: {
                     uploadUrl: uploadServerUrl,
                     values: [{
-                        value: url
+                        value: image
                     }]
                 }
             }))
