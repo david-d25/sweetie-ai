@@ -1,8 +1,8 @@
-package com.davids_digital.vk_gpt_bot.orm.service;
+package space.davids_digital.vk_gpt_bot.orm.service;
 
-import com.davids_digital.vk_gpt_bot.model.VkMessageModel;
-import com.davids_digital.vk_gpt_bot.orm.entity.VkMessageEntity;
-import com.davids_digital.vk_gpt_bot.orm.repository.VkMessagesRepository;
+import space.davids_digital.vk_gpt_bot.model.VkMessageModel;
+import space.davids_digital.vk_gpt_bot.orm.entity.VkMessageEntity;
+import space.davids_digital.vk_gpt_bot.orm.repository.VkMessagesRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;

@@ -1,7 +1,7 @@
-package com.davids_digital.vk_gpt_bot.service;
+package space.davids_digital.vk_gpt_bot.service;
 
-import com.davids_digital.vk_gpt_bot.model.VkMessageModel;
-import com.davids_digital.vk_gpt_bot.orm.service.VkMessagesOrmService;
+import space.davids_digital.vk_gpt_bot.model.VkMessageModel;
+import space.davids_digital.vk_gpt_bot.orm.service.VkMessagesOrmService;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.axis.DateAxis;
 import org.jfree.chart.axis.NumberAxis;
@@ -11,7 +11,6 @@ import org.jfree.data.time.*;
 import org.springframework.stereotype.Service;
 
 import java.awt.*;
-import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
 import java.text.SimpleDateFormat;
 import java.time.Instant;

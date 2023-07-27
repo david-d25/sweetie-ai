@@ -1,6 +1,6 @@
-package com.davids_digital.vk_gpt_bot.rest.controller;
+package space.davids_digital.vk_gpt_bot.rest.controller;
 
-import com.davids_digital.vk_gpt_bot.service.ChartService;
+import space.davids_digital.vk_gpt_bot.service.ChartService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;

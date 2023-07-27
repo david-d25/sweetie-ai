@@ -1,4 +1,4 @@
-package com.davids_digital.vk_gpt_bot;
+package space.davids_digital.vk_gpt_bot;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringBootConfiguration;

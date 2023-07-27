@@ -32,6 +32,11 @@
                     <descriptorRefs>
                         <descriptorRef>jar-with-dependencies</descriptorRef>
                     </descriptorRefs>
+                    <archive>
+                        <manifest>
+                            <mainClass>space.davids_digital.vk_gpt_bot.WebApp</mainClass>
+                        </manifest>
+                    </archive>
                 </configuration>
 
                 <executions>

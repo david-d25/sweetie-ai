@@ -1,4 +1,4 @@
-package com.davids_digital.vk_gpt_bot.model;
+package space.davids_digital.vk_gpt_bot.model;
 
 import java.time.Instant;
 

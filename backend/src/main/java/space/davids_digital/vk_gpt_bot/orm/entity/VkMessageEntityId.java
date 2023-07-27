@@ -1,4 +1,4 @@
-package com.davids_digital.vk_gpt_bot.orm.entity;
+package space.davids_digital.vk_gpt_bot.orm.entity;
 
 import java.io.Serializable;
 
