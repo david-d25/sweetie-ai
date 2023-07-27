@@ -12,7 +12,7 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import javax.sql.DataSource;
 
 @EnableWebMvc
-@ComponentScan("com.davids_digital.vk_gpt_bot")
+@ComponentScan("space.davids_digital.vk_gpt_bot")
 @SpringBootConfiguration
 public class WebConfig {
     @Value("${DB_HOST:localhost}")
