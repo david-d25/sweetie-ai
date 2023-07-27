@@ -6,7 +6,9 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <module name="vk-gpt-chatbot" />
+        <module name="backend" />
+        <module name="bot" />
+        <module name="docker" />
       </profile>
     </annotationProcessing>
   </component>

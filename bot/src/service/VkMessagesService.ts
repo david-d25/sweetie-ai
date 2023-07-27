@@ -102,7 +102,7 @@ export default class VkMessagesService {
     }
 
     async send(toId: number, message: string, attachments: string[] = [], saveToHistory: boolean = true): Promise<number> {
-        if (message.trim().length == 0)
+        if (message.trim().length == 0 && attachments.length == 0)
             message = "(empty message)";
         let requestBody = {
             peer_id: toId,

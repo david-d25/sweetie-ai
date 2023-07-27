@@ -108,7 +108,7 @@ export default class AnswerCommand extends Command {
     private async handleMetaRequests(requests: MetaRequest[], message: VkMessage, responseMessage: ResponseMessage): Promise<void> {
         for (let i in requests) {
             const request = requests[i];
-            console.log(`[${message.peerId}] Handling meta-request ${+i+1}/${requests.length}: ${request.functionName}`);
+            console.log(`[${message.peerId}] Handling meta-request ${+i+1}/${requests.length}: ${request.functionName}, args: ${JSON.stringify(request.args)}`);
 
             const handler = this.metaRequestHandlers.find(it => it.canYouHandleThis(request.functionName));
             if (handler == null) {
