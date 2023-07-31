@@ -2,6 +2,7 @@ version: "3"
 services:
   backend:
     build: backend
+    network_mode: host
     ports:
       - "9988:8080"
     environment:
@@ -12,6 +13,7 @@ services:
       - DB_USER
   bot:
     build: bot
+    network_mode: host
     environment:
       - BACKEND_URL=backend:8080
       - DB_NAME
