@@ -49,7 +49,6 @@
             <groupId>space.davids_digital.vk_gpt_chatbot</groupId>
             <artifactId>backend</artifactId>
             <version>1.0.0-SNAPSHOT</version>
-            <classifier>jar-with-dependencies</classifier>
         </dependency>
     </dependencies>
 

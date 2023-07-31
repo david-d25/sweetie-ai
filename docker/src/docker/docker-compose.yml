@@ -13,8 +13,9 @@ services:
   bot:
     build: bot
     environment:
-      - BACKEND_URL=http://backend:8080
+      - BACKEND_URL=backend:8080
       - DB_NAME
+      - DB_HOST
       - DB_PASSWORD
       - DB_PORT
       - DB_USER
