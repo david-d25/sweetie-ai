@@ -1,0 +1,25 @@
+version: "3"
+services:
+  backend:
+    build: backend
+    ports:
+      - "9988:8080"
+    environment:
+      - DB_NAME
+      - DB_HOST
+      - DB_PASSWORD
+      - DB_PORT
+      - DB_USER
+  bot:
+    build: bot
+    environment:
+      - BACKEND_URL=http://backend:8080
+      - DB_NAME
+      - DB_PASSWORD
+      - DB_PORT
+      - DB_USER
+      - OPENAI_SECRET_KEY
+      - VK_ACCESS_TOKEN
+      - VK_GROUP_ID
+    depends_on:
+      - backend

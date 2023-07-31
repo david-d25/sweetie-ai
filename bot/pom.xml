@@ -16,31 +16,16 @@
     <build>
         <resources>
             <resource>
-                <directory>dist</directory>
+                <directory>src</directory>
+                <targetPath>/src</targetPath>
+            </resource>
+            <resource>
+                <directory>.</directory>
+                <includes>
+                    <include>package.json</include>
+                    <include>tsconfig.json</include>
+                </includes>
             </resource>
         </resources>
-        <plugins>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>1.3.2</version>
-                <executions>
-                    <execution>
-                        <id>npm-run-build</id>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <executable>npm</executable>
-                            <arguments>
-                                <argument>run</argument>
-                                <argument>build</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
     </build>
 </project>
