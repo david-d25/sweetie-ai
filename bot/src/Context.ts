@@ -9,6 +9,8 @@ import ChatGptService from "./service/ChatGptService";
 import {VK} from "vk-io";
 import ChatSettingsService from "./service/ChatSettingsService";
 import BotService from "./service/BotService";
+import DeferredVkMessagesOrmService from "./orm/DeferredVkMessagesOrmService";
+import DeferredVkMessagesService from "./service/DeferredVkMessagesService";
 
 export class Context {
     configService!: ConfigService;
@@ -16,6 +18,8 @@ export class Context {
     vk!: VK;
     chatSettingsOrmService!: ChatSettingsOrmService;
     vkMessagesOrmService!: VkMessagesOrmService;
+    deferredVkMessagesOrmService!: DeferredVkMessagesOrmService;
+    deferredVkMessagesService!: DeferredVkMessagesService;
     vkMessagesService!: VkMessagesService;
     vkUsersService!: VkUsersService;
     chatGptService!: ChatGptService;

@@ -11,6 +11,7 @@ import ImageVariationsMetaRequestHandler from "./answer/ImageVariationsMetaReque
 import {ChatSettingsModel} from "../service/ChatSettingsService";
 import GetUsersListMetaRequestHandler from "./answer/GetUsersListMetaRequestHandler";
 import DrawStatisticsMetaRequestHandler from "./answer/DrawStatisticsMetaRequestHandler";
+import SendLaterMetaRequestHandler from "./answer/SendLaterMetaRequestHandler";
 
 export default class AnswerCommand extends Command {
     private metaRequestHandlers: MetaRequestHandler[];
@@ -22,7 +23,8 @@ export default class AnswerCommand extends Command {
             new EditImageMetaRequestHandler(context),
             new ImageVariationsMetaRequestHandler(context),
             new GetUsersListMetaRequestHandler(context),
-            new DrawStatisticsMetaRequestHandler(context)
+            new DrawStatisticsMetaRequestHandler(context),
+            new SendLaterMetaRequestHandler(context),
         ];
     }
 
@@ -69,7 +71,7 @@ export default class AnswerCommand extends Command {
                     chatSettings.gptPresencePenalty
                 );
             } catch (e: any) {
-                response.text = "Сладенький не смог ответить:\n" + e.message;
+                response.text = `Сладенький не смог ответить (${e.message})`;
             }
             const metaRequests = this.extractMetaRequests(response.text).map(result => {
                 if (result.parsingError) {
@@ -205,7 +207,8 @@ export default class AnswerCommand extends Command {
     }
 
     private formatVkMessage(date: Date, message: VkMessage, displayName: string): string {
-        let result = `[${date.getDate().toString()}/${(date.getMonth() + 1).toString()}/${date.getFullYear().toString()} ${date.getHours()}:${date.getMinutes()}] `;
+        let result = `[${date.getDate().toString()}/${(date.getMonth() + 1).toString()}/${date.getFullYear().toString()} ${date.getHours()}:${date.getMinutes()}]`;
+        result += `[id${message.fromId}] `;
         result += displayName + ": ";
         result += message.text;
         return result;

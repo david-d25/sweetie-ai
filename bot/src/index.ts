@@ -16,6 +16,8 @@ import ContextCommand from "./command/ContextCommand";
 import SettingsCommand from "./command/SettingsCommand";
 import {exit} from 'node:process';
 import DisableCommand from "./command/DisableCommand";
+import DeferredVkMessagesOrmService from "./orm/DeferredVkMessagesOrmService";
+import DeferredVkMessagesService from "./service/DeferredVkMessagesService";
 
 const configService = new ConfigService();
 
@@ -51,6 +53,8 @@ async function ready() {
 
     context.chatSettingsOrmService = new ChatSettingsOrmService(context);
     context.vkMessagesOrmService = new VkMessagesOrmService(context);
+    context.deferredVkMessagesOrmService = new DeferredVkMessagesOrmService(context);
+    context.deferredVkMessagesService = new DeferredVkMessagesService(context);
     context.vkMessagesService = new VkMessagesService(context);
     context.vkUsersService = new VkUsersService(context);
     context.chatGptService = new ChatGptService(context);

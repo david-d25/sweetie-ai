@@ -43,7 +43,7 @@ export default class BotService {
             const messages = this.messagesService.popSinglePeerIdMessages();
             for (const message of messages) {
                 if (this.taggingHandler != null && this.isSweetieTaggedInThisMessage(message))
-                    await this.taggingHandler.handle("", message.text!, message)
+                    await this.processTaggingMessage(message);
                 else if (message.text?.trim().startsWith(BotService.TRIGGER_WORD))
                     await this.processCommandMessage(message);
             }
@@ -52,6 +52,18 @@ export default class BotService {
             console.error("Something bad happened, will retry soon\n", e);
             setTimeout(() => this.action(), 10000);
         }
+    }
+
+    private async processTaggingMessage(message: VkMessage) {
+        let chatSettings = await this.context.chatSettingsService.getSettingsOrCreateDefault(message.peerId);
+        if (!chatSettings.botEnabled) {
+            console.log(`[${message.peerId}] Bot is disabled, ignoring tagging`);
+            return;
+        }
+
+        console.log(`[${message.peerId}] Got tagging message: ${message.text}`);
+        if (this.taggingHandler != null)
+            await this.taggingHandler.handle("", message.text!, message)
     }
 
     private async processCommandMessage(message: VkMessage) {
