@@ -55,7 +55,7 @@ export default class ChatGptService {
         body['presence_penalty'] = presencePenalty;
         body['n'] = 1;
 
-        const key = this.config.getEnv('OPENAI_SECRET_KEY');
+        const key = this.config.requireEnv('OPENAI_SECRET_KEY');
         const config = {
             headers: {
                 'Authorization': `Bearer ${key}`,

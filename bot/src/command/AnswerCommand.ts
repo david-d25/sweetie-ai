@@ -12,6 +12,8 @@ import {ChatSettingsModel} from "../service/ChatSettingsService";
 import GetUsersListMetaRequestHandler from "./answer/GetUsersListMetaRequestHandler";
 import DrawStatisticsMetaRequestHandler from "./answer/DrawStatisticsMetaRequestHandler";
 import SendLaterMetaRequestHandler from "./answer/SendLaterMetaRequestHandler";
+import WebSearchRequestHandler from "./answer/WebSearchRequestHandler";
+import GetSearchResultContentMetaRequestHandler from "./answer/GetSearchResultContentMetaRequestHandler";
 
 export default class AnswerCommand extends Command {
     private metaRequestHandlers: MetaRequestHandler[];
@@ -25,6 +27,8 @@ export default class AnswerCommand extends Command {
             new GetUsersListMetaRequestHandler(context),
             new DrawStatisticsMetaRequestHandler(context),
             new SendLaterMetaRequestHandler(context),
+            new WebSearchRequestHandler(context),
+            new GetSearchResultContentMetaRequestHandler(context),
         ];
     }
 
@@ -49,7 +53,7 @@ export default class AnswerCommand extends Command {
         const userMessage = this.formatVkMessage(userMessageDate, message, displayName);
 
         let gptRequestIterations = 0;
-        const maxGptRequestIterations = 3;
+        const maxGptRequestIterations = 4;
         do {
             let chatMessages = this.buildChatMessages(userMessage, response.metaRequestResults);
             response.metaRequestResults = [];

@@ -18,6 +18,7 @@ import {exit} from 'node:process';
 import DisableCommand from "./command/DisableCommand";
 import DeferredVkMessagesOrmService from "./orm/DeferredVkMessagesOrmService";
 import DeferredVkMessagesService from "./service/DeferredVkMessagesService";
+import MetaphorService from "./service/MetaphorService";
 
 const configService = new ConfigService();
 
@@ -61,6 +62,7 @@ async function ready() {
     context.imageGenerationService = new ImageGenerationService(context);
     context.chatSettingsService = new ChatSettingsService(context);
     context.botService = new BotService(context);
+    context.metaphorService = new MetaphorService(context);
 
     context.ready();
 

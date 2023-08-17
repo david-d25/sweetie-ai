@@ -11,6 +11,7 @@ import ChatSettingsService from "./service/ChatSettingsService";
 import BotService from "./service/BotService";
 import DeferredVkMessagesOrmService from "./orm/DeferredVkMessagesOrmService";
 import DeferredVkMessagesService from "./service/DeferredVkMessagesService";
+import MetaphorService from "./service/MetaphorService";
 
 export class Context {
     configService!: ConfigService;
@@ -25,6 +26,7 @@ export class Context {
     chatGptService!: ChatGptService;
     imageGenerationService!: ImageGenerationService;
     chatSettingsService!: ChatSettingsService;
+    metaphorService!: MetaphorService;
     botService!: BotService;
 
     readyFlag = false;

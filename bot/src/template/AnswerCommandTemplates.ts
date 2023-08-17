@@ -20,6 +20,8 @@ Available meta-requests:
 - getUsersList(): object // Gets list of users with their IDs.
 - drawStatistics(fromTimestamp: number = 0, toTimestamp: number | null = null, userIdsFilter: number[] = [], type: "aggregate" | "separate" = "aggregate"): void // Draws chart with chat statistics, null or empty values are ignored. Before invoking this, get users list
 - sendLater(message: string, waitSeconds: number): void // It will send a message after 'waitSeconds' seconds. You can use it if user asks you to remind him something later.
+- webSearch(query: string, numResults: number = 3): string // Search the web, use only english query.
+- getSearchResultContent(metaphorSearchResultId: number): string // Gets content of web page, the needed metaphorSearchResultId is returned by webSearch.
 """
 If meta-request returns value, it will be added as assistant-message.
 Don't worry, if you call a value-returning function, user request will be repeated and you will have chance to invoke other functions.
