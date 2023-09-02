@@ -25,6 +25,10 @@ export default class BotService {
         this.commandHandlers.push(...command);
     }
 
+    getCommandHandlers(): Command[] {
+        return this.commandHandlers;
+    }
+
     setTaggingHandler(handler: Command) {
         this.taggingHandler = handler;
     }
@@ -73,9 +77,20 @@ export default class BotService {
         const refinedCommandString = text.slice(BotService.TRIGGER_WORD.length).trim();
         const commandName = refinedCommandString.split(" ")[0];
 
-        if (commandName == "enable") {
+        if (commandName == "enable" || commandName == "on") {
+            const privileged = await this.context.userPermissionsService.isUserPrivileged(
+                message.peerId,
+                message.fromId
+            );
+            if (!privileged) {
+                await this.messagesService.send(
+                    message.peerId,
+                    `Только админ может включить Сладенького`
+                );
+                return;
+            }
             if (chatSettings.botEnabled) {
-                await this.messagesService.send(message.peerId, "Бот уже включен");
+                await this.messagesService.send(message.peerId, "Бот уже включён");
                 return;
             }
             await this.chatSettingsService.setBotEnabled(message.peerId, true);
@@ -94,6 +109,19 @@ export default class BotService {
         const argumentsRaw = refinedCommandString.slice(commandName.length).trim();
         for (const command of this.commandHandlers) {
             if (command.canYouHandleThisCommand(commandName, message)) {
+                if (command.requiresPrivileges(message.peerId)) {
+                    const privileged = await this.context.userPermissionsService.isUserPrivileged(
+                        message.peerId,
+                        message.fromId
+                    );
+                    if (!privileged) {
+                        await this.messagesService.send(
+                            message.peerId,
+                            `Только админ может выполнить команду '${commandName}'`
+                        );
+                        return;
+                    }
+                }
                 await command.handle(commandName, argumentsRaw, message)
                 return;
             }

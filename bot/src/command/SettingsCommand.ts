@@ -8,11 +8,15 @@ export default class SettingsCommand extends Command {
     }
 
     getCommandShortUsage(): string {
-        return '/sweetie settings';
+        return '/sweetie settings (команда)';
     }
 
     canYouHandleThisCommand(command: string, message: VkMessage): boolean {
         return command === 'settings';
+    }
+
+    requiresPrivileges(peerId: number): boolean {
+        return true;
     }
 
     async handle(command: string, rawArguments: string, message: VkMessage): Promise<void> {
@@ -27,7 +31,6 @@ export default class SettingsCommand extends Command {
 
         if (subCommand == "list") {
             let response = ``;
-            response += `model=${settings.gptModel}\n`;
             response += `max_output_tokens=${settings.gptMaxOutputTokens}\n`;
             response += `max_input_tokens=${settings.gptMaxInputTokens}\n`;
             response += `temperature=${settings.gptTemperature}\n`;
@@ -40,8 +43,6 @@ export default class SettingsCommand extends Command {
                 await  vkMessagesService.send(message.peerId, this.getUsage());
             const settingName = text;
             let value = null;
-            if (settingName == "model")
-                value = settings.gptModel;
             if (settingName == "max_output_tokens")
                 value = settings.gptMaxOutputTokens;
             if (settingName == "max_input_tokens")
@@ -67,41 +68,42 @@ export default class SettingsCommand extends Command {
 
             const settingName = args[0];
             const settingValue = args[1];
-            if (settingName == "model") {
-                const possibleModels = ["gpt-3.5-turbo", "gpt-3.5-turbo-16k", "gpt-4", "gpt-4-32k"];
-                if (possibleModels.indexOf(settingValue) == -1)
-                    await vkMessagesService.send(message.peerId, `Это должен быть один из следующих вариантов:\n${possibleModels.join('\n')}`);
-                await chatSettingsService.setGptModel(message.peerId, settingValue);
-            } else if (settingName == "max_output_tokens") {
+            if (settingName == "max_output_tokens") {
                 const value = parseInt(settingValue);
                 if (isNaN(value) || value < 1 || value > 2048)
                     await vkMessagesService.send(message.peerId, `Это должно быть целое число от 1 до 2048`);
-                await chatSettingsService.setGptMaxOutputTokens(message.peerId, value);
+                else
+                    await chatSettingsService.setGptMaxOutputTokens(message.peerId, value);
             } else if (settingName == "max_input_tokens") {
                 const value = parseInt(settingValue);
                 if (isNaN(value) || value < 0 || value > 16384)
                     await vkMessagesService.send(message.peerId, `Это должно быть целое число от 0 до 16384`);
-                await chatSettingsService.setGptMaxInputTokens(message.peerId, value);
+                else
+                    await chatSettingsService.setGptMaxInputTokens(message.peerId, value);
             } else if (settingName == "temperature") {
                 const value = parseFloat(settingValue);
                 if (isNaN(value) || value < 0 || value > 2)
                     await vkMessagesService.send(message.peerId, `Это должно быть число от 0 до 2`);
-                await chatSettingsService.setGptTemperature(message.peerId, value);
+                else
+                    await chatSettingsService.setGptTemperature(message.peerId, value);
             } else if (settingName == "top_p") {
                 const value = parseFloat(settingValue);
                 if (isNaN(value) || value < 0 || value > 1)
                     await vkMessagesService.send(message.peerId, `Это должно быть число от 0 до 1`);
-                await chatSettingsService.setGptTopP(message.peerId, value);
+                else
+                    await chatSettingsService.setGptTopP(message.peerId, value);
             } else if (settingName == "frequency_penalty") {
                 const value = parseFloat(settingValue);
                 if (isNaN(value) || value < 0 || value > 2)
                     await vkMessagesService.send(message.peerId, `Это должно быть число от 0 до 2`);
-                await chatSettingsService.setGptFrequencyPenalty(message.peerId, value);
+                else
+                    await chatSettingsService.setGptFrequencyPenalty(message.peerId, value);
             } else if (settingName == "presence_penalty") {
                 const value = parseFloat(settingValue);
                 if (isNaN(value) || value < 0 || value > 2)
                     await vkMessagesService.send(message.peerId, `Это должно быть число от 0 до 2`);
-                await chatSettingsService.setGptPresencePenalty(message.peerId, value);
+                else
+                    await chatSettingsService.setGptPresencePenalty(message.peerId, value);
             } else {
                 await vkMessagesService.send(message.peerId, `Нет такого параметра`);
             }

@@ -19,6 +19,12 @@ import DisableCommand from "./command/DisableCommand";
 import DeferredVkMessagesOrmService from "./orm/DeferredVkMessagesOrmService";
 import DeferredVkMessagesService from "./service/DeferredVkMessagesService";
 import MetaphorService from "./service/MetaphorService";
+import ChatAdminsOrmService from "./orm/ChatAdminsOrmService";
+import UserPermissionsService from "./service/UserPermissionsService";
+import ModelCommand from "./command/ModelCommand";
+import AdminCommand from "./command/AdminCommand";
+import OpenAiFilesService from "./service/OpenAiFilesService";
+import FineTuningService from "./service/FineTuningService";
 
 const configService = new ConfigService();
 
@@ -41,7 +47,7 @@ postgresClient.connect((error: any) => {
         exit(1);
     } else {
         console.log("Connected to database");
-        ready().then(ignored => {});
+        ready().then(() => {});
     }
 });
 
@@ -55,14 +61,19 @@ async function ready() {
     context.chatSettingsOrmService = new ChatSettingsOrmService(context);
     context.vkMessagesOrmService = new VkMessagesOrmService(context);
     context.deferredVkMessagesOrmService = new DeferredVkMessagesOrmService(context);
+    context.chatAdminsOrmService = new ChatAdminsOrmService(context);
+
+    context.botService = new BotService(context);
+    context.userPermissionsService = new UserPermissionsService(context);
     context.deferredVkMessagesService = new DeferredVkMessagesService(context);
     context.vkMessagesService = new VkMessagesService(context);
     context.vkUsersService = new VkUsersService(context);
     context.chatGptService = new ChatGptService(context);
     context.imageGenerationService = new ImageGenerationService(context);
     context.chatSettingsService = new ChatSettingsService(context);
-    context.botService = new BotService(context);
     context.metaphorService = new MetaphorService(context);
+    context.openAiFilesService = new OpenAiFilesService(context);
+    context.fineTuningService = new FineTuningService(context);
 
     context.ready();
 
@@ -74,6 +85,8 @@ async function ready() {
         // new SummarizeCommand(context),
         new ContextCommand(context),
         new SettingsCommand(context),
+        new ModelCommand(context),
+        new AdminCommand(context),
         new DisableCommand(context),
     );
 }

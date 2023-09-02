@@ -58,10 +58,12 @@ export default class AnswerCommand extends Command {
             let chatMessages = this.buildChatMessages(userMessage, response.metaRequestResults);
             response.metaRequestResults = [];
             let maxMessagesSize = this.calculateMaxHistoryMessagesSize(chatSettings, chatMessages);
-            await this.prependFormattedHistory(message.peerId, chatMessages, 300, maxMessagesSize);
+            const addedMessages = await this.prependFormattedHistory(message.peerId, chatMessages, 150, maxMessagesSize, chatSettings);
+            console.log(`[${message.peerId}] Will pass ${addedMessages} chat messages`);
 
             let systemMessage = AnswerCommandTemplates.generateSystemMessage(new Date(), chatSettings.context);
-            console.log(`[${message.peerId}] Length of system message: ${systemMessage.length}`);
+            console.log(`[${message.peerId}] Length of messages ${chatGptService.estimateTokensCount(chatSettings.gptModel, JSON.stringify(chatMessages))} tokens`);
+            console.log(`[${message.peerId}] Length of system message: ${systemMessage.length} symbols or ${chatGptService.estimateTokensCount(chatSettings.gptModel, systemMessage)} tokens`);
             console.log(`[${message.peerId}] Requesting response from GPT...`);
             try {
                 response.text = await chatGptService.request(
@@ -137,9 +139,15 @@ export default class AnswerCommand extends Command {
         chatSettings: ChatSettingsModel,
         chatMessages: { role: string, content: string }[]
     ): number {
-        const chatMessagesSize = chatMessages.map(it => it.content.length).reduce((a, b) => a + b, 0);
-        const contextSize = chatSettings.context?.length || 0
-        return chatSettings.gptMaxInputTokens - AnswerCommandTemplates.getBaseTemplateSize() - chatMessagesSize - contextSize;
+        const { chatGptService } = this.context;
+        const model = chatSettings.gptModel;
+        const chatMessagesSize = chatMessages
+            .map(it => chatGptService.estimateTokensCount(model, it.content) + 20) // 20 for service tokens
+            .reduce((a, b) => a + b, 0);
+        const context = chatSettings.context || "";
+        return chatSettings.gptMaxInputTokens
+            - chatGptService.estimateTokensCount(model, AnswerCommandTemplates.generateSystemMessage(new Date(), context))
+            - chatMessagesSize;
     }
 
     private buildChatMessages(userMessage: string, metaRequestResults: string[]): { role: string, content: string }[] {
@@ -167,16 +175,27 @@ export default class AnswerCommand extends Command {
         return result;
     }
 
-    private async prependFormattedHistory(peerId: number, chatMessages: { role: string, content: string }[], maxMessages: number, maxTotalSize: number) {
+    private async prependFormattedHistory(
+        peerId: number,
+        chatMessages: { role: string, content: string }[],
+        maxMessages: number,
+        maxTotalSize: number,
+        chatSettings: ChatSettingsModel
+    ): Promise<number> {
+        const { chatGptService } = this.context;
         console.log(`[${peerId}] Retrieving history...`);
         let history = await this.context.vkMessagesService.getHistory(peerId, maxMessages);
         const userIds = new Set(history.map(m => +m.fromId));
         const userById = await this.context.vkUsersService.getUsers([...userIds]);
-        const contentPrefix = 'Messages history:\n"""\n';
+        const contentPrefix = 'Last chat messages:\n"""\n';
         const contentPostfix = '\n"""\n';
-        const maxMessagesSize = maxTotalSize - contentPrefix.length - contentPostfix.length;
+        const model = chatSettings.gptModel;
+        const maxMessagesSize = maxTotalSize
+            - chatGptService.estimateTokensCount(model, contentPrefix)
+            - chatGptService.estimateTokensCount(model, contentPostfix)
+            - 20; // 20 for service tokens
 
-        let formattedHistory = (
+        let formattedHistoryLines = (
             await Promise.all(
                 history.map(async msg => {
                     if (msg.text == null)
@@ -184,21 +203,22 @@ export default class AnswerCommand extends Command {
                     const user = userById.get(+msg.fromId)!;
                     const displayName = user ? (user.firstName + " " + user.lastName) : "(unknown)";
                     const date = new Date(msg.timestamp * 1000);
-                    return this.formatVkMessage(date, msg, displayName);
+                    return this.formatVkMessage(date, msg, displayName) + '\n';
                 })
             )
         ).filter(m => m != null) as string[];
 
-        let currentMessagesSize = formattedHistory.join('\n').length;
-        while (formattedHistory.length > 0 && currentMessagesSize > maxMessagesSize) {
-            currentMessagesSize -= formattedHistory[0]!.length + 1; // +1 for \n
-            formattedHistory.shift();
+        let currentMessagesSize = chatGptService.estimateTokensCount(model, formattedHistoryLines.join());
+        while (formattedHistoryLines.length > 0 && currentMessagesSize > maxMessagesSize) {
+            currentMessagesSize -= chatGptService.estimateTokensCount(model, formattedHistoryLines[0]!);
+            formattedHistoryLines.shift();
         }
-        const messagesString = formattedHistory.join("\n");
+        const messagesString = formattedHistoryLines.join();
         chatMessages.unshift({
             role: 'assistant',
             content: contentPrefix + messagesString + contentPostfix
         });
+        return formattedHistoryLines.length;
     }
 
     private async sendUsage(peerId: number): Promise<void> {

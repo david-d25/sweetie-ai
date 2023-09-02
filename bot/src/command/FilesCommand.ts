@@ -1,22 +1,20 @@
-import {Context} from "../Context";
+import Command from "./Command";
 import {VkMessage} from "../service/VkMessagesService";
 
-export default class Command {
-    constructor(protected context: Context) {}
-
+export default class FilesCommand extends Command {
     canYouHandleThisCommand(command: string, message: VkMessage): boolean {
-        return false;
+        return command == "files";
     }
 
     getCommandShortUsage(): string {
-        return "";
+        return "/sweet files (команда)";
     }
 
     requiresPrivileges(peerId: number): boolean {
-        return false;
+        return true;
     }
 
     async handle(command: string, rawArguments: string, message: VkMessage): Promise<void> {
-        return Promise.resolve();
+        // TODO
     }
 }

@@ -12,14 +12,23 @@ import BotService from "./service/BotService";
 import DeferredVkMessagesOrmService from "./orm/DeferredVkMessagesOrmService";
 import DeferredVkMessagesService from "./service/DeferredVkMessagesService";
 import MetaphorService from "./service/MetaphorService";
+import ChatAdminsOrmService from "./orm/ChatAdminsOrmService";
+import UserPermissionsService from "./service/UserPermissionsService";
+import OpenAiFilesService from "./service/OpenAiFilesService";
+import FineTuningService from "./service/FineTuningService";
 
 export class Context {
     configService!: ConfigService;
     postgresClient!: Client;
     vk!: VK;
+
     chatSettingsOrmService!: ChatSettingsOrmService;
     vkMessagesOrmService!: VkMessagesOrmService;
     deferredVkMessagesOrmService!: DeferredVkMessagesOrmService;
+    chatAdminsOrmService!: ChatAdminsOrmService;
+
+    botService!: BotService;
+    userPermissionsService!: UserPermissionsService;
     deferredVkMessagesService!: DeferredVkMessagesService;
     vkMessagesService!: VkMessagesService;
     vkUsersService!: VkUsersService;
@@ -27,7 +36,8 @@ export class Context {
     imageGenerationService!: ImageGenerationService;
     chatSettingsService!: ChatSettingsService;
     metaphorService!: MetaphorService;
-    botService!: BotService;
+    openAiFilesService!: OpenAiFilesService;
+    fineTuningService!: FineTuningService;
 
     readyFlag = false;
     readyListeners: (() => void)[] = [];

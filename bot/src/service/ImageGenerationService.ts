@@ -2,6 +2,7 @@ import ConfigService from "service/ConfigService";
 import axios, {AxiosError, AxiosResponse} from "axios";
 import FormData from "form-data";
 import {Context} from "../Context";
+import {createOpenAiWrapperError} from "../util/OpenAiUtil";
 
 export default class ImageGenerationService {
     private config!: ConfigService;
@@ -32,7 +33,7 @@ export default class ImageGenerationService {
             return this.extractSingleImageUrl(response);
         } catch (e: unknown) {
             console.log(e);
-            throw this.createWrapperError(e);
+            throw createOpenAiWrapperError(e);
         }
     }
 
@@ -58,7 +59,7 @@ export default class ImageGenerationService {
             return this.extractImageUrls(response);
         } catch (e: unknown) {
             console.log(e);
-            throw this.createWrapperError(e);
+            throw createOpenAiWrapperError(e);
         }
     }
 
@@ -84,25 +85,7 @@ export default class ImageGenerationService {
             return this.extractSingleImageUrl(response);
         } catch (e: unknown) {
             console.log(e);
-            throw this.createWrapperError(e);
-        }
-    }
-
-    private createWrapperError(e: unknown) {
-        if (axios.isAxiosError(e)) {
-            const axiosError = e as AxiosError
-            if (axiosError.response && axiosError.response.data) {
-                const data = axiosError.response.data as any;
-                const message = data.error.message || axiosError.message;
-                return new Error("OpenAI: " + message)
-            } else {
-                return new Error("API call failed: " + axiosError.message)
-            }
-        } else if (e instanceof Error) {
-            const error = e as Error
-            return new Error("Service call failed: " + error.message)
-        } else {
-            return new Error("Unknown problem, please check logs")
+            throw createOpenAiWrapperError(e);
         }
     }
 

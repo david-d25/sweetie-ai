@@ -22,5 +22,6 @@ services:
       - OPENAI_SECRET_KEY
       - VK_ACCESS_TOKEN
       - VK_GROUP_ID
+      - METAPHOR_API_KEY
     depends_on:
       - backend

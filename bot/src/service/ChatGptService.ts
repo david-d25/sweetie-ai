@@ -1,20 +1,28 @@
 import axios, {AxiosResponse} from "axios";
 import ConfigService from "service/ConfigService";
 import {Context} from "../Context";
-import {AxiosError} from "axios/index";
+import {AxiosError} from "axios";
+import GPT4Tokenizer from "gpt4-tokenizer";
+import {createOpenAiWrapperError} from "../util/OpenAiUtil";
+
+export type OpenAiModel = {
+    id: string,
+    created: number,
+    ownedBy: string,
+}
 
 export default class ChatGptService {
 
     private config!: ConfigService;
+    private jsonMediaType = "application/json; charset=utf-8";
+    private apiKey!: string;
 
     constructor(context: Context) {
         context.onReady(() => {
             this.config = context.configService!;
+            this.apiKey = this.config.requireEnv('OPENAI_SECRET_KEY');
         });
     }
-
-    private apiUrl = "https://api.openai.com/v1/chat/completions";
-    private jsonMediaType = "application/json; charset=utf-8";
 
     async request(
         systemMessage: string,
@@ -30,6 +38,7 @@ export default class ChatGptService {
         frequencyPenalty: number,
         presencePenalty: number
     ): Promise<string> {
+        const apiUrl = "https://api.openai.com/v1/chat/completions";
         const messages = [];
 
         messages.push({
@@ -55,37 +64,60 @@ export default class ChatGptService {
         body['presence_penalty'] = presencePenalty;
         body['n'] = 1;
 
-        const key = this.config.requireEnv('OPENAI_SECRET_KEY');
-        const config = {
-            headers: {
-                'Authorization': `Bearer ${key}`,
-                'Content-Type': this.jsonMediaType
-            }
-        }
+        const config = this.createAxiosConfig();
 
         try {
-            const response = await axios.post(this.apiUrl, body, config);
-            return  this.parseResponse(response);
+            const response = await axios.post(apiUrl, body, config);
+            return response.data['choices'][0]['message']['content'];
         } catch (e) {
-            if (axios.isAxiosError(e)) {
-                const axiosError = e as AxiosError
-                if (axiosError.response && axiosError.response.data) {
-                    const data = axiosError.response.data as any;
-                    const message = data.error.message || axiosError.message;
-                    throw new Error("OpenAI: " + message)
-                } else {
-                    throw new Error("API call failed: " + axiosError.message)
-                }
-            } else if (e instanceof Error) {
-                const error = e as Error
-                throw new Error("Service call failed: " + error.message)
-            } else {
-                throw new Error("Unknown problem, please check logs")
-            }
+            throw createOpenAiWrapperError(e);
         }
     }
 
-    private parseResponse(response: AxiosResponse): string {
-        return response.data['choices'][0]['message']['content'];
+    async requestListModels(): Promise<OpenAiModel[]> {
+        const apiUrl = "https://api.openai.com/v1/models";
+        const config = this.createAxiosConfig();
+        try {
+            const response = await axios.get(apiUrl, config);
+            const models: OpenAiModel[] = response.data['data'].map((dto: any) => {
+                return {
+                    id: dto['id'],
+                    created: dto['created'],
+                    ownedBy: dto['owned_by']
+                }
+            });
+            return models.filter(model => /(^gpt|^ft:gpt)/.test(model.id));
+        } catch (e) {
+            throw createOpenAiWrapperError(e);
+        }
+    }
+
+    async requestDeleteModel(modelId: string): Promise<boolean> {
+        const apiUrl = "https://api.openai.com/v1/models/" + modelId;
+        const config = this.createAxiosConfig();
+        try {
+            const response = await axios.delete(apiUrl, config);
+            return response.data['deleted'] == 'true';
+        } catch (e) {
+            throw createOpenAiWrapperError(e);
+        }
+    }
+
+    estimateTokensCount(model: string, message: string): number {
+        if (model.startsWith('gpt-4') || model.startsWith('gpt-3.5')) {
+            const tokenizer = new GPT4Tokenizer({ type: "gpt4" });
+            return tokenizer.estimateTokenCount(message);
+        } else {
+            return message.length;
+        }
+    }
+
+    private createAxiosConfig(): object {
+        return {
+            headers: {
+                'Authorization': `Bearer ${this.apiKey}`,
+                'Content-Type': this.jsonMediaType
+            }
+        };
     }
 }

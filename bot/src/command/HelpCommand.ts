@@ -16,17 +16,23 @@ export default class HelpCommand extends Command {
     }
 
     async handle(command: string, rawArguments: string, message: VkMessage): Promise<void> {
-        const { vkMessagesService } = this.context;
+        const { vkMessagesService, botService, userPermissionsService } = this.context;
         let response = '';
         response += `Вот что можно сделать:\n`
-        response += `/sweet help\n`
-        response += `/sweet answer\n`
-        response += `\n`
-        response += `Настройки:\n`
-        response += `/sweet context\n`
-        response += `/sweet settings\n`
-        response += `/sweet enable\n`
-        response += `/sweet disable\n`
+        botService.getCommandHandlers()
+            .filter(command => !command.requiresPrivileges(message.peerId))
+            .forEach(command => {
+                response += `${command.getCommandShortUsage()}\n`
+            });
+        if (await userPermissionsService.isUserPrivileged(message.peerId, message.fromId)) {
+            response += `\nАдминские команды:\n`
+            botService.getCommandHandlers()
+                .filter(command => command.requiresPrivileges(message.peerId))
+                .forEach(command => {
+                    response += `${command.getCommandShortUsage()}\n`
+                });
+            response += `/sweet enable`;
+        }
         await vkMessagesService.send(message.peerId, response);
     }
 }

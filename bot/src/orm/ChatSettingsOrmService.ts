@@ -24,7 +24,7 @@ export default class ChatSettingsOrmService {
             );
         `);
         await this.client.query(
-            `alter table chat_settings add column if not exists bot_enabled boolean default true;`
+            `alter table chat_settings add column if not exists bot_enabled boolean default false;`
         );
         await this.client.query(
             `alter table chat_settings add column if not exists gpt_model varchar default 'gpt-3.5-turbo-16k';`

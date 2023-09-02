@@ -1,6 +1,7 @@
 import {Attachment, ExternalAttachment, VK} from "vk-io";
 import VkMessagesOrmService from "orm/VkMessagesOrmService";
 import {Context} from "../Context";
+import {GroupsGroupFull, UsersUserFull} from "vk-io/lib/api/schemas/objects";
 
 export type VkMessage = {
     conversationMessageId: number;
@@ -9,6 +10,15 @@ export type VkMessage = {
     timestamp: number;
     attachments: (Attachment | ExternalAttachment)[];
     text: string | null;
+}
+
+export type VkChatMember = {
+    memberId: number;
+    displayName: string;
+    firstName: string;
+    lastName: string | null;
+    isAdmin: boolean;
+    type: "user" | "group";
 }
 
 export default class VkMessagesService {
@@ -123,5 +133,30 @@ export default class VkMessagesService {
             }
             return res;
         });
+    }
+
+    async getChatMembers(peerId: number): Promise<VkChatMember[]> {
+        const members = await this.context.vk.api.messages.getConversationMembers({
+            peer_id: peerId
+        });
+        const userById = new Map<number, UsersUserFull>();
+        const groupById = new Map<number, GroupsGroupFull>();
+        members.profiles?.forEach(it => userById.set(it.id, it));
+        members.groups?.forEach(it => groupById.set(it.id!, it));
+        const result = members.items?.map(it => {
+            const type: "group" | "user" = it.member_id! < 0 ? "group" : "user";
+            const user = userById.get(it.member_id!);
+            const group = groupById.get(-it.member_id!);
+            const groupName = group?.name || "Unknown group";
+            return {
+                memberId: it.member_id!,
+                displayName: type == "user" ? `${user.first_name} ${user.last_name}` : groupName,
+                firstName: type == "user" ? user.first_name : groupName,
+                lastName: type == "user" ? user.last_name : null,
+                isAdmin: it.is_admin == true,
+                type
+            }
+        });
+        return result ? result : [];
     }
 }

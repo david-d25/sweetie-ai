@@ -12,6 +12,10 @@ export default class DisableCommand extends Command {
         return '/sweet disable';
     }
 
+    requiresPrivileges(peerId: number): boolean {
+        return true;
+    }
+
     canYouHandleThisCommand(command: string, message: VkMessage): boolean {
         return command === 'disable' || command === 'off';
     }
