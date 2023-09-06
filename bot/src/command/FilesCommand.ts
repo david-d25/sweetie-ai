@@ -3,7 +3,7 @@ import {VkMessage} from "../service/VkMessagesService";
 import {Attachment, DocumentAttachment} from "vk-io";
 import axios from "axios";
 import ServiceError from "../ServiceError";
-import {getFileName, toUserFriendlySize} from "../util/VkUtil";
+import {getFileName, toUserFriendlyDate, toUserFriendlySize} from "../util/VkUtil";
 import {OpenAiFile} from "../service/OpenAiFilesService";
 import {wildcardMatch} from "../util/StringUtil";
 
@@ -52,6 +52,7 @@ export default class FilesCommand extends Command {
                 response += `# ${file.name} (${toUserFriendlySize(file.sizeBytes)})\n`;
                 response += `ID: ${file.id}\n`;
                 response += `Статус: ${this.getUserFriendlyStatus(file)}\n`;
+                response += `Создан: ${toUserFriendlyDate(file.createdAt)}\n`;
                 response += `\n`;
             });
         }
