@@ -4,7 +4,7 @@ import axios from "axios";
 import {createOpenAiWrapperError} from "../util/OpenAiUtil";
 import FormData from "form-data";
 
-type FileStatus = "uploaded" | "processing" | "pending" | "error" | "deleting" | "deleted";
+type FileStatus = "uploaded" | "processed" | "pending" | "error" | "deleting" | "deleted";
 
 export type OpenAiFile = {
     id: string;
@@ -64,7 +64,7 @@ export default class OpenAiFilesService {
 
         try {
             const response = await axios.delete(apiUrl, config);
-            return response.data['deleted'] == 'true';
+            return response.data['deleted'] == true;
         } catch (e) {
             throw createOpenAiWrapperError(e);
         }
@@ -91,6 +91,24 @@ export default class OpenAiFilesService {
             return Buffer.from(response.data, 'binary');
         } catch (e) {
             throw createOpenAiWrapperError(e);
+        }
+    }
+
+    async waitFileStatus(fileId: string, statuses: FileStatus[], timeoutSeconds: number): Promise<OpenAiFile> {
+        let delayMs = 2000;
+        while (true) {
+            const file = await this.getFile(fileId);
+            if (statuses.includes(file.status)) {
+                return file;
+            }
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+            if (delayMs < 8000) {
+                delayMs *= 2;
+            }
+            timeoutSeconds -= delayMs / 1000;
+            if (timeoutSeconds <= 0) {
+                throw new Error(`Timeout waiting for file status '${statuses}'`);
+            }
         }
     }
 

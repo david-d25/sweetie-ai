@@ -16,6 +16,7 @@ import ChatAdminsOrmService from "./orm/ChatAdminsOrmService";
 import UserPermissionsService from "./service/UserPermissionsService";
 import OpenAiFilesService from "./service/OpenAiFilesService";
 import FineTuningService from "./service/FineTuningService";
+import TemporaryFileHostService from "./service/TemporaryFileHostService";
 
 export class Context {
     configService!: ConfigService;
@@ -38,6 +39,7 @@ export class Context {
     metaphorService!: MetaphorService;
     openAiFilesService!: OpenAiFilesService;
     fineTuningService!: FineTuningService;
+    temporaryFilesHostService!: TemporaryFileHostService;
 
     readyFlag = false;
     readyListeners: (() => void)[] = [];

@@ -1,4 +1,5 @@
 import axios, {AxiosError} from "axios";
+import ServiceError from "../ServiceError";
 
 export function createOpenAiWrapperError(e: unknown): Error {
     if (axios.isAxiosError(e)) {
@@ -6,13 +7,13 @@ export function createOpenAiWrapperError(e: unknown): Error {
         if (axiosError.response && axiosError.response.data) {
             const data = axiosError.response.data as any;
             const message = data.error.message || axiosError.message;
-            return new Error("OpenAI: " + message)
+            return new ServiceError("OpenAI: " + message)
         } else {
-            return new Error("API call failed: " + axiosError.message);
+            return new ServiceError("API call failed: " + axiosError.message);
         }
     } else if (e instanceof Error) {
         const error = e as Error
-        return new Error("Service call failed: " + error.message)
+        return new ServiceError("Service call failed: " + error.message)
     }
-    return new Error("Unknown problem, please check logs")
+    return new ServiceError("Unknown problem, please check logs")
 }

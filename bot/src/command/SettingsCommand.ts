@@ -8,7 +8,7 @@ export default class SettingsCommand extends Command {
     }
 
     getCommandShortUsage(): string {
-        return '/sweetie settings (команда)';
+        return '/sweet settings (...)';
     }
 
     canYouHandleThisCommand(command: string, message: VkMessage): boolean {
@@ -22,14 +22,11 @@ export default class SettingsCommand extends Command {
     async handle(command: string, rawArguments: string, message: VkMessage): Promise<void> {
         const { vkMessagesService, chatSettingsService } = this.context;
 
-        if (rawArguments.length == 0)
-            await vkMessagesService.send(message.peerId, this.getUsage());
-
         const subCommand = rawArguments.split(" ")[0];
         const text = rawArguments.slice(subCommand.length).trim();
         const settings = await chatSettingsService.getSettingsOrCreateDefault(message.peerId);
 
-        if (subCommand == "list") {
+        if (!subCommand) {
             let response = ``;
             response += `max_output_tokens=${settings.gptMaxOutputTokens}\n`;
             response += `max_input_tokens=${settings.gptMaxInputTokens}\n`;
@@ -115,8 +112,9 @@ export default class SettingsCommand extends Command {
     }
 
     private getUsage(): string {
-        let usage = `Как пользоваться: \n`;
-        usage += `/sweet settings list\n`;
+        let usage = `Команды:\n`;
+        usage += `/sweet settings\n`;
+        usage += `/sweet settings help\n`;
         usage += `/sweet settings get (имя)\n`;
         usage += `/sweet settings set (имя)[=](значение)\n`;
         return usage;

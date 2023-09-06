@@ -5,6 +5,7 @@ import ChatSettingsService from "service/ChatSettingsService";
 import {Context} from "../Context";
 import {getRandomBotEnablingPhrase} from "../template/BotEnablingPhrases";
 import Command from "../command/Command";
+import ServiceError from "../ServiceError";
 
 export default class BotService {
     private static readonly TRIGGER_WORD = "/sweet";
@@ -122,7 +123,16 @@ export default class BotService {
                         return;
                     }
                 }
-                await command.handle(commandName, argumentsRaw, message)
+                try {
+                    await command.handle(commandName, argumentsRaw, message);
+                } catch (e) {
+                    console.error(`[${message.peerId}] Error while handling command '${commandName}'`, e);
+                    if (e instanceof ServiceError) {
+                        await this.messagesService.send(message.peerId, `Не могу это сделать (${e.message})`);
+                    } else {
+                        await this.messagesService.send(message.peerId, `У Сладенького случился отвал жопы неизвестного происхождения (пните Давида)`);
+                    }
+                }
                 return;
             }
         }

@@ -1,7 +1,6 @@
-import axios, {AxiosResponse} from "axios";
+import axios from "axios";
 import ConfigService from "service/ConfigService";
 import {Context} from "../Context";
-import {AxiosError} from "axios";
 import GPT4Tokenizer from "gpt4-tokenizer";
 import {createOpenAiWrapperError} from "../util/OpenAiUtil";
 
@@ -16,6 +15,7 @@ export default class ChatGptService {
     private config!: ConfigService;
     private jsonMediaType = "application/json; charset=utf-8";
     private apiKey!: string;
+    private gpt4Tokenizer = new GPT4Tokenizer({ type: "gpt4" });
 
     constructor(context: Context) {
         context.onReady(() => {
@@ -97,16 +97,15 @@ export default class ChatGptService {
         const config = this.createAxiosConfig();
         try {
             const response = await axios.delete(apiUrl, config);
-            return response.data['deleted'] == 'true';
+            return response.data['deleted'] == true;
         } catch (e) {
             throw createOpenAiWrapperError(e);
         }
     }
 
     estimateTokensCount(model: string, message: string): number {
-        if (model.startsWith('gpt-4') || model.startsWith('gpt-3.5')) {
-            const tokenizer = new GPT4Tokenizer({ type: "gpt4" });
-            return tokenizer.estimateTokenCount(message);
+        if (model.startsWith('gpt-4') || model.startsWith('gpt-3.5') || model.startsWith('ft:gpt-4') || model.startsWith('ft:gpt-3.5')) {
+            return this.gpt4Tokenizer.estimateTokenCount(message);
         } else {
             return message.length;
         }

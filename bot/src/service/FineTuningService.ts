@@ -147,6 +147,24 @@ export default class FineTuningService {
         }
     }
 
+    async waitJobStatus(jobId: string, statuses: FineTuningJobStatus[], timeoutSeconds: number): Promise<FineTuningJob> {
+        let delayMs = 2000;
+        while (true) {
+            const job = await this.getJob(jobId);
+            if (statuses.includes(job.status)) {
+                return job;
+            }
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+            if (delayMs < 16000) {
+                delayMs *= 2;
+            }
+            timeoutSeconds -= delayMs / 1000;
+            if (timeoutSeconds <= 0) {
+                throw new Error(`Timeout waiting for job status '${statuses}'`);
+            }
+        }
+    }
+
     async listEvents(
         jobId: string,
         afterId: string | null = null,

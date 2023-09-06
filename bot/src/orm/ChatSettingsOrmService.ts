@@ -1,6 +1,7 @@
 import {Client} from "pg";
 import {Context} from "../Context";
 import {ChatSettingsModel} from "../service/ChatSettingsService";
+import ServiceError from "../ServiceError";
 
 export default class ChatSettingsOrmService {
     private client!: Client;
@@ -16,7 +17,7 @@ export default class ChatSettingsOrmService {
                 context text default null,
                 memory text default null,
                 gpt_max_output_tokens integer default 512,
-                gpt_max_input_tokens integer default 8096,
+                gpt_max_input_tokens integer default 2500,
                 gpt_temperature real default 1,
                 gpt_top_p real default 1,
                 gpt_frequency_penalty real default 0,
@@ -27,7 +28,7 @@ export default class ChatSettingsOrmService {
             `alter table chat_settings add column if not exists bot_enabled boolean default false;`
         );
         await this.client.query(
-            `alter table chat_settings add column if not exists gpt_model varchar default 'gpt-3.5-turbo-16k';`
+            `alter table chat_settings add column if not exists gpt_model varchar default 'gpt-3.5-turbo';`
         );
     }
 
@@ -88,9 +89,16 @@ export default class ChatSettingsOrmService {
             ]
         );
         if (rows.rows.length === 0) {
-            throw new Error(`Can't save settings for id '${peerId}'`);
+            throw new ServiceError(`Can't save settings for id '${peerId}'`);
         }
         return this.entityToModel({...rows.rows[0]});
+    }
+
+    async replaceModelGlobally(oldModelId: string, newModelId: string): Promise<void> {
+        await this.client.query(
+            `update chat_settings set gpt_model = $1 where gpt_model = $2`,
+            [newModelId, oldModelId]
+        );
     }
 
     async createDefaultSettings(peerId: number): Promise<ChatSettingsModel> {
@@ -99,7 +107,7 @@ export default class ChatSettingsOrmService {
             [peerId]
         );
         if (rows.rows.length === 0) {
-            throw new Error(`Can't create default settings for id '${peerId}'`);
+            throw new ServiceError(`Can't create default settings for id '${peerId}'`);
         }
         return this.entityToModel({...rows.rows[0]});
     }

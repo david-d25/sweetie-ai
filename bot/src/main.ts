@@ -22,23 +22,28 @@ import MetaphorService from "./service/MetaphorService";
 import ChatAdminsOrmService from "./orm/ChatAdminsOrmService";
 import UserPermissionsService from "./service/UserPermissionsService";
 import ModelCommand from "./command/ModelCommand";
-import AdminCommand from "./command/AdminCommand";
+import AdminsCommand from "./command/AdminsCommand";
 import OpenAiFilesService from "./service/OpenAiFilesService";
 import FineTuningService from "./service/FineTuningService";
+import FilesCommand from "./command/FilesCommand";
+import FineTuningCommand from "./command/FineTuningCommand";
+import TemporaryFileHostService from "./service/TemporaryFileHostService";
 
 const configService = new ConfigService();
 
+const config = configService.getAppConfig();
+
 const vk = new VK({
-    token: configService.requireEnv('VK_ACCESS_TOKEN')!,
-    pollingGroupId: +configService.requireEnv('VK_GROUP_ID')!
+    token: config.vkAccessToken,
+    pollingGroupId: config.vkGroupId
 });
 
 const postgresClient = new Client({
-    user: configService.requireEnv('DB_USER'),
-    host: configService.requireEnv('DB_HOST'),
-    database: configService.requireEnv('DB_NAME'),
-    password: configService.requireEnv('DB_PASSWORD'),
-    port: +(configService.getEnv('DB_PORT') || 5432),
+    user: config.dbUser,
+    host: config.dbHost,
+    database: config.dbName,
+    password: config.dbPassword,
+    port: config.dbPort || 5432,
 });
 
 postgresClient.connect((error: any) => {
@@ -74,6 +79,7 @@ async function ready() {
     context.metaphorService = new MetaphorService(context);
     context.openAiFilesService = new OpenAiFilesService(context);
     context.fineTuningService = new FineTuningService(context);
+    context.temporaryFilesHostService = new TemporaryFileHostService(context);
 
     context.ready();
 
@@ -86,7 +92,9 @@ async function ready() {
         new ContextCommand(context),
         new SettingsCommand(context),
         new ModelCommand(context),
-        new AdminCommand(context),
+        new FilesCommand(context),
+        new FineTuningCommand(context),
+        new AdminsCommand(context),
         new DisableCommand(context),
     );
 }

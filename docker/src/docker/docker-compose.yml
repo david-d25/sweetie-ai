@@ -12,6 +12,8 @@ services:
       - DB_USER
   bot:
     build: bot
+    ports:
+      - "9005:9005"
     environment:
       - BACKEND_URL=backend:8080
       - DB_NAME
@@ -23,5 +25,8 @@ services:
       - VK_ACCESS_TOKEN
       - VK_GROUP_ID
       - METAPHOR_API_KEY
+      - FILE_HOSTING_PORT=9005
+      - FILE_HOSTING_URL_BASE
+      - FILE_HOSTING_MAX_STORAGE_SIZE_BYTES=67108864 # 64 MB
     depends_on:
       - backend

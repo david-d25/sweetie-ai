@@ -13,7 +13,7 @@ export default class ContextCommand extends Command {
     }
 
     getCommandShortUsage(): string {
-        return '/sweet context (команда)';
+        return '/sweet context (...)';
     }
 
     canYouHandleThisCommand(command: string, message: VkMessage): boolean {
@@ -143,7 +143,7 @@ export default class ContextCommand extends Command {
     }
 
     private getUsage(): string {
-        let usage = `Как пользоваться: \n`;
+        let usage = `Команды:\n`;
         usage += `/sweet context show\n`;
         usage += `/sweet context set (текст)\n`;
         usage += `/sweet context forget\n`;

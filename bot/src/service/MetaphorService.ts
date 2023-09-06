@@ -1,5 +1,6 @@
 import {Context} from "../Context";
 import axios, {AxiosError, AxiosResponse} from "axios";
+import ServiceError from "../ServiceError";
 
 export default class MetaphorService {
     private static SEARCH_ENDPOINT = "https://api.metaphor.systems/search";
@@ -55,15 +56,15 @@ export default class MetaphorService {
             if (axiosError.response && axiosError.response.data) {
                 const data = axiosError.response.data as any;
                 const message = data.error || axiosError.message;
-                throw new Error("Metaphor: " + message)
+                throw new ServiceError("Metaphor: " + message)
             } else {
-                throw new Error("API call failed: " + axiosError.message)
+                throw new ServiceError("API call failed: " + axiosError.message)
             }
         } else if (e instanceof Error) {
             const error = e as Error
-            throw new Error("Service call failed: " + error.message)
+            throw new ServiceError("Service call failed: " + error.message)
         } else {
-            throw new Error("Unknown problem, please check logs")
+            throw new ServiceError("Unknown problem, please check logs")
         }
     }
 

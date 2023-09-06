@@ -1,5 +1,5 @@
 import ConfigService from "service/ConfigService";
-import axios, {AxiosError, AxiosResponse} from "axios";
+import axios, {AxiosResponse} from "axios";
 import FormData from "form-data";
 import {Context} from "../Context";
 import {createOpenAiWrapperError} from "../util/OpenAiUtil";
@@ -18,7 +18,7 @@ export default class ImageGenerationService {
     private jsonMediaType = "application/json; charset=utf-8";
 
     async generateImage(prompt: string): Promise<string> {
-        const key = this.config.getEnv('OPENAI_SECRET_KEY');
+        const key = this.config.getAppConfig().openAiSecretKey;
         const config = {
             headers: {
                 'Authorization': `Bearer ${key}`,
@@ -38,7 +38,7 @@ export default class ImageGenerationService {
     }
 
     async generateImageVariations(imageBuffer: Buffer, variationsNum: number): Promise<string[]> {
-        const key = this.config.getEnv('OPENAI_SECRET_KEY');
+        const key = this.config.getAppConfig().openAiSecretKey;
         const form = new FormData();
         form.append('image', imageBuffer, {
             filename: 'image.png',
@@ -64,7 +64,7 @@ export default class ImageGenerationService {
     }
 
     async editImage(buffer: Buffer, prompt: string): Promise<string> {
-        const key = this.config.getEnv('OPENAI_SECRET_KEY');
+        const key = this.config.getAppConfig().openAiSecretKey;
         const form = new FormData();
         form.append('image', buffer, {
             filename: 'image.png',

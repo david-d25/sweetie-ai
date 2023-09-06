@@ -2,6 +2,8 @@ import {Attachment, ExternalAttachment, VK} from "vk-io";
 import VkMessagesOrmService from "orm/VkMessagesOrmService";
 import {Context} from "../Context";
 import {GroupsGroupFull, UsersUserFull} from "vk-io/lib/api/schemas/objects";
+import FormData from "form-data";
+import axios from "axios";
 
 export type VkMessage = {
     conversationMessageId: number;
@@ -93,6 +95,24 @@ export default class VkMessagesService {
     async getHistory(peerId: number, count: number): Promise<VkMessage[]> {
         return (await this.messagesOrmService!.getMessagesByPeerIdWithLimitSortedByTimestamp(peerId, count)).reverse();
     }
+
+    // Doesn't work, I have no idea why
+    // async uploadDocumentAttachment(toId: number, filename: string, doc: string | Buffer): Promise<string> {
+    //     const uploadServerResponse = await this.vk.api.docs.getMessagesUploadServer({
+    //         type: "doc",
+    //         peer_id: toId
+    //     });
+    //     const uploadServerUrl = uploadServerResponse.upload_url;
+    //     const attachment = await this.vk.upload.messageDocument({
+    //         peer_id: toId,
+    //         source: {
+    //             uploadUrl: uploadServerUrl,
+    //             filename: filename,
+    //             value: doc,
+    //         }
+    //     });
+    //     return `doc${attachment.ownerId}_${attachment.id}${attachment.accessKey ? `_${attachment.accessKey}` : ''}`;
+    // }
 
     async uploadPhotoAttachments(toId: number, images: (string | Buffer)[]): Promise<string[]> {
         const uploadServerResponse = await this.vk.api.photos.getMessagesUploadServer({});
