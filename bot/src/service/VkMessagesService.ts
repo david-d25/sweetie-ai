@@ -2,8 +2,6 @@ import {Attachment, ExternalAttachment, VK} from "vk-io";
 import VkMessagesOrmService from "orm/VkMessagesOrmService";
 import {Context} from "../Context";
 import {GroupsGroupFull, UsersUserFull} from "vk-io/lib/api/schemas/objects";
-import FormData from "form-data";
-import axios from "axios";
 
 export type VkMessage = {
     conversationMessageId: number;
