@@ -32,8 +32,8 @@ User: напомни покормить кота через 5 минут
 Response: Хорошо, напомню через 5 минут @call:sendLater("[id89446514|Давид], сладкий мой, напоминаю покормить кота 🐈", 300)
 """
 You can insert several meta-requests one after the other.
-Message from the user will be received in the format "[datetime][user_id] UserName: MessageText", but
-your response should contain only the text of the response, without date and name.
+User message will be in format "[date time][user_id] user_name: text", but
+your response should contain only text of the response, don't include date and name.
 `.trim();
 
 export function generateSystemMessage(date: Date, chatContext: string | null) {

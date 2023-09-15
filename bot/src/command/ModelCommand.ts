@@ -39,11 +39,17 @@ export default class ModelCommand extends Command {
     }
 
     private async handleList(rawArguments: string, message: VkMessage): Promise<void> {
-        const { chatGptService, vkMessagesService } = this.context;
+        const { chatGptService, vkMessagesService, chatSettingsService } = this.context;
         const models = await chatGptService.requestListModels();
+        const settings = await chatSettingsService.getSettingsOrCreateDefault(message.peerId);
+        const currentModel = settings.gptModel;
         let response = `Доступные модели: \n`;
         models.forEach(model => {
-            response += `- ${model.id}\n`;
+            response += `- ${model.id}`;
+            if (currentModel == model.id) {
+                response += ` (использую эту)`;
+            }
+            response += `\n`;
         });
         await vkMessagesService.send(message.peerId, response);
     }

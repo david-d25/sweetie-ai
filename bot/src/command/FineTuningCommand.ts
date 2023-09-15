@@ -50,6 +50,7 @@ export default class FineTuningCommand extends Command {
             response += `# ${i}\n`;
             response += `ID: ${job.id}\n`;
             response += `Статус: ${this.toUserFriendlyStatus(job.status)}\n`;
+            response += `Создана: ${toUserFriendlyDate(job.createdAt)}\n`;
             if (job.status != "running") {
                 response += `Отчет: ${job.resultFiles.join(', ') || '(пусто)'}\n`;
             }
@@ -107,16 +108,20 @@ export default class FineTuningCommand extends Command {
         console.log(`[${message.peerId}] Uploading attachment ${attachment.id} to OpenAI...`);
         let file = await openAiFilesService.uploadFile(getFileName(attachment), buffer, "fine-tune");
         console.log(`[${message.peerId}] Waiting for file ${file.id} to be processed...`);
-        file = await openAiFilesService.waitFileStatus(file.id, ["processed", "error"], 120);
-        if (file.status == "error") {
-            console.error(`[${message.peerId}] Could not process file ${file.id} (OpenAI: ${file.statusDetails})...`);
-            await vkMessagesService.send(message.peerId, `Не получилось обработать файл (OpenAI: ${file.statusDetails})`);
-            return;
-        }
-        console.log(`[${message.peerId}] Creating a fine-tuning job with file ${file.id}...`);
-        const job = await fineTuningService.createJob("gpt-3.5-turbo", file.id);
-        await vkMessagesService.send(message.peerId, `Начинаю учиться...`);
-        this.sendNotificationAfterLearningFinished(job, message);
+        openAiFilesService.waitFileStatus(file.id, ["processed", "error"], 2 * 60 * 60).then(async (file) => {
+            if (file.status == "error") {
+                console.error(`[${message.peerId}] Could not process file ${file.id} (OpenAI: ${file.statusDetails})...`);
+                await vkMessagesService.send(message.peerId, `Не получилось обработать файл (OpenAI: ${file.statusDetails})`);
+                return;
+            }
+            console.log(`[${message.peerId}] Creating a fine-tuning job with file ${file.id}...`);
+            const job = await fineTuningService.createJob("gpt-3.5-turbo", file.id);
+            await vkMessagesService.send(message.peerId, `Начинаю учиться...`);
+            this.sendNotificationAfterLearningFinished(job, message);
+        }).catch(async (e) => {
+            console.error(e);
+            await vkMessagesService.send(message.peerId, `Не получилось дождаться обработки файла (${e.message})`);
+        });
     }
 
     private async handleLearnRaw(args: string, message: VkMessage): Promise<void> {
@@ -186,8 +191,9 @@ export default class FineTuningCommand extends Command {
             } else {
                 throw new Error("unknown job status: " + doneJob.status);
             }
-        }).catch(async () => {
-            throw new ServiceError("Пока я следил за ходом учебы, у меня сломался интернет. Учеба, возможно, всё ещё идёт, но я не могу узнать, закончилась она или нет. Проверьте статус учёбы в /sweet learning jobs");
+        }).catch(async (e) => {
+            console.error(e);
+            await vkMessagesService.send(message.peerId, `Пока я следил за ходом учебы, у меня сломался интернет. Учеба, возможно, всё ещё идёт, но я не могу узнать, закончилась она или нет. Проверьте статус учёбы в /sweet learning jobs`);
         });
     }
 
