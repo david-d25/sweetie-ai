@@ -10,7 +10,7 @@
     <artifactId>backend</artifactId>
 
     <properties>
-        <java.version>20</java.version>
+        <java.version>11</java.version>
     </properties>
 
     <build>
