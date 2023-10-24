@@ -38,7 +38,7 @@ public class ChartService {
         var dataset = new TimeSeriesCollection();
         dataset.addSeries(series);
         var dateAxis = new DateAxis("Дата");
-        dateAxis.setDateFormatOverride(new SimpleDateFormat("dd.MM.yyyy", Locale.of("ru")));
+        dateAxis.setDateFormatOverride(new SimpleDateFormat("dd.MM.yyyy", new Locale("ru")));
         dateAxis.setLowerMargin(0);
         dateAxis.setUpperMargin(0);
         dateAxis.setLabelFont(LABEL_FONT);
