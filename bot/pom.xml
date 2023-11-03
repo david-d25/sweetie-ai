@@ -16,8 +16,8 @@
     <build>
         <resources>
             <resource>
-                <directory>./src</directory>
-                <targetPath>/src</targetPath>
+                <directory>src</directory>
+                <targetPath>src</targetPath>
             </resource>
             <resource>
                 <directory>.</directory>
