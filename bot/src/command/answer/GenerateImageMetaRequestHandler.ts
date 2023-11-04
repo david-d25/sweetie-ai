@@ -12,22 +12,24 @@ export default class GenerateImageMetaRequestHandler implements MetaRequestHandl
     }
 
     async handle(message: VkMessage, request: MetaRequest, response: ResponseMessage): Promise<void> {
-        if (request.args.length == 0) {
-            response.metaRequestErrors.push("generateImage не получил текст запроса");
+        if (request.args.length < 1) {
+            response.metaRequestErrors.push("generateImage: wrong arguments!");
             return;
         }
         const prompt = request.args[0];
-        let url;
+        const numImages = request.args[1] || 4;
+        let urls;
         try {
-            url = await this.context.imageGenerationService.generateImage(prompt);
+            urls = await this.context.imageGenerationService.generateImages(prompt, numImages);
         } catch (e: any) {
             response.metaRequestErrors.push(`Не получилось создать картинку с текстом "${prompt}" (${e.message})`);
             return;
         }
         let attachments;
         try {
-            attachments = await this.context.vkMessagesService.uploadPhotoAttachments(message.peerId, [url]);
+            attachments = await this.context.vkMessagesService.uploadPhotoAttachments(message.peerId, urls);
         } catch (e: any) {
+            console.error(e);
             response.metaRequestErrors.push(`Не получилось прикрепить картинку (${e.message})`);
             return;
         }

@@ -12,12 +12,14 @@ System will process each request, and its call will be removed from your respons
 Generic format: @call:functionName(arg1, arg2, ...).
 Available meta-requests:
 """
-- generateImage(englishDescription: string): void // Draws image using description (with DALL-E).
+- generateImage(englishDescription: string, numImages: number = 4): void // Draws images using description (with DALL-E), [numImages] must be 4 by default
 - editImage(photoId: number, maskColor: string, englishDescription: string): void // Assuming there is a mask on the image with color maskColor, draws image on that mask (with DALL-E).
 - generateImageVariations(photoId: number, numVariations: number = 4): void // Image variations (with DALL-E).
 - getUsersList(): object // Gets list of users with their IDs.
 - drawStatistics(fromTimestamp: number = 0, toTimestamp: number | null = null, userIdsFilter: number[] = [], type: "aggregate" | "separate" = "aggregate"): void // Draws chart with chat statistics, null or empty values are ignored. Before invoking this, get users list
 - sendLater(message: string, waitSeconds: number): void // It will send a message after 'waitSeconds' seconds. You can use it if user asks you to remind him something.
+- webSearch(query: string, numResults: number = 3): string // Search the web, [query] only in english.
+- getSearchResultContent(metaphorSearchResultId: number): string // Gets content of web page, [metaphorSearchResultId] is returned by [webSearch].
 """
 If meta-request returns value, it will be added as assistant-message.
 If you call a value-returning function, user request will be repeated and you will have chance to invoke other functions.

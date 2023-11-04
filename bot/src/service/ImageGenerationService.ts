@@ -17,7 +17,7 @@ export default class ImageGenerationService {
     private editsApiUrl = "https://api.openai.com/v1/images/edits";
     private jsonMediaType = "application/json; charset=utf-8";
 
-    async generateImage(prompt: string): Promise<string> {
+    async generateImages(prompt: string, numImages: number = 1): Promise<string[]> {
         const key = this.config.getAppConfig().openAiSecretKey;
         const config = {
             headers: {
@@ -27,10 +27,11 @@ export default class ImageGenerationService {
         }
         const body: any = {};
         body['prompt'] = prompt;
+        body['n'] = numImages;
 
         try {
             const response = await axios.post(this.generationsApiUrl, body, config);
-            return this.extractSingleImageUrl(response);
+            return this.extractImageUrls(response);
         } catch (e: unknown) {
             console.log(e);
             throw createOpenAiWrapperError(e);

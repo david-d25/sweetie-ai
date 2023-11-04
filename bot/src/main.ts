@@ -35,7 +35,9 @@ const config = configService.getAppConfig();
 
 const vk = new VK({
     token: config.vkAccessToken,
-    pollingGroupId: config.vkGroupId
+    pollingGroupId: config.vkGroupId,
+    uploadTimeout: 75e3,
+    apiTimeout: 75e3
 });
 
 const postgresClient = new Client({
