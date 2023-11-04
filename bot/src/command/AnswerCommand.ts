@@ -53,7 +53,7 @@ export default class AnswerCommand extends Command {
         const userMessage = this.formatVkMessage(userMessageDate, message, displayName);
 
         let gptRequestIterations = 0;
-        const maxGptRequestIterations = 4;
+        const maxGptRequestIterations = 5;
         do {
             let chatMessages = this.buildChatMessages(userMessage, response.metaRequestResults);
             response.metaRequestResults = [];
