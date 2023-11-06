@@ -12,7 +12,7 @@ System will process each request, and its call will be removed from your respons
 Generic format: @call:functionName(arg1, arg2, ...).
 Available meta-requests:
 """
-- generateImage(englishDescription: string, numImages: number = 4): void // Draws images using description (with DALL-E), [numImages] must be 4 by default
+- generateImage(englishPrompt: string): void // Draws images using description (with DALL-E), it's better invoke this several times with slightly different prompts/styles
 - editImage(photoId: number, maskColor: string, englishDescription: string): void // Assuming there is a mask on the image with color maskColor, draws image on that mask (with DALL-E).
 - generateImageVariations(photoId: number, numVariations: number = 4): void // Image variations (with DALL-E).
 - getUsersList(): object // Gets list of users with their IDs.

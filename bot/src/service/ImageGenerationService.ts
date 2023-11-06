@@ -27,7 +27,9 @@ export default class ImageGenerationService {
         }
         const body: any = {};
         body['prompt'] = prompt;
-        body['n'] = numImages;
+        body['model'] = 'dall-e-3';
+        // body['size'] = "1024x1024";
+        // body['n'] = numImages;
 
         try {
             const response = await axios.post(this.generationsApiUrl, body, config);

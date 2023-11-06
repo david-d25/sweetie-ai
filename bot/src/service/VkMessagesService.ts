@@ -1,4 +1,4 @@
-import {Attachment, ExternalAttachment, VK} from "vk-io";
+import {Attachment, ExternalAttachment, MessageContext, VK} from "vk-io";
 import VkMessagesOrmService from "orm/VkMessagesOrmService";
 import {Context} from "../Context";
 import {GroupsGroupFull, UsersUserFull} from "vk-io/lib/api/schemas/objects";
@@ -10,6 +10,7 @@ export type VkMessage = {
     timestamp: number;
     attachments: (Attachment | ExternalAttachment)[];
     text: string | null;
+    forwardedMessages: VkMessage[];
 }
 
 export type VkChatMember = {
@@ -43,36 +44,7 @@ export default class VkMessagesService {
         });
 
         this.vk.updates.on('message_new', async (context, next) => {
-            const { conversationMessageId, senderId, peerId, text, createdAt } = context;
-
-            if (!this.messagesByPeerId.has(peerId))
-                this.messagesByPeerId.set(peerId, []);
-
-            const peerMessages = this.messagesByPeerId.get(peerId)!;
-            const message: VkMessage = {
-                conversationMessageId: conversationMessageId!,
-                peerId: peerId,
-                fromId: senderId,
-                timestamp: createdAt,
-                attachments: [],
-                text: typeof text == 'undefined' ? null : text
-            };
-
-            console.log(`Got message from id ${message.fromId}: '${message.text}'`);
-
-            if (context.attachments.length > 0) {
-                if (message.text == null)
-                    message.text = '';
-                for (const i in context.attachments) {
-                    const attachment = context.attachments[i];
-                    message.attachments.push(attachment);
-                    message.text += ` (attachment:${attachment.type}, id=${i})`;
-                }
-            }
-
-            peerMessages.push(message);
-
-            await this.messagesOrmService!.addMessage(message);
+            await this.processNewMessage(context);
             await next();
         });
 
@@ -130,6 +102,10 @@ export default class VkMessagesService {
     }
 
     async send(toId: number, message: string, attachments: string[] = [], saveToHistory: boolean = true): Promise<number> {
+        if (attachments.length > VkMessagesService.MAX_ATTACHMENTS_PER_MESSAGE) {
+            console.warn(`[send] Too many attachments (${attachments.length}), only ${VkMessagesService.MAX_ATTACHMENTS_PER_MESSAGE} will be sent`);
+            attachments = attachments.slice(0, VkMessagesService.MAX_ATTACHMENTS_PER_MESSAGE);
+        }
         if (message.trim().length == 0 && attachments.length == 0)
             message = "(empty message)";
         let requestBody = {
@@ -146,7 +122,8 @@ export default class VkMessagesService {
                     peerId: toId,
                     text: message,
                     attachments: [],
-                    timestamp: new Date().getTime() / 1000
+                    timestamp: new Date().getTime() / 1000,
+                    forwardedMessages: []
                 });
             }
             return res;
@@ -176,5 +153,37 @@ export default class VkMessagesService {
             }
         });
         return result ? result : [];
+    }
+
+    private async processNewMessage(context: MessageContext) {
+        const { peerId } = context;
+        if (!this.messagesByPeerId.has(peerId)) {
+            this.messagesByPeerId.set(peerId, []);
+        }
+        const message = this.vkMessageDtoToModel(context);
+        this.messagesByPeerId.get(peerId)!.push(message);
+        await this.messagesOrmService!.addMessage(message);
+    }
+
+    private vkMessageDtoToModel(context: MessageContext): VkMessage {
+        const result: VkMessage = {
+            conversationMessageId: context.conversationMessageId!,
+            peerId: context.peerId,
+            fromId: context.senderId,
+            timestamp: context.createdAt,
+            attachments: context.attachments,
+            text: typeof context.text == 'undefined' ? null : context.text,
+            forwardedMessages: []
+        }
+
+        if (context.hasForwards) {
+            for (const forward of context.forwards) {
+                result.forwardedMessages.push(this.vkMessageDtoToModel(forward));
+            }
+        } else if (context.hasReplyMessage) {
+            result.forwardedMessages.push(this.vkMessageDtoToModel(context.replyMessage!));
+        }
+
+        return result;
     }
 }
