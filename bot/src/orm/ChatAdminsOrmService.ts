@@ -34,7 +34,7 @@ export default class ChatAdminsOrmService {
             SELECT 1 FROM chat_admins
             WHERE peer_id = $1 AND user_id = $2
         `, [peerId, userId]);
-        return result.rowCount > 0;
+        return result.rowCount ? result.rowCount > 0 : false;
     }
 
     async addAdmin(peerId: number, userId: number): Promise<void> {
