@@ -15,6 +15,7 @@ import SendLaterMetaRequestHandler from "./answer/SendLaterMetaRequestHandler";
 import WebSearchRequestHandler from "./answer/WebSearchRequestHandler";
 import GetSearchResultContentMetaRequestHandler from "./answer/GetSearchResultContentMetaRequestHandler";
 import {VkUser} from "../service/VkUsersService";
+import {PhotoAttachment} from "vk-io";
 
 export default class AnswerCommand extends Command {
     private metaRequestHandlers: MetaRequestHandler[];
@@ -41,6 +42,7 @@ export default class AnswerCommand extends Command {
         return command === 'answer';
     }
 
+    // TODO refactor
     async handle(command: string, rawArguments: string, message: VkMessage): Promise<void> {
         const { vkMessagesService, chatSettingsService, chatGptService } = this.context;
         if (rawArguments.length == 0)
@@ -48,12 +50,12 @@ export default class AnswerCommand extends Command {
 
         let response = new ResponseMessage();
         const chatSettings = await chatSettingsService.getSettingsOrCreateDefault(message.peerId);
-        const userMessage = (await this.createFormattedChatLines([message]))[0];
 
         let gptRequestIterations = 0;
         const maxGptRequestIterations = 5;
         do {
-            let chatMessages = this.buildChatMessages(userMessage, response.metaRequestResults);
+            const visionSupported = chatSettings.gptModel.includes("vision");
+            let chatMessages = await this.buildChatMessages(message, response.metaRequestResults, visionSupported);
             response.metaRequestResults = [];
             let maxMessagesSize = this.calculateMaxHistoryMessagesSize(chatSettings, chatMessages);
             const addedMessages = await this.prependFormattedHistory(message.peerId, chatMessages, 250, maxMessagesSize, chatSettings);
@@ -137,22 +139,37 @@ export default class AnswerCommand extends Command {
 
     private calculateMaxHistoryMessagesSize(
         chatSettings: ChatSettingsModel,
-        chatMessages: { role: string, content: string }[]
+        chatMessages: { role: string, content: string | object }[]
     ): number {
         const { chatGptService } = this.context;
         const model = chatSettings.gptModel;
         const chatMessagesSize = chatMessages
-            .map(it => chatGptService.estimateTokensCount(model, it.content) + 20) // 20 for service tokens
+            .map(it => chatGptService.estimateTokensCount(model, JSON.stringify(it.content)) + 20) // 20 for service tokens
             .reduce((a, b) => a + b, 0);
         const context = chatSettings.context || "";
         return chatSettings.gptMaxInputTokens
             - chatGptService.estimateTokensCount(model, AnswerCommandTemplates.generateSystemMessage(new Date(), context))
+            - chatMessages.flatMap(it => it.content instanceof Array ? it.content : []).filter(it => it.type == "image_url").length * 765 // Took this number from online calculator, maybe I'll refactor it later
             - chatMessagesSize;
     }
 
-    private buildChatMessages(userMessage: string, metaRequestResults: string[]): { role: string, content: string }[] {
+    private async buildChatMessages(userMessage: VkMessage, metaRequestResults: string[], visionSupported: boolean): Promise<{
+        role: string,
+        content: string | object
+    }[]> {
+        const messageText = (await this.createFormattedChatLines([userMessage]))[0];
         const result = [];
-        result.push({ role: 'user', content: userMessage });
+        const imageAttachments = userMessage.attachments.filter(it => it.type === 'photo') as PhotoAttachment[];
+        if (!visionSupported || imageAttachments.length == 0) {
+            result.push({ role: 'user', content: messageText });
+        } else {
+            const content = [];
+            content.push({ type: 'text', text: messageText });
+            for (const attachment of imageAttachments) {
+                content.push({ type: 'image_url', image_url: { url: attachment.largeSizeUrl } });
+            }
+            result.push({ role: 'user', content: content });
+        }
         for (const it of metaRequestResults)
             result.push({ role: 'assistant', content: it });
         return result;
@@ -177,7 +194,7 @@ export default class AnswerCommand extends Command {
 
     private async prependFormattedHistory(
         peerId: number,
-        chatMessages: { role: string, content: string }[],
+        chatMessages: { role: string, content: string | object }[],
         maxMessages: number,
         maxTotalSize: number,
         chatSettings: ChatSettingsModel

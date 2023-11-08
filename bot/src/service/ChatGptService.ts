@@ -29,7 +29,7 @@ export default class ChatGptService {
         chatMessages: {
             role: string,
             name?: string,
-            content: string
+            content: string | object
         }[],
         model: string,
         maxTokens: number,
