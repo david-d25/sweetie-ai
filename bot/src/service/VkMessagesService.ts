@@ -63,7 +63,7 @@ export default class VkMessagesService {
     }
 
     async getHistory(peerId: number, count: number): Promise<VkMessage[]> {
-        return (await this.messagesOrmService!.getMessagesByPeerIdWithLimitSortedByTimestamp(peerId, count)).reverse();
+        return (await this.messagesOrmService.getMessagesByPeerIdWithLimitSortedByTimestamp(peerId, count)).reverse();
     }
 
     // Doesn't work, I have no idea why

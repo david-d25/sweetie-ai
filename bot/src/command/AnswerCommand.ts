@@ -14,6 +14,7 @@ import DrawStatisticsMetaRequestHandler from "./answer/DrawStatisticsMetaRequest
 import SendLaterMetaRequestHandler from "./answer/SendLaterMetaRequestHandler";
 import WebSearchRequestHandler from "./answer/WebSearchRequestHandler";
 import GetSearchResultContentMetaRequestHandler from "./answer/GetSearchResultContentMetaRequestHandler";
+import {VkUser} from "../service/VkUsersService";
 
 export default class AnswerCommand extends Command {
     private metaRequestHandlers: MetaRequestHandler[];
@@ -41,16 +42,13 @@ export default class AnswerCommand extends Command {
     }
 
     async handle(command: string, rawArguments: string, message: VkMessage): Promise<void> {
-        const { vkMessagesService, chatSettingsService, chatGptService, vkUsersService } = this.context;
+        const { vkMessagesService, chatSettingsService, chatGptService } = this.context;
         if (rawArguments.length == 0)
             return this.sendUsage(message.peerId);
 
         let response = new ResponseMessage();
         const chatSettings = await chatSettingsService.getSettingsOrCreateDefault(message.peerId);
-        const userMessageDate = new Date(message.timestamp * 1000);
-        const user = await vkUsersService.getUser(+message.fromId)!;
-        const displayName = user ? (user.firstName + " " + user.lastName) : "(unknown)";
-        const userMessage = this.formatVkMessage(userMessageDate, message, displayName);
+        const userMessage = (await this.createFormattedChatLines([message]))[0];
 
         let gptRequestIterations = 0;
         const maxGptRequestIterations = 5;
@@ -58,13 +56,15 @@ export default class AnswerCommand extends Command {
             let chatMessages = this.buildChatMessages(userMessage, response.metaRequestResults);
             response.metaRequestResults = [];
             let maxMessagesSize = this.calculateMaxHistoryMessagesSize(chatSettings, chatMessages);
-            const addedMessages = await this.prependFormattedHistory(message.peerId, chatMessages, 150, maxMessagesSize, chatSettings);
-            console.log(`[${message.peerId}] Will pass ${addedMessages} chat messages`);
+            const addedMessages = await this.prependFormattedHistory(message.peerId, chatMessages, 250, maxMessagesSize, chatSettings);
+            console.log(`[${message.peerId}] Will pass last ${addedMessages} chat messages`);
 
             let systemMessage = AnswerCommandTemplates.generateSystemMessage(new Date(), chatSettings.context);
-            console.log(`[${message.peerId}] Length of messages ${chatGptService.estimateTokensCount(chatSettings.gptModel, JSON.stringify(chatMessages))} tokens`);
-            console.log(`[${message.peerId}] Length of system message: ${systemMessage.length} symbols or ${chatGptService.estimateTokensCount(chatSettings.gptModel, systemMessage)} tokens`);
-            console.log(`[${message.peerId}] Requesting response from GPT...`);
+            const messagesSizeTokens = chatGptService.estimateTokensCount(chatSettings.gptModel, JSON.stringify(chatMessages));
+            const systemMessageSizeTokens = chatGptService.estimateTokensCount(chatSettings.gptModel, systemMessage);
+            console.log(`[${message.peerId}] Length of messages is ${messagesSizeTokens} tokens`);
+            console.log(`[${message.peerId}] Length of system message is ${systemMessageSizeTokens} tokens`);
+            console.log(`[${message.peerId}] Sending request to GPT...`);
             try {
                 response.text = await chatGptService.request(
                     systemMessage,
@@ -77,7 +77,7 @@ export default class AnswerCommand extends Command {
                     chatSettings.gptPresencePenalty
                 );
             } catch (e: any) {
-                response.text = `Сладенький не смог ответить (${e.message})`;
+                response.text = `Сладенький не может ответить (${e.message})`;
             }
             const metaRequests = this.extractMetaRequests(response.text).map(result => {
                 if (result.parsingError) {
@@ -185,8 +185,6 @@ export default class AnswerCommand extends Command {
         const { chatGptService } = this.context;
         console.log(`[${peerId}] Retrieving history...`);
         let history = await this.context.vkMessagesService.getHistory(peerId, maxMessages);
-        const userIds = new Set(history.map(m => +m.fromId));
-        const userById = await this.context.vkUsersService.getUsers([...userIds]);
         const contentPrefix = 'Last chat messages:\n"""\n';
         const contentPostfix = '\n"""\n';
         const model = chatSettings.gptModel;
@@ -195,30 +193,19 @@ export default class AnswerCommand extends Command {
             - chatGptService.estimateTokensCount(model, contentPostfix)
             - 20; // 20 for service tokens
 
-        let formattedHistoryLines = (
-            await Promise.all(
-                history.map(async msg => {
-                    if (msg.text == null)
-                        return null;
-                    const user = userById.get(+msg.fromId)!;
-                    const displayName = user ? (user.firstName + " " + user.lastName) : "(unknown)";
-                    const date = new Date(msg.timestamp * 1000);
-                    return this.formatVkMessage(date, msg, displayName) + '\n';
-                })
-            )
-        ).filter(m => m != null) as string[];
+        let formattedChatLines = await this.createFormattedChatLines(history);
 
-        let currentMessagesSize = chatGptService.estimateTokensCount(model, formattedHistoryLines.join());
-        while (formattedHistoryLines.length > 0 && currentMessagesSize > maxMessagesSize) {
-            currentMessagesSize -= chatGptService.estimateTokensCount(model, formattedHistoryLines[0]!);
-            formattedHistoryLines.shift();
+        let currentMessagesSize = chatGptService.estimateTokensCount(model, formattedChatLines.join());
+        while (formattedChatLines.length > 0 && currentMessagesSize > maxMessagesSize) {
+            currentMessagesSize -= chatGptService.estimateTokensCount(model, formattedChatLines[0]!);
+            formattedChatLines.shift();
         }
-        const messagesString = formattedHistoryLines.join();
+        const messagesString = formattedChatLines.join("");
         chatMessages.unshift({
             role: 'assistant',
             content: contentPrefix + messagesString + contentPostfix
         });
-        return formattedHistoryLines.length;
+        return formattedChatLines.length;
     }
 
     private async sendUsage(peerId: number): Promise<void> {
@@ -230,11 +217,31 @@ export default class AnswerCommand extends Command {
         await this.context.vkMessagesService.send(peerId, text);
     }
 
-    private formatVkMessage(date: Date, message: VkMessage, displayName: string): string {
-        let result = `[${date.getDate().toString()}/${(date.getMonth() + 1).toString()}/${date.getFullYear().toString()} ${date.getHours()}:${date.getMinutes()}]`;
+    private async createFormattedChatLines(history: VkMessage[], forwardDepth: number = 0): Promise<string[]> {
+        const result = [];
+        for (const message of history) {
+            const user = await this.context.vkUsersService.getUser(+message.fromId);
+            const displayName = user ? (user.firstName + " " + user.lastName) : "(unknown)";
+            const date = new Date(message.timestamp * 1000);
+            let formattedMessage = this.formatVkMessage(date, message, displayName, forwardDepth) + "\n";
+            formattedMessage += (await this.createFormattedChatLines(message.forwardedMessages, forwardDepth + 1)).join("");
+            result.push(formattedMessage);
+        }
+        return result;
+    }
+
+    private formatVkMessage(date: Date, message: VkMessage, displayName: string, forwardDepth: number = 0): string {
+        let result = ``;
+        for (let i = 0; i < forwardDepth; i++) {
+            result += `>>`;
+        }
+        result += `[${date.getDate().toString()}/${(date.getMonth() + 1).toString()}/${date.getFullYear().toString()} ${date.getHours()}:${date.getMinutes()}]`;
         result += `[id${message.fromId}] `;
         result += displayName + ": ";
         result += message.text;
+        for (const [i, attachment] of message.attachments.entries()) {
+            result += ` [attachment:${attachment.type}, id=${i}]`;
+        }
         return result;
     }
 }

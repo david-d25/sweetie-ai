@@ -22,16 +22,14 @@ export default class ContextCommand extends Command {
 
     async handle(command: string, rawArguments: string, message: VkMessage): Promise<void> {
         const { vkMessagesService, chatSettingsService } = this.context;
-        if (rawArguments.length == 0) {
-            await vkMessagesService.send(message.peerId, this.getUsage());
-            return;
-        }
 
         const subCommand = rawArguments.split(" ")[0];
         const text = rawArguments.slice(subCommand.length).trim();
         const chatSettings = await chatSettingsService.getSettingsOrCreateDefault(message.peerId);
 
-        if (subCommand == "show") {
+        if (!subCommand) {
+            await this.handleShow(message.peerId, chatSettings);
+        } else if (subCommand == "show") {
             await this.handleShow(message.peerId, chatSettings);
         } else if (subCommand == "set") {
             await this.handleSet(message.peerId, chatSettings, text);
@@ -52,13 +50,13 @@ export default class ContextCommand extends Command {
         const { vkMessagesService } = this.context;
         const chatContext = chatSettings.context;
         if (chatContext == null || chatContext.length == 0) {
-            await vkMessagesService.send(peerId, "Нет контекста");
+            await vkMessagesService.send(peerId, "Нет инструкций");
             return;
         }
         const contextLines = chatContext?.split("\n").reduce((acc, line, index) => {
             return acc + `${index + 1}. ${line}\n`;
         }, "");
-        await vkMessagesService.send(peerId, `Контекст:\n${contextLines}`);
+        await vkMessagesService.send(peerId, `Инструкции:\n${contextLines}`);
     }
 
     private async handleSet(peerId: number, chatSettings: ChatSettingsModel, text: string) {
@@ -67,13 +65,13 @@ export default class ContextCommand extends Command {
             await vkMessagesService.send(peerId, this.getUsage());
         await chatSettingsService.setContext(peerId, text);
         const tokensCount = this.context.chatGptService.estimateTokensCount(chatSettings.gptModel, text);
-        await vkMessagesService.send(peerId, `Сохранил контекст (${text.length} символов, ${tokensCount} токенов)`);
+        await vkMessagesService.send(peerId, `Запомнил инструкции (${tokensCount} токенов)`);
     }
 
     private async handleForget(peerId: number) {
         const { vkMessagesService, chatSettingsService } = this.context;
         await chatSettingsService.setContext(peerId, null);
-        await vkMessagesService.send(peerId, "Удалил контекст");
+        await vkMessagesService.send(peerId, "Удалил инструкции");
     }
 
     private async handleAdd(peerId: number, chatSettings: ChatSettingsModel, text: string) {
@@ -83,10 +81,8 @@ export default class ContextCommand extends Command {
         const chatContext = chatSettings.context || "";
         const newChatContext = chatContext + "\n" + text;
         await chatSettingsService.setContext(peerId, newChatContext);
-        await vkMessagesService.send(
-            peerId,
-            `Сохранил контекст (${chatContext.length} -> ${newChatContext.length} символов)`
-        );
+        const tokensCount = this.context.chatGptService.estimateTokensCount(chatSettings.gptModel, newChatContext);
+        await vkMessagesService.send(peerId, `Запомнил инструкции (${tokensCount} токенов)`);
     }
 
     private async handleReplace(peerId: number, chatSettings: ChatSettingsModel, text: string) {
@@ -112,10 +108,8 @@ export default class ContextCommand extends Command {
         lines[selectedLine - 1] = args.slice(1).join(" ");
         const newChatContext = lines.join("\n");
         await chatSettingsService.setContext(peerId, newChatContext);
-        await vkMessagesService.send(
-            peerId,
-            `Сохранил контекст (${chatContext.length} -> ${newChatContext.length} символов)`
-        );
+        const tokensCount = this.context.chatGptService.estimateTokensCount(chatSettings.gptModel, newChatContext);
+        await vkMessagesService.send(peerId, `Сохранил инструкции (${tokensCount} токенов)`);
     }
 
     private async handleRemove(peerId: number, chatSettings: ChatSettingsModel, text: string) {
@@ -144,6 +138,8 @@ export default class ContextCommand extends Command {
 
     private getUsage(): string {
         let usage = `Команды:\n`;
+        usage += `/sweet context\n`;
+        usage += `/sweet context help\n`;
         usage += `/sweet context show\n`;
         usage += `/sweet context set (текст)\n`;
         usage += `/sweet context forget\n`;

@@ -66,7 +66,7 @@ export default class ModelCommand extends Command {
             await vkMessagesService.send(message.peerId, `Нет такой модели`);
         } else {
             await chatSettingsService.setGptModel(message.peerId, modelId);
-            await vkMessagesService.send(message.peerId, `Буду использовать эту модель`);
+            await vkMessagesService.send(message.peerId, `Ок`);
         }
     }
 

@@ -103,22 +103,72 @@ export default class VkMessagesOrmService {
         }
     }
 
-    async getMessagesByPeerIdWithLimitSortedByTimestamp(peerId: number, limit: number) {
-        // TODO: forwarded messages, attachments
+    async getMessagesByPeerIdWithLimitSortedByTimestamp(peerId: number, limit: number): Promise<VkMessage[]> {
         const rows = await this.client.query(
-            `select conversation_message_id, peer_id, from_id, timestamp, text from vk_messages where peer_id = $1 order by timestamp desc limit $2`,
+            `select conversation_message_id, peer_id
+                from vk_messages where peer_id = $1 order by timestamp desc limit $2`,
             [peerId, limit]
         );
-        return rows.rows.map(row => {
-            return {
-                conversationMessageId: row['conversation_message_id'],
-                peerId: row['peer_id'],
-                fromId: row['from_id'],
-                timestamp: new Date(row['timestamp']).getTime()/1000,
-                text: row['text'],
-                attachments: [],
-                forwardedMessages: []
+        const resultPromises = rows.rows.map(async row => {
+            const conversationMessageId = row['conversation_message_id'];
+            const peerId = row['peer_id'];
+            const result = await this.getMessage(conversationMessageId, peerId);
+            if (result === null) {
+                console.error(
+                    `Message with conversation_message_id=${conversationMessageId} and peer_id=${peerId} not found`
+                );
+                return null;
             }
+            return result;
         });
+        const resultUnfiltered = await Promise.all(resultPromises);
+        return resultUnfiltered.filter(it => it !== null) as VkMessage[];
+    }
+
+    async getMessage(conversationMessageId: number, peerId: number): Promise<VkMessage | null> {
+        const rows = await this.client.query(
+            `select conversation_message_id, peer_id, from_id, timestamp, text
+                from vk_messages where peer_id = $1 and conversation_message_id = $2`,
+            [peerId, conversationMessageId]
+        );
+        if (rows.rows.length === 0) {
+            return null;
+        }
+        const row = rows.rows[0];
+        const result: VkMessage = {
+            conversationMessageId: row['conversation_message_id'],
+            peerId: row['peer_id'],
+            fromId: row['from_id'],
+            timestamp: new Date(row['timestamp']).getTime()/1000,
+            text: row['text'],
+            attachments: [],
+            forwardedMessages: []
+        };
+        const attachmentsRows = await this.client.query(
+            `
+                select attachment_dto_json 
+                from vk_message_attachments
+                where conversation_message_id = $1 and peer_id = $2
+                order by order_index
+            `,
+            [result.conversationMessageId, result.peerId]
+        );
+        result.attachments = attachmentsRows.rows.map(row => row['attachment_dto_json']);
+        const forwardedMessagesRows = await this.client.query(
+            `
+                select forwarded_conversation_message_id, forwarded_peer_id
+                from vk_message_forwards
+                where conversation_message_id = $1 and peer_id = $2
+            `,
+            [result.conversationMessageId, result.peerId]
+        );
+        const forwardedMessagesPromises = forwardedMessagesRows.rows.map(row => {
+            return this.getMessage(row['forwarded_conversation_message_id'], row['forwarded_peer_id']);
+        });
+        const forwardedMessagesUnfiltered = await Promise.all(forwardedMessagesPromises);
+        result.forwardedMessages = forwardedMessagesUnfiltered
+            .filter(it => it !== null)
+            .sort((a, b) => a!.timestamp - b!.timestamp) as VkMessage[];
+        return result;
     }
 }
