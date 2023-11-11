@@ -1,6 +1,7 @@
 import Command from "./Command";
 import {Context} from "../Context";
 import {VkMessage} from "../service/VkMessagesService";
+import {version} from "../main";
 
 export default class HelpCommand extends Command {
     constructor(context: Context) {
@@ -18,6 +19,7 @@ export default class HelpCommand extends Command {
     async handle(command: string, rawArguments: string, message: VkMessage): Promise<void> {
         const { vkMessagesService, botService, userPermissionsService } = this.context;
         let response = '';
+        response += `Sweetie AI v${version}\n\n`;
         response += `Вот что можно сделать:\n`
         botService.getCommandHandlers()
             .filter(command => !command.requiresPrivileges(message.peerId))

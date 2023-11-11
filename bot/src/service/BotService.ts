@@ -1,6 +1,4 @@
-import {VK} from "vk-io";
 import VkMessagesService, {VkMessage} from "service/VkMessagesService";
-import ConfigService from "service/ConfigService";
 import ChatSettingsService from "service/ChatSettingsService";
 import {Context} from "../Context";
 import {getRandomBotEnablingPhrase} from "../template/BotEnablingPhrases";
@@ -10,15 +8,12 @@ import ServiceError from "../ServiceError";
 export default class BotService {
     private static readonly TRIGGER_WORD = "/sweet";
 
-    private vk!: VK;
     private messagesService!: VkMessagesService;
-    private config!: ConfigService;
     private chatSettingsService!: ChatSettingsService;
     private commandHandlers: Command[] = [];
     private taggingHandler: Command | null = null;
-    private groupId!: number;
 
-    constructor (private context: Context) {
+    constructor(private context: Context) {
         context.onReady(this.start.bind(this));
     }
 
@@ -35,11 +30,8 @@ export default class BotService {
     }
 
     private start() {
-        this.vk = this.context.vk;
         this.messagesService = this.context.vkMessagesService;
-        this.config = this.context.configService;
         this.chatSettingsService = this.context.chatSettingsService;
-        this.groupId = +this.context.configService.requireEnv('VK_GROUP_ID')!
         this.action().then(_ => {});
     }
 
@@ -118,7 +110,7 @@ export default class BotService {
                     if (!privileged) {
                         await this.messagesService.send(
                             message.peerId,
-                            `Только админ может выполнить команду '${commandName}'`
+                            `Только админ может сделать '${commandName}'`
                         );
                         return;
                     }
@@ -130,7 +122,7 @@ export default class BotService {
                     if (e instanceof ServiceError) {
                         await this.messagesService.send(message.peerId, `Не могу это сделать (${e.message})`);
                     } else {
-                        await this.messagesService.send(message.peerId, `У Сладенького случился отвал жопы неизвестного происхождения (пните Давида)`);
+                        await this.messagesService.send(message.peerId, `У Сладенького случился отвал жопы неизвестного происхождения. [id89446514|Давид], почини.`);
                     }
                 }
                 return;
@@ -141,7 +133,7 @@ export default class BotService {
     }
 
     private async handleUnknownCommand(message: VkMessage) {
-        await this.messagesService.send(message.peerId, "Не знаю такую команду. Пиши /sweet help");
+        await this.messagesService.send(message.peerId, "Не знаю эту команду. Пиши /sweet help");
     }
 
     private isSweetieTaggedInThisMessage(message: VkMessage): boolean {

@@ -23,14 +23,23 @@ import ChatAdminsOrmService from "./orm/ChatAdminsOrmService";
 import UserPermissionsService from "./service/UserPermissionsService";
 import ModelCommand from "./command/ModelCommand";
 import AdminsCommand from "./command/AdminsCommand";
-import OpenAiFilesService from "./service/OpenAiFilesService";
-import FineTuningService from "./service/FineTuningService";
-import FilesCommand from "./command/FilesCommand";
-import FineTuningCommand from "./command/FineTuningCommand";
 import TemporaryFileHostService from "./service/TemporaryFileHostService";
 
-const configService = new ConfigService();
+function getAppVersion() {
+    const defaultVersion = "(unknown version)";
+    try {
+        return require("../package.json").version || defaultVersion;
+    } catch (e) {
+        console.warn("Couldn't get version from package.json");
+    }
+    return defaultVersion;
+}
 
+export const version = getAppVersion();
+
+console.log("Sweetie AI version " + version);
+
+const configService = new ConfigService();
 const config = configService.getAppConfig();
 
 const vk = new VK({
@@ -79,8 +88,6 @@ async function ready() {
     context.imageGenerationService = new ImageGenerationService(context);
     context.chatSettingsService = new ChatSettingsService(context);
     context.metaphorService = new MetaphorService(context);
-    context.openAiFilesService = new OpenAiFilesService(context);
-    context.fineTuningService = new FineTuningService(context);
     context.temporaryFilesHostService = new TemporaryFileHostService(context);
 
     context.ready();
@@ -94,8 +101,6 @@ async function ready() {
         new ContextCommand(context),
         new SettingsCommand(context),
         new ModelCommand(context),
-        new FilesCommand(context),
-        new FineTuningCommand(context),
         new AdminsCommand(context),
         new DisableCommand(context),
     );

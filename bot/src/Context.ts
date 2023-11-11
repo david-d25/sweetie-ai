@@ -14,8 +14,6 @@ import DeferredVkMessagesService from "./service/DeferredVkMessagesService";
 import MetaphorService from "./service/MetaphorService";
 import ChatAdminsOrmService from "./orm/ChatAdminsOrmService";
 import UserPermissionsService from "./service/UserPermissionsService";
-import OpenAiFilesService from "./service/OpenAiFilesService";
-import FineTuningService from "./service/FineTuningService";
 import TemporaryFileHostService from "./service/TemporaryFileHostService";
 
 export class Context {
@@ -37,8 +35,6 @@ export class Context {
     imageGenerationService!: ImageGenerationService;
     chatSettingsService!: ChatSettingsService;
     metaphorService!: MetaphorService;
-    openAiFilesService!: OpenAiFilesService;
-    fineTuningService!: FineTuningService;
     temporaryFilesHostService!: TemporaryFileHostService;
 
     readyFlag = false;
