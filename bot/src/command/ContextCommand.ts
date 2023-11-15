@@ -79,7 +79,7 @@ export default class ContextCommand extends Command {
         if (text.length == 0)
             await vkMessagesService.send(peerId, this.getUsage());
         const chatContext = chatSettings.context || "";
-        const newChatContext = chatContext + "\n" + text;
+        const newChatContext = (chatContext + "\n" + text).trim();
         await chatSettingsService.setContext(peerId, newChatContext);
         const tokensCount = this.context.chatGptService.estimateTokensCount(chatSettings.gptModel, newChatContext);
         await vkMessagesService.send(peerId, `Запомнил инструкции (${tokensCount} токенов)`);
@@ -116,13 +116,15 @@ export default class ContextCommand extends Command {
         const { vkMessagesService, chatSettingsService } = this.context;
         if (text.length == 0)
             await vkMessagesService.send(peerId, this.getUsage());
-        const selectedLine = parseInt(text);
-        if (isNaN(selectedLine)) {
+        const chatContext = chatSettings.context || "";
+        const lines = chatContext.split("\n");
+        let selectedLine = parseInt(text);
+        if (text == "last") {
+            selectedLine = lines.length;
+        } else if (isNaN(selectedLine)) {
             await vkMessagesService.send(peerId, "Нужен номер строки, который надо удалить");
             return;
         }
-        const chatContext = chatSettings.context || "";
-        const lines = chatContext.split("\n");
         if (selectedLine < 1 || selectedLine > lines.length) {
             await vkMessagesService.send(peerId, `Нет строки с номером ${selectedLine}`);
             return;

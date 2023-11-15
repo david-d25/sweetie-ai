@@ -1,6 +1,20 @@
 import ChatSettingsOrmService from "../orm/ChatSettingsOrmService";
 import {Context} from "../Context";
 
+export type ChatSettingsModel = {
+    botEnabled: boolean,
+    nameCached: string | null,
+    context: string | null,
+    memory: string | null,
+    gptModel: string,
+    gptMaxOutputTokens: number,
+    gptMaxInputTokens: number,
+    gptTemperature: number,
+    gptTopP: number,
+    gptFrequencyPenalty: number,
+    gptPresencePenalty: number
+}
+
 export default class ChatSettingsService {
     private chatSettingsOrmService!: ChatSettingsOrmService
     constructor(private context: Context) {
@@ -20,6 +34,10 @@ export default class ChatSettingsService {
 
     async setBotEnabled(peerId: number, botEnabled: boolean) {
         return await this.changeSettings(peerId, model => model.botEnabled = botEnabled)
+    }
+
+    async setName(peerId: number, name: string | null) {
+        return await this.changeSettings(peerId, model => model.nameCached = name)
     }
 
     async setContext(peerId: number, context: string | null) {
@@ -66,17 +84,4 @@ export default class ChatSettingsService {
         change(model);
         return this.chatSettingsOrmService.saveSettings(peerId, model);
     }
-}
-
-export type ChatSettingsModel = {
-    botEnabled: boolean,
-    context: string | null,
-    memory: string | null,
-    gptModel: string,
-    gptMaxOutputTokens: number,
-    gptMaxInputTokens: number,
-    gptTemperature: number,
-    gptTopP: number,
-    gptFrequencyPenalty: number,
-    gptPresencePenalty: number
 }

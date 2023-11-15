@@ -15,6 +15,9 @@ import MetaphorService from "./service/MetaphorService";
 import ChatAdminsOrmService from "./orm/ChatAdminsOrmService";
 import UserPermissionsService from "./service/UserPermissionsService";
 import TemporaryFileHostService from "./service/TemporaryFileHostService";
+import {VkUsersOrmService} from "./orm/VkUsersOrmService";
+import UsagePlanOrmService from "./orm/UsagePlanOrmService";
+import UsagePlanService from "./service/UsagePlanService";
 
 export class Context {
     configService!: ConfigService;
@@ -25,6 +28,8 @@ export class Context {
     vkMessagesOrmService!: VkMessagesOrmService;
     deferredVkMessagesOrmService!: DeferredVkMessagesOrmService;
     chatAdminsOrmService!: ChatAdminsOrmService;
+    vkUsersOrmService!: VkUsersOrmService;
+    usagePlanOrmService!: UsagePlanOrmService;
 
     botService!: BotService;
     userPermissionsService!: UserPermissionsService;
@@ -36,6 +41,7 @@ export class Context {
     chatSettingsService!: ChatSettingsService;
     metaphorService!: MetaphorService;
     temporaryFilesHostService!: TemporaryFileHostService;
+    usagePlanService!: UsagePlanService;
 
     readyFlag = false;
     readyListeners: (() => void)[] = [];

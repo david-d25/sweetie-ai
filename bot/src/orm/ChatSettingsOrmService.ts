@@ -14,6 +14,7 @@ export default class ChatSettingsOrmService {
         await this.client.query(`
             create table if not exists chat_settings (
                 peer_id bigint primary key,
+                name text default null,
                 context text default null,
                 memory text default null,
                 gpt_max_output_tokens integer default 512,
@@ -21,15 +22,11 @@ export default class ChatSettingsOrmService {
                 gpt_temperature real default 1,
                 gpt_top_p real default 1,
                 gpt_frequency_penalty real default 0,
-                gpt_presence_penalty real default 0
+                gpt_presence_penalty real default 0,
+                bot_enabled boolean default true,
+                gpt_model varchar default 'gpt-3.5-turbo'
             );
         `);
-        await this.client.query(
-            `alter table chat_settings add column if not exists bot_enabled boolean default false;`
-        );
-        await this.client.query(
-            `alter table chat_settings add column if not exists gpt_model varchar default 'gpt-3.5-turbo';`
-        );
     }
 
     async getSettings(peerId: number): Promise<ChatSettingsModel | null> {
@@ -48,34 +45,37 @@ export default class ChatSettingsOrmService {
         const rows = await this.client.query(
             `
                 insert into chat_settings (
-                   peer_id,
-                   context,
-                   memory,
-                   gpt_max_output_tokens,
-                   gpt_max_input_tokens,
-                   gpt_temperature,
-                   gpt_top_p,
-                   gpt_frequency_penalty,
-                   gpt_presence_penalty,
-                   bot_enabled,
-                   gpt_model
+                    peer_id,
+                    name,
+                    context,
+                    memory,
+                    gpt_max_output_tokens,
+                    gpt_max_input_tokens,
+                    gpt_temperature,
+                    gpt_top_p,
+                    gpt_frequency_penalty,
+                    gpt_presence_penalty,
+                    bot_enabled,
+                    gpt_model
                 ) values (
-                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
                 ) on conflict (peer_id) do update set
-                     context = $2,
-                     memory = $3,
-                     gpt_max_output_tokens = $4,
-                     gpt_max_input_tokens = $5,
-                     gpt_temperature = $6,
-                     gpt_top_p = $7,
-                     gpt_frequency_penalty = $8,
-                     gpt_presence_penalty = $9,
-                     bot_enabled = $10,
-                     gpt_model = $11
+                     name = $2,
+                     context = $3,
+                     memory = $4,
+                     gpt_max_output_tokens = $5,
+                     gpt_max_input_tokens = $6,
+                     gpt_temperature = $7,
+                     gpt_top_p = $8,
+                     gpt_frequency_penalty = $9,
+                     gpt_presence_penalty = $10,
+                     bot_enabled = $11,
+                     gpt_model = $12
                 returning *
             `,
             [
                 entity.peer_id,
+                entity.name,
                 entity.context,
                 entity.memory,
                 entity.gpt_max_output_tokens,
@@ -116,6 +116,7 @@ export default class ChatSettingsOrmService {
         return {
             peer_id: peerId,
             bot_enabled: model.botEnabled,
+            name: model.nameCached,
             context: model.context,
             memory: model.memory,
             gpt_model: model.gptModel,
@@ -131,6 +132,7 @@ export default class ChatSettingsOrmService {
     private entityToModel(entity: ChatSettingsEntity): ChatSettingsModel {
         return {
             botEnabled: entity.bot_enabled,
+            nameCached: entity.name,
             context: entity.context,
             memory: entity.memory,
             gptModel: entity.gpt_model,
@@ -147,6 +149,7 @@ export default class ChatSettingsOrmService {
 export type ChatSettingsEntity = {
     peer_id: number,
     bot_enabled: boolean,
+    name: string | null,
     context: string | null,
     memory: string | null,
     gpt_model: string,

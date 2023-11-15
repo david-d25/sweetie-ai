@@ -39,10 +39,10 @@ export default class BotService {
         try {
             const messages = this.messagesService.popSinglePeerIdMessages();
             for (const message of messages) {
-                if (this.taggingHandler != null && this.isSweetieTaggedInThisMessage(message))
-                    await this.processTaggingMessage(message);
-                else if (message.text?.trim().startsWith(BotService.TRIGGER_WORD))
+                if (message.text?.trim().startsWith(BotService.TRIGGER_WORD))
                     await this.processCommandMessage(message);
+                else if (this.taggingHandler != null && this.isSweetieTaggedInThisMessage(message))
+                    await this.processTaggingMessage(message);
             }
             setTimeout(() => this.action(), 1000);
         } catch (e) {
@@ -59,8 +59,18 @@ export default class BotService {
         }
 
         console.log(`[${message.peerId}] Got tagging message: ${message.text}`);
-        if (this.taggingHandler != null)
-            await this.taggingHandler.handle("", message.text!, message)
+        if (this.taggingHandler != null) {
+            try {
+                await this.taggingHandler.handle("", message.text!, message);
+            } catch (e) {
+                console.error(`[${message.peerId}] Error while handling tagging`, e);
+                if (e instanceof ServiceError) {
+                    await this.messagesService.send(message.peerId, `Не могу это сделать (${e.message})`);
+                } else {
+                    await this.messagesService.send(message.peerId, `У Сладенького случился отвал жопы неизвестного происхождения. [id89446514|Давид], почини.`);
+                }
+            }
+        }
     }
 
     private async processCommandMessage(message: VkMessage) {
@@ -110,7 +120,7 @@ export default class BotService {
                     if (!privileged) {
                         await this.messagesService.send(
                             message.peerId,
-                            `Только админ может сделать '${commandName}'`
+                            `Только админ может выполнить '${commandName}'`
                         );
                         return;
                     }

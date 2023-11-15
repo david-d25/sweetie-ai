@@ -1,34 +1,44 @@
 import {VK} from "vk-io";
 import {Context} from "../Context";
+import {VkUsersOrmService} from "../orm/VkUsersOrmService";
+import UsagePlanService from "./UsagePlanService";
 
 export type VkUser = {
     id: number,
-    firstName: string,
-    lastName: string
+    firstNameCached: string,
+    lastNameCached: string,
+    credits: number,
+    lastCreditGain: Date,
+    usagePlanId: string | null,
+    usagePlanExpiry: Date | null,
 }
 
 const CACHE_TTL = 15 * 60 * 1000;
 
 export default class VkUsersService {
     private vk!: VK;
+    private orm!: VkUsersOrmService;
+    private usagePlanService!: UsagePlanService;
 
     constructor(private context: Context) {
         context.onReady(() => {
             this.vk = this.context.vk!;
+            this.orm = this.context.vkUsersOrmService;
+            this.usagePlanService = this.context.usagePlanService;
         });
     }
 
-    private cache: Map<number, { user: VkUser; timer: NodeJS.Timeout }> = new Map();
+    private apiCache: Map<number, { firstName: string; lastName: string; timer: NodeJS.Timeout }> = new Map();
 
     async getUser(id: number): Promise<VkUser | null> {
-        const cacheEntry = this.cache.get(id);
+        const cacheEntry = this.apiCache.get(id);
         if (cacheEntry)
-            return cacheEntry.user;
+            return this.refreshUserData(id, cacheEntry.firstName, cacheEntry.lastName);
 
         try {
             const user = await this.fetchUser(id);
-            const timer = setTimeout(() => { this.cache.delete(id) }, CACHE_TTL);
-            this.cache.set(id, { user, timer });
+            const timer = setTimeout(() => { this.apiCache.delete(id) }, CACHE_TTL);
+            this.apiCache.set(id, { firstName: user.firstNameCached, lastName: user.lastNameCached, timer });
             return user;
         } catch (error) {
             console.error('Failed to fetch user:', error);
@@ -41,16 +51,16 @@ export default class VkUsersService {
         const idsToFetch: number[] = [];
 
         for (const id of ids) {
-            const cachedUser = this.cache.get(id);
+            const cachedUser = this.apiCache.get(id);
             if (cachedUser) {
-                users.set(id, cachedUser.user);
+                users.set(id, await this.refreshUserData(id, cachedUser.firstName, cachedUser.lastName));
             } else {
                 if (id > 0)
                     idsToFetch.push(id);
                 else if (id == 0)
-                    users.set(id, {id, firstName: "(me)", lastName: ""});
+                    users.set(id, this.createMockUser(id, "(me)", ""));
                 else
-                    users.set(id, {id, firstName: "__vk_group__", lastName: ""});
+                    users.set(id, this.createMockUser(id, "__vk_group__", ""));
             }
         }
 
@@ -61,10 +71,10 @@ export default class VkUsersService {
             });
             for (const responseItem of response) {
                 const id = responseItem.id;
-                const user = {id, firstName: responseItem.first_name_nom, lastName: responseItem.last_name_nom};
+                const user = await this.refreshUserData(id, responseItem.first_name_nom, responseItem.last_name_nom);
                 users.set(id, user);
-                const timer = setTimeout(() => { this.cache.delete(id) }, CACHE_TTL);
-                this.cache.set(id, { user, timer });
+                const timer = setTimeout(() => { this.apiCache.delete(id) }, CACHE_TTL);
+                this.apiCache.set(id, { firstName: user.firstNameCached, lastName: user.lastNameCached, timer });
             }
         }
 
@@ -78,11 +88,51 @@ export default class VkUsersService {
                 fields: ["first_name_nom", "last_name_nom"],
             });
 
-            return { id, firstName: response[0].first_name_nom, lastName: response[0].last_name_nom};
+            const firstName = response[0].first_name_nom;
+            const lastName = response[0].last_name_nom;
+            return this.refreshUserData(id, firstName, lastName);
         } else if (id == 0) { // This bot
-            return { id, firstName: "(me)", lastName: ""};
+            return this.createMockUser(id, "(me)", "");
         } else { // Group, not user
-            return { id, firstName: "__vk_group__", lastName: ""};
+            return this.createMockUser(id, "__vk_group__", "");
         }
+    }
+
+    private async refreshUserData(id: number, firstName: string, lastName: string): Promise<VkUser> {
+        const user = await this.orm.getUser(id);
+        if (user) {
+            user.firstNameCached = firstName;
+            user.lastNameCached = lastName;
+            await this.orm.setUserFirstNameAndLastName(id, firstName, lastName);
+            return user;
+        } else {
+            const usagePlan = await this.usagePlanService.getDefaultUsagePlan();
+            const user = {
+                id,
+                firstNameCached: firstName,
+                lastNameCached: lastName,
+                credits: 0,
+                lastCreditGain: new Date(0),
+                usagePlanId: null as string | null,
+                usagePlanExpiry: null as Date | null,
+            }
+            if (usagePlan) {
+                user.credits = usagePlan.maxCredits;
+            }
+            await this.orm.saveUser(user);
+            return user;
+        }
+    }
+
+    private createMockUser(id: number, firstName: string, lastName: string): VkUser {
+        return {
+            id,
+            firstNameCached: firstName,
+            lastNameCached: lastName,
+            credits: 0,
+            lastCreditGain: new Date(0),
+            usagePlanId: null,
+            usagePlanExpiry: null,
+        };
     }
 }

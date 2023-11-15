@@ -7,14 +7,12 @@ import {ResponseMessage} from "./answer/ResponseMessage";
 import {MetaRequestHandler} from "./answer/MetaRequestHandler";
 import GenerateImageMetaRequestHandler from "./answer/GenerateImageMetaRequestHandler";
 import EditImageMetaRequestHandler from "./answer/EditImageMetaRequestHandler";
-import ImageVariationsMetaRequestHandler from "./answer/ImageVariationsMetaRequestHandler";
 import {ChatSettingsModel} from "../service/ChatSettingsService";
 import GetUsersListMetaRequestHandler from "./answer/GetUsersListMetaRequestHandler";
 import DrawStatisticsMetaRequestHandler from "./answer/DrawStatisticsMetaRequestHandler";
 import SendLaterMetaRequestHandler from "./answer/SendLaterMetaRequestHandler";
 import WebSearchRequestHandler from "./answer/WebSearchRequestHandler";
 import GetSearchResultContentMetaRequestHandler from "./answer/GetSearchResultContentMetaRequestHandler";
-import {VkUser} from "../service/VkUsersService";
 import {PhotoAttachment} from "vk-io";
 
 export default class AnswerCommand extends Command {
@@ -25,7 +23,6 @@ export default class AnswerCommand extends Command {
         this.metaRequestHandlers = [
             new GenerateImageMetaRequestHandler(context),
             new EditImageMetaRequestHandler(context),
-            new ImageVariationsMetaRequestHandler(context),
             new GetUsersListMetaRequestHandler(context),
             new DrawStatisticsMetaRequestHandler(context),
             new SendLaterMetaRequestHandler(context),
@@ -47,6 +44,16 @@ export default class AnswerCommand extends Command {
         const { vkMessagesService, chatSettingsService, chatGptService } = this.context;
         if (rawArguments.length == 0)
             return this.sendUsage(message.peerId);
+
+        const user = await this.context.vkUsersService.getUser(message.fromId);
+        if (user == null) {
+            await vkMessagesService.send(message.peerId, "Сладенький не может ответить (не смог найти тебя в базе данных)");
+            return;
+        }
+        if (user.credits <= 0) {
+            await this.handleNotEnoughCredits(message);
+            return;
+        }
 
         let response = new ResponseMessage();
         const chatSettings = await chatSettingsService.getSettingsOrCreateDefault(message.peerId);
@@ -99,10 +106,57 @@ export default class AnswerCommand extends Command {
         console.log(`[${message.peerId}] Sending response...`);
         try {
             await vkMessagesService.send(message.peerId, response.text, response.attachments);
+            await this.context.vkUsersOrmService.addCredits(message.fromId, -1);
         } catch (e) {
             console.error(e);
             await vkMessagesService.send(message.peerId, "(Что-то сломалось, проверьте логи)");
         }
+    }
+
+    // TODO separate out and refactor
+    private async handleNotEnoughCredits(message: VkMessage) {
+        const { vkMessagesService, usagePlanService } = this.context;
+        const secondsRequired = await usagePlanService.getTimeInSecondsRequiredToHaveCredits(message.fromId, 1);
+        if (secondsRequired <= 0) {
+            await vkMessagesService.send(message.peerId, `У [id${message.fromId}|тебя] кончились кредиты, пожалуйста подожди 15 секунд`);
+            return;
+        }
+        if (secondsRequired == Number.POSITIVE_INFINITY) {
+            await vkMessagesService.send(message.peerId, `У [id${message.fromId}|тебя] кончился кредит вычислений, нужно пополнить`);
+            return
+        }
+        if (secondsRequired < 60) {
+            await vkMessagesService.send(
+                message.peerId,
+                `У [id${message.fromId}|тебя] кончились кредиты, пожалуйста подожди ${secondsRequired} с.`
+            );
+            return;
+        }
+        if (secondsRequired < 60*60) { // minutes
+            const minutesRequired = Math.ceil(secondsRequired/60);
+            await vkMessagesService.send(
+                message.peerId,
+                `У [id${message.fromId}|тебя] кончились кредиты, пожалуйста подожди ${minutesRequired} м.`
+            );
+            return;
+        }
+        if (secondsRequired < 60*60*24) { // hours
+            const hoursRequired = Math.floor(secondsRequired/60/60);
+            const minutesRequired = Math.ceil(secondsRequired/60) - hoursRequired*60;
+            await vkMessagesService.send(
+                message.peerId,
+                `У [id${message.fromId}|тебя] кончились кредиты, пожалуйста подожди ${hoursRequired} ч. ${minutesRequired} м.`
+            );
+            return;
+        }
+        const daysRequired = Math.floor(secondsRequired/60/60/24);
+        const hoursRequired = Math.floor(secondsRequired/60/60) - daysRequired*24;
+        const minutesRequired = Math.ceil(secondsRequired/60) - hoursRequired*60 - daysRequired*24*60;
+        await vkMessagesService.send(
+            message.peerId,
+            `У [id${message.fromId}|тебя] кончились кредиты, пожалуйста подожди ${daysRequired} д. ${hoursRequired} ч. ${minutesRequired} м.`
+        );
+        return;
     }
 
     private addMetaRequestErrorsToResponse(response: ResponseMessage) {
@@ -238,7 +292,7 @@ export default class AnswerCommand extends Command {
         const result = [];
         for (const message of history) {
             const user = await this.context.vkUsersService.getUser(+message.fromId);
-            const displayName = user ? (user.firstName + " " + user.lastName) : "(unknown)";
+            const displayName = user ? (user.firstNameCached + " " + user.lastNameCached) : "(unknown)";
             const date = new Date(message.timestamp * 1000);
             let formattedMessage = this.formatVkMessage(date, message, displayName, forwardDepth) + "\n";
             formattedMessage += (await this.createFormattedChatLines(message.forwardedMessages, forwardDepth + 1)).join("");

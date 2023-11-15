@@ -24,6 +24,12 @@ import UserPermissionsService from "./service/UserPermissionsService";
 import ModelCommand from "./command/ModelCommand";
 import AdminsCommand from "./command/AdminsCommand";
 import TemporaryFileHostService from "./service/TemporaryFileHostService";
+import {VkUsersOrmService} from "./orm/VkUsersOrmService";
+import UsagePlanOrmService from "./orm/UsagePlanOrmService";
+import UsagePlanService from "./service/UsagePlanService";
+import PlanCommand from "./command/PlanCommand";
+import GrantCommand from "./command/GrantCommand";
+import GiveCommand from "./command/GiveCommand";
 
 function getAppVersion() {
     const defaultVersion = "(unknown version)";
@@ -78,6 +84,8 @@ async function ready() {
     context.vkMessagesOrmService = new VkMessagesOrmService(context);
     context.deferredVkMessagesOrmService = new DeferredVkMessagesOrmService(context);
     context.chatAdminsOrmService = new ChatAdminsOrmService(context);
+    context.usagePlanOrmService = new UsagePlanOrmService(context);
+    context.vkUsersOrmService = new VkUsersOrmService(context);
 
     context.botService = new BotService(context);
     context.userPermissionsService = new UserPermissionsService(context);
@@ -89,6 +97,7 @@ async function ready() {
     context.chatSettingsService = new ChatSettingsService(context);
     context.metaphorService = new MetaphorService(context);
     context.temporaryFilesHostService = new TemporaryFileHostService(context);
+    context.usagePlanService = new UsagePlanService(context);
 
     context.ready();
 
@@ -97,8 +106,11 @@ async function ready() {
     context.botService.addCommandHandlers(
         new HelpCommand(context),
         answerCommand,
+        new PlanCommand(context),
         // new SummarizeCommand(context),
         new ContextCommand(context),
+        new GiveCommand(context),
+        new GrantCommand(context),
         new SettingsCommand(context),
         new ModelCommand(context),
         new AdminsCommand(context),
