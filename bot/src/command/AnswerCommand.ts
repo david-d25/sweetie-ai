@@ -118,17 +118,17 @@ export default class AnswerCommand extends Command {
         const { vkMessagesService, usagePlanService } = this.context;
         const secondsRequired = await usagePlanService.getTimeInSecondsRequiredToHaveCredits(message.fromId, 1);
         if (secondsRequired <= 0) {
-            await vkMessagesService.send(message.peerId, `У [id${message.fromId}|тебя] кончились кредиты, пожалуйста подожди 15 секунд`);
+            await vkMessagesService.send(message.peerId, `У [id${message.fromId}|тебя] достигнут лимит по вычислениям, пожалуйста подожди 15 секунд`);
             return;
         }
         if (secondsRequired == Number.POSITIVE_INFINITY) {
-            await vkMessagesService.send(message.peerId, `У [id${message.fromId}|тебя] кончился кредит вычислений, нужно пополнить`);
+            await vkMessagesService.send(message.peerId, `У [id${message.fromId}|тебя] достигнут лимит по вычислениям, нужно пополнить`);
             return
         }
         if (secondsRequired < 60) {
             await vkMessagesService.send(
                 message.peerId,
-                `У [id${message.fromId}|тебя] кончились кредиты, пожалуйста подожди ${secondsRequired} с.`
+                `У [id${message.fromId}|тебя] достигнут лимит по вычислениям, пожалуйста подожди ${secondsRequired} с.`
             );
             return;
         }
@@ -136,7 +136,7 @@ export default class AnswerCommand extends Command {
             const minutesRequired = Math.ceil(secondsRequired/60);
             await vkMessagesService.send(
                 message.peerId,
-                `У [id${message.fromId}|тебя] кончились кредиты, пожалуйста подожди ${minutesRequired} м.`
+                `У [id${message.fromId}|тебя] достигнут лимит по вычислениям, пожалуйста подожди ${minutesRequired} м.`
             );
             return;
         }
@@ -145,7 +145,7 @@ export default class AnswerCommand extends Command {
             const minutesRequired = Math.ceil(secondsRequired/60) - hoursRequired*60;
             await vkMessagesService.send(
                 message.peerId,
-                `У [id${message.fromId}|тебя] кончились кредиты, пожалуйста подожди ${hoursRequired} ч. ${minutesRequired} м.`
+                `У [id${message.fromId}|тебя] достигнут лимит по вычислениям, пожалуйста подожди ${hoursRequired} ч. ${minutesRequired} м.`
             );
             return;
         }
@@ -154,7 +154,7 @@ export default class AnswerCommand extends Command {
         const minutesRequired = Math.ceil(secondsRequired/60) - hoursRequired*60 - daysRequired*24*60;
         await vkMessagesService.send(
             message.peerId,
-            `У [id${message.fromId}|тебя] кончились кредиты, пожалуйста подожди ${daysRequired} д. ${hoursRequired} ч. ${minutesRequired} м.`
+            `У [id${message.fromId}|тебя] достигнут лимит по вычислениям, пожалуйста подожди ${daysRequired} д. ${hoursRequired} ч. ${minutesRequired} м.`
         );
         return;
     }
