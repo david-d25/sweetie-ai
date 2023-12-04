@@ -40,13 +40,11 @@ export default class BotService {
         try {
             const messages = this.messagesService.popSinglePeerIdMessages();
             for (const message of messages) {
-                if (!isChatId(message.peerId)) {
-                    await this.processTaggingMessage(message);
-                }
                 if (message.text?.trim().startsWith(BotService.TRIGGER_WORD)) {
                     await this.processCommandMessage(message);
-                }
-                else if (this.taggingHandler != null && this.isSweetieTaggedInThisMessage(message)) {
+                } else if (!isChatId(message.peerId)) {
+                    await this.processTaggingMessage(message);
+                } else if (this.taggingHandler != null && this.isSweetieTaggedInThisMessage(message)) {
                     await this.processTaggingMessage(message);
                 }
             }
