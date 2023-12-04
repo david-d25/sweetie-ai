@@ -4,6 +4,7 @@ import {Context} from "../Context";
 import {getRandomBotEnablingPhrase} from "../template/BotEnablingPhrases";
 import Command from "../command/Command";
 import ServiceError from "../ServiceError";
+import {isChatId} from "../util/VkUtil";
 
 export default class BotService {
     private static readonly TRIGGER_WORD = "/sweet";
@@ -39,10 +40,15 @@ export default class BotService {
         try {
             const messages = this.messagesService.popSinglePeerIdMessages();
             for (const message of messages) {
-                if (message.text?.trim().startsWith(BotService.TRIGGER_WORD))
-                    await this.processCommandMessage(message);
-                else if (this.taggingHandler != null && this.isSweetieTaggedInThisMessage(message))
+                if (!isChatId(message.peerId)) {
                     await this.processTaggingMessage(message);
+                }
+                if (message.text?.trim().startsWith(BotService.TRIGGER_WORD)) {
+                    await this.processCommandMessage(message);
+                }
+                else if (this.taggingHandler != null && this.isSweetieTaggedInThisMessage(message)) {
+                    await this.processTaggingMessage(message);
+                }
             }
             setTimeout(() => this.action(), 1000);
         } catch (e) {
@@ -58,7 +64,7 @@ export default class BotService {
             return;
         }
 
-        console.log(`[${message.peerId}] Got tagging message: ${message.text}`);
+        console.log(`[${message.peerId}] Got tagging/private message: ${message.text}`);
         if (this.taggingHandler != null) {
             try {
                 await this.taggingHandler.handle("", message.text!, message);
@@ -67,7 +73,10 @@ export default class BotService {
                 if (e instanceof ServiceError) {
                     await this.messagesService.send(message.peerId, `Не могу это сделать (${e.message})`);
                 } else {
-                    await this.messagesService.send(message.peerId, `У Сладенького случился отвал жопы неизвестного происхождения. [id89446514|Давид], почини.`);
+                    await this.messagesService.send(
+                        message.peerId,
+                        `В Сладеньком что-то сломалось и он не может ответить, попробуйте спросить позже.`
+                    );
                 }
             }
         }
@@ -132,7 +141,10 @@ export default class BotService {
                     if (e instanceof ServiceError) {
                         await this.messagesService.send(message.peerId, `Не могу это сделать (${e.message})`);
                     } else {
-                        await this.messagesService.send(message.peerId, `У Сладенького случился отвал жопы неизвестного происхождения. [id89446514|Давид], почини.`);
+                        await this.messagesService.send(
+                            message.peerId,
+                            `В Сладеньком что-то сломалось и он не может ответить, попробуйте спросить позже.`
+                        );
                     }
                 }
                 return;
@@ -149,6 +161,6 @@ export default class BotService {
     private isSweetieTaggedInThisMessage(message: VkMessage): boolean {
         if (message.text == null)
             return false;
-        return new RegExp("\\[club220063847\\|.*]").test(message.text)
+        return new RegExp(`\\[club${this.context.configService.getAppConfig().vkGroupId}\\|.*]`).test(message.text)
     }
 }

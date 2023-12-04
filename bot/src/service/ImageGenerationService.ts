@@ -13,7 +13,6 @@ export default class ImageGenerationService {
     }
 
     private generationsApiUrl = "https://api.openai.com/v1/images/generations";
-    private variationsApiUrl = "https://api.openai.com/v1/images/variations";
     private editsApiUrl = "https://api.openai.com/v1/images/edits";
     private jsonMediaType = "application/json; charset=utf-8";
 
@@ -32,32 +31,6 @@ export default class ImageGenerationService {
 
         try {
             const response = await axios.post(this.generationsApiUrl, body, config);
-            return this.extractImageUrls(response);
-        } catch (e: unknown) {
-            console.log(e);
-            throw createOpenAiWrapperError(e);
-        }
-    }
-
-    async generateImageVariations(imageBuffer: Buffer, variationsNum: number): Promise<string[]> {
-        const key = this.config.getAppConfig().openAiSecretKey;
-        const form = new FormData();
-        form.append('image', imageBuffer, {
-            filename: 'image.png',
-            contentType: 'image/png',
-        });
-        form.append('n', variationsNum);
-
-        const config = {
-            headers: {
-                ...form.getHeaders(),
-                'Content-Type': 'multipart/form-data',
-                'Authorization': `Bearer ${key}`
-            }
-        };
-
-        try {
-            const response = await axios.post(this.variationsApiUrl, form, config);
             return this.extractImageUrls(response);
         } catch (e: unknown) {
             console.log(e);

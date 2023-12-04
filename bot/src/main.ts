@@ -52,7 +52,8 @@ const vk = new VK({
     token: config.vkAccessToken,
     pollingGroupId: config.vkGroupId,
     uploadTimeout: 75e3,
-    apiTimeout: 75e3
+    apiTimeout: 75e3,
+    language: "ru"
 });
 
 const postgresClient = new Client({
