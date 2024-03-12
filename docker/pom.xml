@@ -50,6 +50,11 @@
             <artifactId>backend</artifactId>
             <version>3.0.0</version>
         </dependency>
+        <dependency>
+            <groupId>space.davids_digital.vk_gpt_chatbot</groupId>
+            <artifactId>frontend</artifactId>
+            <version>3.0.0</version>
+        </dependency>
     </dependencies>
 
 </project>
