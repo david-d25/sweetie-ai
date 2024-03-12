@@ -21,6 +21,14 @@
             <outputDirectory>backend</outputDirectory>
             <unpack>false</unpack>
         </dependencySet>
+        <dependencySet>
+            <includes>
+                <include>space.davids_digital.vk_gpt_chatbot:frontend</include>
+            </includes>
+            <outputFileNameMapping>frontend.zip</outputFileNameMapping>
+            <outputDirectory>frontend</outputDirectory>
+            <unpack>false</unpack>
+        </dependencySet>
     </dependencySets>
     <files>
         <file>
@@ -35,6 +43,11 @@
         <file>
             <source>src/docker/backend.Dockerfile</source>
             <outputDirectory>/backend</outputDirectory>
+            <destName>Dockerfile</destName>
+        </file>
+        <file>
+            <source>src/docker/frontend.Dockerfile</source>
+            <outputDirectory>/frontend</outputDirectory>
             <destName>Dockerfile</destName>
         </file>
     </files>
