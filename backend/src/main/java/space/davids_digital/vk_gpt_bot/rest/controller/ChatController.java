@@ -2,7 +2,6 @@ package space.davids_digital.vk_gpt_bot.rest.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import space.davids_digital.vk_gpt_bot.integration.openai.OpenAiApiService;
 import space.davids_digital.vk_gpt_bot.integration.vk.VkApiService;
 import space.davids_digital.vk_gpt_bot.integration.vk.dto.VkConversationDto;
 import space.davids_digital.vk_gpt_bot.model.ChatSettingsModel;
