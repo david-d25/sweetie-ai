@@ -1,0 +1,39 @@
+@import "@/style/theme-dark.scss";
+
+.themeSwitch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 10px 0;
+  cursor: pointer;
+
+  .switch {
+    border: 2px solid black;
+    border-radius: 9999px;
+    height: 29px;
+    width: 58px;
+    margin-left: 10px;
+
+    @include dark {
+      border-color: white;
+    }
+
+    .handle {
+      height: 25px;
+      width: 25px;
+      margin: 2px;
+      background: #959595;
+      border-radius: 9999px;
+      transition: margin 300ms ease-in-out;
+
+      @include dark {
+        background: #999;
+        margin-left: 31px;
+      }
+    }
+  }
+
+  .text {
+    font-size: 24px;
+  }
+}

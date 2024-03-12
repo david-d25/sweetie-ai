@@ -28,6 +28,6 @@ export default class WebSearchRequestHandler implements MetaRequestHandler {
         console.log(`[${message.peerId}] Searching for '${query}' with ${numResults} results`);
 
         const results = await this.context.metaphorService.search(query, numResults);
-        response.metaRequestResults.push(`Result of 'webSearch':\n"""\n${JSON.stringify(results)}\n"""`);
+        response.metaRequestResults.push(`Result of web search:\n"""\n${JSON.stringify(results)}\n"""`);
     }
 }

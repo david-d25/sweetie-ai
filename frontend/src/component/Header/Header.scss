@@ -1,0 +1,67 @@
+@import "@/style/theme-dark";
+
+.header {
+  border-bottom: 1px solid rgba(127, 127, 127, 0.25);
+  margin-bottom: 20px;
+  background-color: var(--global-background-color);
+}
+
+.headerContent {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+
+  @include dark {
+    border-bottom-color: #424242;
+  }
+
+  .text {
+    vertical-align: middle;
+    color: var(--text-color);
+    font-size: 24px;
+    flex: 1;
+  }
+
+  .headerButton {
+    border: none;
+    border-radius: 5px;
+    width: 50px;
+    height: 50px;
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+
+    .icon {
+      width: 25px;
+      vertical-align: middle;
+    }
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.05);
+    }
+
+    &:active {
+      background: rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  .backIcon {
+    stroke: var(--text-color);
+    vertical-align: middle;
+    height: 25px;
+    width: 0;
+    overflow: hidden;
+    transition: width 300ms ease-in-out;
+
+    &.visible {
+      width: 25px;
+    }
+  }
+}
+
+.settingsCloseButton {
+  display: block;
+  margin: 20px auto;
+}

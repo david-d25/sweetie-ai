@@ -1,0 +1,44 @@
+@import "@/style/theme-dark";
+
+.switchWrapper {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.switch {
+  width: 72px;
+  height: 36px;
+  border-radius: 9999px;
+  background: rgba(127, 127, 127, 0.5);
+  margin-right: 10px;
+
+  .checked & {
+    background: #3dc74e;
+  }
+
+  .handle {
+    height: 30px;
+    width: 30px;
+    margin: 3px;
+    border-radius: 9999px;
+    background: white;
+    transition: margin-left 300ms ease-in-out;
+
+    @include dark {
+      background: #d2d2d2;
+    }
+
+    .checked & {
+      margin-left: 38px;
+
+      @include dark {
+        background: #ffffff;
+      }
+    }
+  }
+}
+
+.text {
+  font-size: 1.2em;
+}

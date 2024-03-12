@@ -1,0 +1,46 @@
+.dashboard {
+  .subtitle {
+    color: grey;
+    text-align: center;
+    font-size: 16px;
+  }
+
+  .goToButton {
+    margin: 20px auto;
+    width: calc(100% - 20px);
+    text-align: left;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+
+    .picture {
+      border-radius: 9999px;
+      background: lightgrey;
+      aspect-ratio: 1;
+      width: 70px;
+      display: inline-block;
+      text-align: center;
+    }
+
+    .info {
+      display: inline-block;
+      margin-left: 15px;
+
+      .title {
+        font-size: 18px;
+      }
+
+      .plan {
+        color: grey;
+        font-size: 14px;
+      }
+    }
+  }
+
+  .noChats {
+    color: rgba(127, 127, 127, 0.5);
+    text-align: center;
+    font-size: 1.2em;
+    margin: 30px;
+  }
+}

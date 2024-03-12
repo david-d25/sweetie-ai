@@ -8,7 +8,9 @@
         <outputRelativeToContentRoot value="true" />
         <module name="backend" />
         <module name="bot" />
+        <module name="frontend" />
         <module name="docker" />
+        <module name="crypto" />
       </profile>
     </annotationProcessing>
   </component>

@@ -1,0 +1,50 @@
+.input {
+  display: block;
+  width: 100%;
+  appearance: none;
+  outline: none;
+  height: 25px;
+  border-radius: 3px;
+  background: rgba(100, 100, 100, 0.1);
+  margin: 0;
+  transition: none;
+
+  &:hover {
+    background: rgba(100, 100, 100, 0.2);
+  }
+
+  &:focus {
+    outline: var(--input-focus-outline);
+  }
+
+  &[disabled] {
+    background: rgba(100, 100, 100, 0.2);
+    opacity: 0.5;
+  }
+}
+
+/* Don't join the next two rules, they won't work */
+.input::-moz-range-thumb {
+  appearance: none;
+  width: 20px;
+  height: 25px;
+  background: rgb(208, 208, 208);
+  border: 1px solid rgb(120, 120, 120);
+  border-radius: 3px;
+}
+.input::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 25px;
+  background: rgb(208, 208, 208);
+  border: 1px solid rgb(120, 120, 120);
+  border-radius: 3px;
+}
+
+/* Don't join the next two rules, they won't work */
+.input:focus::-webkit-slider-thumb {
+  background: rgb(225, 225, 225);
+}
+.input:focus::-moz-range-thumb {
+  background: rgb(225, 225, 225);
+}

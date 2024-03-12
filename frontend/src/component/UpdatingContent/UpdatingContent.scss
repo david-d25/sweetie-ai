@@ -1,0 +1,46 @@
+.wrapper {
+  position: relative;
+}
+
+.children.loading {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.loadingAnimation {
+  position: absolute;
+  z-index: 100;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 15px;
+  transform: translate(-50%, -50%);
+  animation: rotate 1s linear infinite;
+
+  &:before,
+  &:after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 5px;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background-color: grey;
+  }
+
+  &:after {
+    left: unset;
+    right: 5px;
+  }
+}
+
+@keyframes rotate {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}

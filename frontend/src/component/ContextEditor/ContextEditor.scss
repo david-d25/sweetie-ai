@@ -1,0 +1,51 @@
+.textWrapper {
+  position: relative;
+}
+
+.textarea {
+  background: transparent;
+  border: none;
+  width: 100%;
+  max-width: 100%;
+  min-width: 100%;
+  min-height: 30vh;
+  font-family: inherit;
+  border-radius: 5px;
+  padding: 10px;
+  box-sizing: border-box;
+  outline: none;
+  resize: none;
+  transition: none;
+
+  &:focus {
+    outline: var(--input-focus-outline);
+    background-color: rgba(127, 127, 127, 0.2);
+  }
+
+  .editing {
+    background-color: rgba(127, 127, 127, 0.2);
+  }
+}
+
+.fade {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  height: 50px;
+  background: linear-gradient(to top,
+          var(--global-background-color) 15%,
+          transparent 100%
+  );
+  pointer-events: none;
+
+  &.hidden {
+    display: none;
+  }
+}
+
+.buttons {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 10px;
+}

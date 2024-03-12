@@ -1,0 +1,30 @@
+@import "@/style/theme-dark";
+
+.button {
+  cursor: pointer;
+  border-radius: 10px;
+  border: 1px solid #c4c4c4;
+  background-color: var(--background-color);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);
+  padding: 10px;
+
+  @include dark {
+    border-color: #424242;
+    background-color: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  &:hover:not(:disabled) {
+    background: rgba(0, 0, 0, 0.05);
+  }
+
+  &:active:not(:disabled) {
+    background: rgba(0, 0, 0, 0.1);
+  }
+
+  &:disabled {
+    color: grey;
+    box-shadow: none;
+    cursor: default;
+  }
+}

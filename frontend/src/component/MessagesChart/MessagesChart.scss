@@ -1,0 +1,41 @@
+.messagesChart {
+  .canvas {
+
+  }
+
+  .scales {
+    margin: 5px 0;
+    height: 40px;
+    overflow-x: auto;
+    overflow-y: clip;
+    padding: 10px 0;
+    text-align: center;
+
+    .scale {
+      -webkit-tap-highlight-color: transparent;
+      line-height: 40px;
+      display: inline;
+      margin: 0 4px;
+      cursor: pointer;
+      //noinspection CssInvalidPropertyValue
+      text-wrap: nowrap;
+      padding: 5px 10px;
+      border: 1px solid rgba(127, 127, 127, 0.2);
+      background: rgba(127, 127, 127, 0.08);
+      border-radius: 999px;
+
+      &:first-child {
+        margin-left: 0;
+      }
+
+      &:last-child {
+        margin-right: 0;
+      }
+    }
+
+    .selectedScale {
+      border: 1px solid rgba(54, 162, 235, 1);
+      background: rgba(54, 162, 235, 0.75);
+    }
+  }
+}

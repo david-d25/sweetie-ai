@@ -1,0 +1,25 @@
+.vkLogin {
+  padding: 5px 10px;
+
+  .vkIconWrapper {
+    width: 30px;
+    display: inline-block;
+    line-height: 30px;
+    margin-right: -30px;
+
+    .vkIcon {
+      max-width: 100%;
+      max-height: 100%;
+      vertical-align: middle;
+
+      // to make icon look more centered
+      position: relative;
+      bottom: 1px;
+    }
+  }
+
+  .text {
+    line-height: 30px;
+    margin: 0 40px;
+  }
+}

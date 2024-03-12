@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "esModuleInterop": true,
+    "baseUrl": "src",
+    "allowJs": true,
+    "jsx": "react"
+  },
+  "include": ["src"]
+}

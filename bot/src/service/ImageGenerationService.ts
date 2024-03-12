@@ -16,7 +16,7 @@ export default class ImageGenerationService {
     private editsApiUrl = "https://api.openai.com/v1/images/edits";
     private jsonMediaType = "application/json; charset=utf-8";
 
-    async generateImages(prompt: string, numImages: number = 1): Promise<string[]> {
+    async generateImages(prompt: string): Promise<string[]> {
         const key = this.config.getAppConfig().openAiSecretKey;
         const config = {
             headers: {

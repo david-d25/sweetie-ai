@@ -1,0 +1,13 @@
+body[data-theme="dark"] {
+  --global-background-color: #0e0e0e;
+  --background-color: #232323;
+  --link-color: #00c3ff;
+  --text-color: #f1f1f1;
+  --input-focus-outline: 1px solid #00bbffe6;
+}
+
+@mixin dark {
+  body[data-theme="dark"] & {
+    @content;
+  }
+}

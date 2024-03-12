@@ -17,10 +17,9 @@ export default class GenerateImageMetaRequestHandler implements MetaRequestHandl
             return;
         }
         const prompt = request.args[0];
-        const numImages = request.args[1] || 4;
         let urls;
         try {
-            urls = await this.context.imageGenerationService.generateImages(prompt, numImages);
+            urls = await this.context.imageGenerationService.generateImages(prompt);
         } catch (e: any) {
             response.metaRequestErrors.push(`Не получилось создать картинку с текстом "${prompt}" (${e.message})`);
             return;

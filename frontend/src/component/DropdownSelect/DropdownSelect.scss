@@ -1,0 +1,15 @@
+.select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid rgba(127, 127, 127, 0.5);
+    border-radius: 5px;
+    cursor: pointer;
+    transition: border-color 0.3s ease;
+    color: var(--text-color);
+    background: var(--background-color);
+
+    &:focus {
+        outline: none;
+        outline: var(--input-focus-outline);
+    }
+}

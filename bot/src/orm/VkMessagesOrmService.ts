@@ -23,6 +23,7 @@ export default class VkMessagesOrmService {
         `);
         await q(`create index if not exists timestamp_index on vk_messages(timestamp);`);
         await q(`create index if not exists peer_id_index on vk_messages(peer_id);`);
+        await q(`create index if not exists vk_messages__from_id_index on vk_messages(from_id);`);
         await q(`create index if not exists peer_id_timestamp_index ON vk_messages(peer_id, timestamp desc);`);
         await q(`
             create table if not exists vk_message_forwards (

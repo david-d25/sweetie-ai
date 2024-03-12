@@ -10,6 +10,17 @@ services:
       - DB_PASSWORD
       - DB_PORT
       - DB_USER
+      - VK_APP_SERVICE_TOKEN
+      - VK_GROUP_ID
+      - COOKIES_DOMAIN
+      - OPENAI_SECRET_KEY
+  frontend:
+    build: frontend
+    ports:
+      - "9080:8080"
+    environment:
+      - API_URL
+      - VK_APP_URL
   bot:
     build: bot
     ports:

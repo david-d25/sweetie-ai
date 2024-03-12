@@ -1,0 +1,26 @@
+a {
+  text-decoration: none;
+  color: var(--link-color);
+}
+
+html, body {
+  margin: 0;
+  font-family: sans-serif;
+  background-color: var(--global-background-color);
+
+  &:has(.requires-no-scroll) {
+    overflow: hidden;
+  }
+}
+
+* {
+  font-size: 18px;
+  color: var(--text-color);
+  transition: background-color 300ms ease-in-out,
+              color 300ms ease-in-out,
+              stroke 300ms ease-in-out,
+              border-top-color 300ms ease-in-out,
+              border-right-color 300ms ease-in-out,
+              border-bottom-color 300ms ease-in-out,
+              border-left-color 300ms ease-in-out;
+}

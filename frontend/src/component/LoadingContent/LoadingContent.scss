@@ -1,0 +1,24 @@
+.loading {
+  text-align: center;
+  color: var(--text-color);
+  animation: loading 1s linear infinite;
+}
+
+.loadingError {
+  text-align: center;
+  color: #d00000;
+}
+
+@keyframes loading {
+  0% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}

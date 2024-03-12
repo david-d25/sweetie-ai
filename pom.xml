@@ -10,5 +10,7 @@
         <module>backend</module>
         <module>bot</module>
         <module>docker</module>
+        <module>frontend</module>
+        <module>crypto</module>
     </modules>
 </project>
