@@ -13,6 +13,7 @@ services:
       - DB_USER
       - VK_APP_SERVICE_TOKEN
       - VK_GROUP_ID
+      - VK_ACCESS_TOKEN
       - COOKIES_DOMAIN
       - OPENAI_SECRET_KEY
       - GENERAL_SECRET_KEY_BASE64
