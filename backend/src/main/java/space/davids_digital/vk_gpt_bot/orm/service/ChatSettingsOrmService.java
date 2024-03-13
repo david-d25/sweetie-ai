@@ -6,6 +6,7 @@ import space.davids_digital.vk_gpt_bot.orm.entity.ChatSettingsEntity;
 import space.davids_digital.vk_gpt_bot.orm.repository.ChatSettingsRepository;
 
 import java.util.Collection;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -17,7 +18,7 @@ public class ChatSettingsOrmService {
     }
 
     public Collection<ChatSettingsModel> findHavingAdmin(long adminId) {
-        return repository.findHavingAdmin(adminId).stream().map(this::toModel).collect(Collectors.toSet());
+        return repository.findHavingAdmin(adminId).stream().map(this::toModel).filter(Objects::nonNull).collect(Collectors.toSet());
     }
 
     public ChatSettingsModel findByIdAndHavingAdmin(long peerId, long adminId) {
