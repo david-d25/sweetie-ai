@@ -15,6 +15,7 @@ services:
       - VK_GROUP_ID
       - COOKIES_DOMAIN
       - OPENAI_SECRET_KEY
+      - GENERAL_SECRET_KEY_BASE64
   frontend:
     build: frontend
     ports:
