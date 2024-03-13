@@ -18,7 +18,7 @@ services:
   frontend:
     build: frontend
     ports:
-      - "9080:8080"
+      - "9080:3000"
     environment:
       - API_URL
       - VK_APP_ID

@@ -20,6 +20,10 @@
                 <targetPath>src</targetPath>
             </resource>
             <resource>
+                <directory>public</directory>
+                <targetPath>public</targetPath>
+            </resource>
+            <resource>
                 <directory>.</directory>
                 <includes>
                     <include>package.json</include>
