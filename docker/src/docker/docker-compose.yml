@@ -23,6 +23,7 @@ services:
     environment:
       - API_URL
       - VK_APP_ID
+      - FRONTEND_BASE_PATH
   bot:
     build: bot
     ports:

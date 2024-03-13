@@ -9,7 +9,7 @@ module.exports = {
     output: {
         path: path.resolve(__dirname, 'build'),
         filename: '[name].js',
-        publicPath: '/'
+        publicPath: process.env['FRONTEND_BASE_PATH']
     },
     module: {
         rules: [
@@ -60,7 +60,8 @@ module.exports = {
         }),
         new EnvironmentPlugin([
             'API_URL',
-            'VK_APP_ID'
+            'VK_APP_ID',
+            'FRONTEND_BASE_PATH'
         ])
     ],
     resolve: {

@@ -19,7 +19,7 @@ export default function App() {
         <StrictMode>
             <RecoilRoot>
                 <ThemeInit/>
-                <BrowserRouter>
+                <BrowserRouter basename={process.env['FRONTEND_BASE_PATH']}>
                     <Header/>
                     <Routes>
                         <Route path="/" element={<Navigate to="/login" replace/>}/>
