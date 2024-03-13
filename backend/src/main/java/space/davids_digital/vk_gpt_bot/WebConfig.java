@@ -41,8 +41,10 @@ public class WebConfig {
     long vkAppId;
     @Value("${GENERAL_SECRET_KEY_BASE64}")
     String generalSecretKeyBase64;
-    @Value("${FRONTEND_URL_BASE}")
-    String frontendUrlBase;
+    @Value("${FRONTEND_BASE_PATH}")
+    String frontendBasePath;
+    @Value("${FRONTEND_HOST}")
+    String frontendHost;
     @Value("${VK_ACCESS_TOKEN}")
     String vkAccessToken;
     @Value("${OPENAI_SECRET_KEY}")
@@ -80,7 +82,7 @@ public class WebConfig {
             @Override
             public void addCorsMappings(@NonNull CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOrigins(frontendUrlBase)
+                        .allowedOrigins(frontendHost)
                         .allowCredentials(true);
             }
         };
@@ -99,9 +101,15 @@ public class WebConfig {
     }
 
     @Bean
-    @Qualifier("frontendUrlBase")
-    public String frontendUrlBase() {
-        return frontendUrlBase;
+    @Qualifier("frontendBasePath")
+    public String frontendBasePath() {
+        return frontendBasePath;
+    }
+
+    @Bean
+    @Qualifier("frontendHost")
+    public String frontendHost() {
+        return frontendHost;
     }
 
     @Bean

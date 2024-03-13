@@ -17,7 +17,8 @@ services:
       - COOKIES_DOMAIN
       - OPENAI_SECRET_KEY
       - GENERAL_SECRET_KEY_BASE64
-      - FRONTEND_URL_BASE
+      - FRONTEND_HOST
+      - FRONTEND_BASE_PATH
   frontend:
     build: frontend
     ports:

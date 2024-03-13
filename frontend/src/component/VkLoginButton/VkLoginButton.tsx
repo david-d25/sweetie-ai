@@ -18,7 +18,7 @@ export default function VkLoginButton() {
         <Button onClick={onClick}>
             <div className={style.vkLogin}>
                 <span className={style.vkIconWrapper}>
-                    <img src="/image/vk-logo.png" alt="VK Icon" className={style.vkIcon}/>
+                    <img src={process.env['FRONTEND_BASE_PATH'] + "/image/vk-logo.png"} alt="VK Icon" className={style.vkIcon}/>
                 </span>
                 <span className={style.text}>
                     Войти через VK

@@ -27,17 +27,20 @@ public class AuthController {
     private static final Logger log = LoggerFactory.getLogger(AuthController.class);
 
     private final VkAuthService vkAuthService;
-    private final String frontendUrlBase;
+    private final String frontendBasePath;
     private final String cookiesDomain;
+    private final String frontendHost;
 
     public AuthController(
             VkAuthService vkAuthService,
-            @Qualifier("frontendUrlBase") String frontendUrlBase,
-            @Qualifier("cookiesDomain") String cookiesDomain
+            @Qualifier("frontendBasePath") String frontendBasePath,
+            @Qualifier("cookiesDomain") String cookiesDomain,
+            @Qualifier("frontendHost") String frontendHost
     ) {
         this.vkAuthService = vkAuthService;
-        this.frontendUrlBase = frontendUrlBase;
+        this.frontendBasePath = frontendBasePath;
         this.cookiesDomain = cookiesDomain;
+        this.frontendHost = frontendHost;
     }
 
     @GetMapping("vk-id")
@@ -54,7 +57,7 @@ public class AuthController {
             var userSession = vkAuthService.createSessionFromSilentToken(dto.token, dto.uuid);
             var sessionToken = userSession.sessionToken();
             var userVkId = userSession.userVkId();
-            var url = URI.create(frontendUrlBase + "/").resolve("login");
+            var url = URI.create(frontendHost + "/").resolve(frontendBasePath + "/").resolve("login");
 
             var maxAge = userSession.validUntil().minusSeconds(ZonedDateTime.now().toEpochSecond()).toEpochSecond();
             var sessionTokenCookie = ResponseCookie.from(AUTH_TOKEN, sessionToken)
@@ -80,7 +83,7 @@ public class AuthController {
                     .build();
         } catch (Exception e) {
             log.error("Failed to authenticate", e);
-            var url = URI.create(frontendUrlBase + "/").resolve("login?status=error");
+            var url = URI.create(frontendHost + "/").resolve(frontendBasePath + "/").resolve("login?status=error");
             return ResponseEntity.status(HttpStatus.TEMPORARY_REDIRECT).location(url).build();
         }
     }
