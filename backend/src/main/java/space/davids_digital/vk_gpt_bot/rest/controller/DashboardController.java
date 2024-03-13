@@ -55,11 +55,9 @@ public class DashboardController {
         var peerIdToChat = vkChats.stream().collect(Collectors.toMap(v -> v.peer.id, v -> v));
         var chats = chatSettings.stream().map(c -> {
             var photo = peerIdToChat.containsKey(c.peerId())
-                    ? peerIdToChat.get(c.peerId()).chatSettings.photo != null ? peerIdToChat.get(c.peerId()).chatSettings.photo.photo200 : null
-                    : null;
+                    ? peerIdToChat.get(c.peerId()).chatSettings != null ? peerIdToChat.get(c.peerId()).chatSettings.photo != null ? peerIdToChat.get(c.peerId()).chatSettings.photo.photo200 : null : null : null;
             var title = peerIdToChat.containsKey(c.peerId())
-                    ? peerIdToChat.get(c.peerId()).chatSettings.title
-                    : null;
+                    ? peerIdToChat.get(c.peerId()).chatSettings != null ? peerIdToChat.get(c.peerId()).chatSettings.title : null : null;
             return new DashboardDto.Chat(c.peerId(), title, photo, c.botEnabled()
             );
         }).toList();
