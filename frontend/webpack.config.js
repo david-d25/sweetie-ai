@@ -9,7 +9,7 @@ module.exports = {
     output: {
         path: path.resolve(__dirname, 'build'),
         filename: '[name].js',
-        publicPath: '/'
+        publicPath: process.env['FRONTEND_BASE_PATH']
     },
     module: {
         rules: [
@@ -73,7 +73,9 @@ module.exports = {
     },
     devServer: {
         host: '0.0.0.0',
-        historyApiFallback: true,
+        historyApiFallback: {
+            index: process.env['FRONTEND_BASE_PATH'] + '/index.html'
+        },
         port: 3000,
         static: {
             directory: path.join(__dirname, 'public'),
