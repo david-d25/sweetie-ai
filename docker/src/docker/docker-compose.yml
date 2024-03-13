@@ -5,6 +5,7 @@ services:
     ports:
       - "9988:8080"
     environment:
+      - VK_APP_ID
       - DB_NAME
       - DB_HOST
       - DB_PASSWORD
