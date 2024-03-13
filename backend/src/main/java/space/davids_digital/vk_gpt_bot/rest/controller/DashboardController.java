@@ -55,7 +55,7 @@ public class DashboardController {
         var peerIdToChat = vkChats.stream().collect(Collectors.toMap(v -> v.peer.id, v -> v));
         var chats = chatSettings.stream().map(c -> {
             var photo = peerIdToChat.containsKey(c.peerId())
-                    ? peerIdToChat.get(c.peerId()).chatSettings.photo.photo200
+                    ? peerIdToChat.get(c.peerId()).chatSettings.photo != null ? peerIdToChat.get(c.peerId()).chatSettings.photo.photo200 : null
                     : null;
             var title = peerIdToChat.containsKey(c.peerId())
                     ? peerIdToChat.get(c.peerId()).chatSettings.title
