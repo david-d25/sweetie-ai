@@ -61,6 +61,10 @@ export default class BotService {
             console.log(`[${message.peerId}] Bot is disabled, ignoring tagging`);
             return;
         }
+        if (!message.text) {
+            console.log(`[${message.peerId}] Message has no text, ignoring`);
+            return;
+        }
 
         console.log(`[${message.peerId}] Got tagging/private message: ${message.text}`);
         if (this.taggingHandler != null) {

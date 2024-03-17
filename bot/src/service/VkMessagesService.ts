@@ -168,9 +168,9 @@ export default class VkMessagesService {
     private vkMessageDtoToModel(context: MessageContext): VkMessage {
         const result: VkMessage = {
             conversationMessageId: context.conversationMessageId!,
-            peerId: context.peerId,
-            fromId: context.senderId,
-            timestamp: context.createdAt,
+            peerId: +context.peerId,
+            fromId: +context.senderId,
+            timestamp: +context.createdAt,
             attachments: context.attachments,
             text: typeof context.text == 'undefined' ? null : context.text,
             forwardedMessages: []
