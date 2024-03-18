@@ -94,7 +94,7 @@ export default class VkUsersService {
         } else if (id == 0) { // This bot
             return this.createMockUser(id, "(me)", "");
         } else { // Group, not user
-            return this.createMockUser(id, "__vk_group__", "");
+            return this.refreshUserData(id, "__vk_group__", "");
         }
     }
 

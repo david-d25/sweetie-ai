@@ -35,7 +35,7 @@ export class VkUsersOrmService {
             return null;
         const row = result.rows[0];
         return {
-            id: row.id,
+            id: +row.id,
             firstNameCached: row.first_name,
             lastNameCached: row.last_name,
             credits: +row.credits,
