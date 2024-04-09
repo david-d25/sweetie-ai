@@ -18,6 +18,8 @@ import TemporaryFileHostService from "./service/TemporaryFileHostService";
 import {VkUsersOrmService} from "./orm/VkUsersOrmService";
 import UsagePlanOrmService from "./orm/UsagePlanOrmService";
 import UsagePlanService from "./service/UsagePlanService";
+import TtsService from "./service/TtsService";
+import AppCeosOrmService from "./orm/AppCeosOrmService";
 
 export class Context {
     configService!: ConfigService;
@@ -30,6 +32,7 @@ export class Context {
     chatAdminsOrmService!: ChatAdminsOrmService;
     vkUsersOrmService!: VkUsersOrmService;
     usagePlanOrmService!: UsagePlanOrmService;
+    appCeosOrmService!: AppCeosOrmService;
 
     botService!: BotService;
     userPermissionsService!: UserPermissionsService;
@@ -42,6 +45,7 @@ export class Context {
     metaphorService!: MetaphorService;
     temporaryFilesHostService!: TemporaryFileHostService;
     usagePlanService!: UsagePlanService;
+    ttsService!: TtsService;
 
     readyFlag = false;
     readyListeners: (() => void)[] = [];

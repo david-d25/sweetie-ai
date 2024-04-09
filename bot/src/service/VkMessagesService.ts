@@ -2,6 +2,9 @@ import {Attachment, ExternalAttachment, MessageContext, VK} from "vk-io";
 import VkMessagesOrmService from "orm/VkMessagesOrmService";
 import {Context} from "../Context";
 import {GroupsGroupFull, UsersUserFull} from "vk-io/lib/api/schemas/objects";
+import FormData from "form-data";
+import axios from "axios";
+import {optimizeForVkAudioMessage} from "../util/AudioUtil";
 
 export type VkMessage = {
     conversationMessageId: number;
@@ -84,6 +87,43 @@ export default class VkMessagesService {
     //     return `doc${attachment.ownerId}_${attachment.id}${attachment.accessKey ? `_${attachment.accessKey}` : ''}`;
     // }
 
+    // Doesn't work, I have no idea why
+    async uploadVoiceMessage(toId: number, audio: Buffer) {
+        const uploadServerResponse = await this.vk.api.docs.getMessagesUploadServer({
+            type: "audio_message",
+            peer_id: toId,
+        });
+        const uploadServerUrl = uploadServerResponse.upload_url;
+        // const audioMessage = await this.vk.upload.audioMessage({
+        //     peer_id: toId,
+        //     source: {
+        //         // uploadUrl: uploadServerUrl,
+        //         values: [{
+        //             value: await optimizeForVkAudioMessage(audio),
+        //             contentType: 'audio/opus',
+        //         }]
+        //     }
+        // });
+        const optimizedAudio = await optimizeForVkAudioMessage(audio);
+        const form = new FormData();
+        form.append('file', optimizedAudio, {
+            filename: 'audio.opus',
+            // contentType: 'audio/opus'
+        });
+        const config = {
+            headers: {
+                ...form.getHeaders(),
+                'Content-Type': 'multipart/form-data',
+            }
+        };
+        const uploadResponse = await axios.post(uploadServerUrl, form, config);
+        const uploadedAudioData = uploadResponse.data;
+        const saveResponse = await this.vk.api.docs.save({ file: uploadedAudioData['file'] });
+        console.dir(saveResponse);
+        const audioMessage = saveResponse.data['response']['audio_message']
+        return `audio_message${audioMessage.ownerId}_${audioMessage.id}`;
+    }
+
     async uploadPhotoAttachments(toId: number, images: (string | Buffer)[]): Promise<string[]> {
         const uploadServerResponse = await this.vk.api.photos.getMessagesUploadServer({});
         const uploadServerUrl = uploadServerResponse.upload_url;
@@ -99,6 +139,17 @@ export default class VkMessagesService {
             }))
         );
         return attachments.map(it => `photo${it.ownerId}_${it.id}${it.accessKey ? `_${it.accessKey}` : ''}`);
+    }
+
+    async indicateActivity(peerId: number, type: "audiomessage" | "file" | "photo" | "typing" | "video") {
+        try {
+            await this.vk.api.messages.setActivity({
+                peer_id: peerId,
+                type
+            });
+        } catch (e) {
+            console.error(`[${peerId}] Could not indicate activity`, e);
+        }
     }
 
     async send(toId: number, message: string, attachments: string[] = [], saveToHistory: boolean = true): Promise<number> {

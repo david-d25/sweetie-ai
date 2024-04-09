@@ -6,7 +6,7 @@
     <parent>
         <groupId>space.davids_digital.vk_gpt_chatbot</groupId>
         <artifactId>vk_gpt_chatbot</artifactId>
-        <version>3.0.0</version>
+        <version>3.1.0</version>
     </parent>
 
     <artifactId>crypto</artifactId>

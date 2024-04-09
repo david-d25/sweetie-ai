@@ -9,11 +9,11 @@ import GenerateImageMetaRequestHandler from "./answer/GenerateImageMetaRequestHa
 import EditImageMetaRequestHandler from "./answer/EditImageMetaRequestHandler";
 import {ChatSettingsModel} from "../service/ChatSettingsService";
 import GetUsersListMetaRequestHandler from "./answer/GetUsersListMetaRequestHandler";
-import DrawStatisticsMetaRequestHandler from "./answer/DrawStatisticsMetaRequestHandler";
 import SendLaterMetaRequestHandler from "./answer/SendLaterMetaRequestHandler";
 import WebSearchRequestHandler from "./answer/WebSearchRequestHandler";
 import GetSearchResultContentMetaRequestHandler from "./answer/GetSearchResultContentMetaRequestHandler";
 import {PhotoAttachment} from "vk-io";
+import ReviewMetaRequestHandler from "./answer/ReviewMetaRequestHandler";
 
 export default class AnswerCommand extends Command {
     private metaRequestHandlers: MetaRequestHandler[];
@@ -24,10 +24,10 @@ export default class AnswerCommand extends Command {
             new GenerateImageMetaRequestHandler(context),
             new EditImageMetaRequestHandler(context),
             new GetUsersListMetaRequestHandler(context),
-            new DrawStatisticsMetaRequestHandler(context),
             new SendLaterMetaRequestHandler(context),
             new WebSearchRequestHandler(context),
             new GetSearchResultContentMetaRequestHandler(context),
+            new ReviewMetaRequestHandler()
         ];
     }
 
@@ -59,9 +59,9 @@ export default class AnswerCommand extends Command {
         const chatSettings = await chatSettingsService.getSettingsOrCreateDefault(message.peerId);
 
         let gptRequestIterations = 0;
-        const maxGptRequestIterations = 5;
+        const maxGptRequestIterations = 6;
         do {
-            const visionSupported = chatSettings.gptModel.includes("vision");
+            const visionSupported = chatSettings.gptModel.includes("vision") || chatSettings.gptModel == "gpt-4-turbo";
             let chatMessages = await this.buildChatMessages(message, response.metaRequestResults, visionSupported);
             response.metaRequestResults = [];
             let maxMessagesSize = this.calculateMaxHistoryMessagesSize(chatSettings, chatMessages);
@@ -75,6 +75,7 @@ export default class AnswerCommand extends Command {
             console.log(`[${message.peerId}] Length of system message is ${systemMessageSizeTokens} tokens`);
             console.log(`[${message.peerId}] Sending request to GPT...`);
             try {
+                await vkMessagesService.indicateActivity(message.peerId, "typing");
                 response.text = await chatGptService.request(
                     systemMessage,
                     chatMessages,

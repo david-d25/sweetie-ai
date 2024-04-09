@@ -30,6 +30,8 @@ import UsagePlanService from "./service/UsagePlanService";
 import PlanCommand from "./command/PlanCommand";
 import GrantCommand from "./command/GrantCommand";
 import GiveCommand from "./command/GiveCommand";
+import TtsService from "./service/TtsService";
+import AppCeosOrmService from "./orm/AppCeosOrmService";
 
 function getAppVersion() {
     const defaultVersion = "(unknown version)";
@@ -87,6 +89,7 @@ async function ready() {
     context.chatAdminsOrmService = new ChatAdminsOrmService(context);
     context.usagePlanOrmService = new UsagePlanOrmService(context);
     context.vkUsersOrmService = new VkUsersOrmService(context);
+    context.appCeosOrmService = new AppCeosOrmService(context);
 
     context.botService = new BotService(context);
     context.userPermissionsService = new UserPermissionsService(context);
@@ -99,6 +102,7 @@ async function ready() {
     context.metaphorService = new MetaphorService(context);
     context.temporaryFilesHostService = new TemporaryFileHostService(context);
     context.usagePlanService = new UsagePlanService(context);
+    context.ttsService = new TtsService(context);
 
     context.ready();
 
