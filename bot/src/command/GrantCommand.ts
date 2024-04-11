@@ -57,7 +57,7 @@ export default class GrantCommand extends Command {
         }
         const expiry = days ? new Date(Date.now() + days * 24 * 60 * 60 * 1000) : null;
         await this.context.vkUsersOrmService.setUserUsagePlan(memberId, planId, expiry);
-        await vkMessagesService.send(message.peerId, `✨ [id${memberId}|Ты] получаешь Sweetie AI ${plan.title} ${expiry ? `до ${expiry.getDate()}.${expiry.getMonth() + 1}.${expiry.getFullYear()}` : 'навсегда'}`);
+        await vkMessagesService.send(message.peerId, `✨ [id${Math.abs(memberId)}|Ты] получаешь Sweetie AI ${plan.title} ${expiry ? `до ${expiry.getDate()}.${expiry.getMonth() + 1}.${expiry.getFullYear()}` : 'навсегда'}`);
     }
 
     private extractMemberId(text: string): number | null {

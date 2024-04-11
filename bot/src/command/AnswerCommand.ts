@@ -12,7 +12,7 @@ import GetUsersListMetaRequestHandler from "./answer/GetUsersListMetaRequestHand
 import SendLaterMetaRequestHandler from "./answer/SendLaterMetaRequestHandler";
 import WebSearchRequestHandler from "./answer/WebSearchRequestHandler";
 import GetSearchResultContentMetaRequestHandler from "./answer/GetSearchResultContentMetaRequestHandler";
-import {PhotoAttachment} from "vk-io";
+import {AudioMessageAttachment, PhotoAttachment} from "vk-io";
 import ReviewMetaRequestHandler from "./answer/ReviewMetaRequestHandler";
 
 export default class AnswerCommand extends Command {
@@ -42,9 +42,6 @@ export default class AnswerCommand extends Command {
     // TODO refactor
     async handle(command: string, rawArguments: string, message: VkMessage): Promise<void> {
         const { vkMessagesService, chatSettingsService, chatGptService } = this.context;
-        if (rawArguments.length == 0)
-            return this.sendUsage(message.peerId);
-
         const user = await this.context.vkUsersService.getUser(message.fromId);
         if (user == null) {
             await vkMessagesService.send(message.peerId, "Сладенький не может ответить (не смог найти тебя в базе данных)");
@@ -119,7 +116,7 @@ export default class AnswerCommand extends Command {
         const { vkMessagesService, usagePlanService } = this.context;
         const secondsRequired = await usagePlanService.getTimeInSecondsRequiredToHaveCredits(message.fromId, 1);
         if (secondsRequired <= 0) {
-            await vkMessagesService.send(message.peerId, `У [id${Math.abs(message.fromId)}|тебя] достигнут лимит по вычислениям, пожалуйста подожди 15 секунд`);
+            await vkMessagesService.send(message.peerId, `Слишком много сообщений, пожалуйста подожди 15 секунд`);
             return;
         }
         if (secondsRequired == Number.POSITIVE_INFINITY) {
@@ -129,7 +126,7 @@ export default class AnswerCommand extends Command {
         if (secondsRequired < 60) {
             await vkMessagesService.send(
                 message.peerId,
-                `У [id${Math.abs(message.fromId)}|тебя] достигнут лимит по вычислениям, пожалуйста подожди ${secondsRequired} с.`
+                `Слишком много сообщений, пожалуйста подожди ${secondsRequired} с.`
             );
             return;
         }
@@ -137,7 +134,7 @@ export default class AnswerCommand extends Command {
             const minutesRequired = Math.ceil(secondsRequired/60);
             await vkMessagesService.send(
                 message.peerId,
-                `У [id${Math.abs(message.fromId)}|тебя] достигнут лимит по вычислениям, пожалуйста подожди ${minutesRequired} м.`
+                `Слишком много сообщений, пожалуйста подожди ${minutesRequired} м.`
             );
             return;
         }
@@ -146,7 +143,7 @@ export default class AnswerCommand extends Command {
             const minutesRequired = Math.ceil(secondsRequired/60) - hoursRequired*60;
             await vkMessagesService.send(
                 message.peerId,
-                `У [id${Math.abs(message.fromId)}|тебя] достигнут лимит по вычислениям, пожалуйста подожди ${hoursRequired} ч. ${minutesRequired} м.`
+                `Слишком много сообщений, пожалуйста подожди ${hoursRequired} ч. ${minutesRequired} м.`
             );
             return;
         }
@@ -155,7 +152,7 @@ export default class AnswerCommand extends Command {
         const minutesRequired = Math.ceil(secondsRequired/60) - hoursRequired*60 - daysRequired*24*60;
         await vkMessagesService.send(
             message.peerId,
-            `У [id${Math.abs(message.fromId)}|тебя] достигнут лимит по вычислениям, пожалуйста подожди ${daysRequired} д. ${hoursRequired} ч. ${minutesRequired} м.`
+            `Слишком много сообщений, пожалуйста подожди ${daysRequired} д. ${hoursRequired} ч. ${minutesRequired} м.`
         );
         return;
     }
@@ -256,7 +253,7 @@ export default class AnswerCommand extends Command {
     ): Promise<number> {
         const { chatGptService } = this.context;
         console.log(`[${peerId}] Retrieving history...`);
-        let history = await this.context.vkMessagesService.getHistory(peerId, maxMessages);
+        let history = await this.context.vkMessagesService.getDatabaseHistory(peerId, maxMessages);
         const contentPrefix = 'Last chat messages:\n"""\n';
         const contentPostfix = '\n"""\n';
         const model = chatSettings.gptModel;
@@ -280,15 +277,6 @@ export default class AnswerCommand extends Command {
         return formattedChatLines.length;
     }
 
-    private async sendUsage(peerId: number): Promise<void> {
-        const text = `Пиши так:\n`
-            + `/sweet answer (вопрос)\n`
-            + `\n`
-            + `Например:\n`
-            + `/sweet answer Когда закончится экономический кризис?\n`;
-        await this.context.vkMessagesService.send(peerId, text);
-    }
-
     private async createFormattedChatLines(history: VkMessage[], forwardDepth: number = 0): Promise<string[]> {
         const result = [];
         for (const message of history) {
@@ -296,7 +284,9 @@ export default class AnswerCommand extends Command {
             const displayName = user ? (user.firstNameCached + " " + user.lastNameCached) : "(unknown)";
             const date = new Date(message.timestamp * 1000);
             let formattedMessage = this.formatVkMessage(date, message, displayName, forwardDepth) + "\n";
-            formattedMessage += (await this.createFormattedChatLines(message.forwardedMessages, forwardDepth + 1)).join("");
+            formattedMessage += (
+                await this.createFormattedChatLines(message.forwardedMessages, forwardDepth + 1)
+            ).join("");
             result.push(formattedMessage);
         }
         return result;
@@ -312,7 +302,12 @@ export default class AnswerCommand extends Command {
         result += displayName + ": ";
         result += message.text;
         for (const [i, attachment] of message.attachments.entries()) {
-            result += ` [attachment:${attachment.type}, id=${i}]`;
+            if (attachment.type == "audio_message") {
+                const audioMessage = attachment as AudioMessageAttachment
+                result += ` [${attachment.type}, transcript="${audioMessage.transcript?.replaceAll('"', '\\"')}"]`;
+            } else {
+                result += ` [${attachment.type}, id=${i}]`;
+            }
         }
         return result;
     }

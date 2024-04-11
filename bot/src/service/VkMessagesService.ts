@@ -1,7 +1,12 @@
 import {Attachment, ExternalAttachment, MessageContext, VK} from "vk-io";
 import VkMessagesOrmService from "orm/VkMessagesOrmService";
 import {Context} from "../Context";
-import {GroupsGroupFull, UsersUserFull} from "vk-io/lib/api/schemas/objects";
+import {
+    GroupsGroupFull,
+    MessagesMessage,
+    MessagesMessageAttachment,
+    UsersUserFull
+} from "vk-io/lib/api/schemas/objects";
 import FormData from "form-data";
 import axios from "axios";
 import {optimizeForVkAudioMessage} from "../util/AudioUtil";
@@ -65,8 +70,20 @@ export default class VkMessagesService {
         return result;
     }
 
-    async getHistory(peerId: number, count: number): Promise<VkMessage[]> {
+    // TODO move to orm layer
+    async getDatabaseHistory(peerId: number, count: number): Promise<VkMessage[]> {
         return (await this.messagesOrmService.getMessagesByPeerIdWithLimitSortedByTimestamp(peerId, count)).reverse();
+    }
+
+    async getMessage(peerId: number, startMessageId: number): Promise<VkMessage | null> {
+        const history = await this.context.vk.api.messages.getHistory({
+            peer_id: peerId,
+            start_message_id: startMessageId,
+            count: 1
+        });
+        if (history.items.length == 0)
+            return null;
+        return this.vkHistoryMessageToModel(history.items[0]);
     }
 
     // Doesn't work, I have no idea why
@@ -214,6 +231,26 @@ export default class VkMessagesService {
         const message = this.vkMessageDtoToModel(context);
         this.messagesByPeerId.get(peerId)!.push(message);
         await this.messagesOrmService!.addMessage(message);
+    }
+
+    private vkHistoryMessageToModel(message: MessagesMessage): VkMessage {
+        const result: VkMessage = {
+            conversationMessageId: message.conversation_message_id!,
+            peerId: +message.peer_id!,
+            fromId: +message.from_id!,
+            timestamp: +message.date!,
+            attachments: message.attachments?.map((a: any) => a[a.type] ? a[a.type] as Attachment : a) as Attachment[],
+            text: typeof message.text == 'undefined' ? null : message.text,
+            forwardedMessages: []
+        }
+
+        if (message.fwd_messages) {
+            for (const forward of message.fwd_messages) {
+                result.forwardedMessages.push(this.vkHistoryMessageToModel(forward));
+            }
+        }
+
+        return result;
     }
 
     private vkMessageDtoToModel(context: MessageContext): VkMessage {
