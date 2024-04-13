@@ -26,6 +26,7 @@ const NULL_CHAT = {
     gptFrequencyPenalty: 0,
     gptPresencePenalty: 0,
     gptModel: null,
+    processAudioMessages: false,
     availableGptModels: []
 };
 
@@ -39,10 +40,12 @@ export default function Chat() {
     const [contextUpdating, setContextUpdating] = useState(false);
     const [gptSettingsUpdating, setGptSettingsUpdating] = useState(false);
     const [botEnabledUpdating, setBotEnabledUpdating] = useState(false);
+    const [processAudioMessagesUpdating, setProcessAudioMessagesUpdating] = useState(false);
 
     const [contextUpdateError, setContextUpdateError] = useState(false);
     const [gptSettingsUpdateError, setGptSettingsUpdateError] = useState(false);
     const [botEnabledUpdateError, setBotEnabledUpdateError] = useState(false);
+    const [processAudioMessagesUpdateError, setProcessAudioMessagesUpdateError] = useState(false);
 
     const gptSettings: GptSettingsValue = {
         maxInputTokens: chat.gptMaxInputTokens,
@@ -132,6 +135,21 @@ export default function Chat() {
         });
     }
 
+    function toggleProcessAudioMessages() {
+        if (processAudioMessagesUpdating) {
+            return;
+        }
+        setProcessAudioMessagesUpdating(true);
+        api.post('/chat/' + id, { processAudioMessages: !chat.processAudioMessages }).then(response => {
+            setChat(response.data);
+            setProcessAudioMessagesUpdateError(false);
+        }).catch(() => {
+            setProcessAudioMessagesUpdateError(true);
+        }).finally(() => {
+            setProcessAudioMessagesUpdating(false);
+        });
+    }
+
     return (
         <div className={s.chat}>
             { notFound && (
@@ -176,6 +194,16 @@ export default function Chat() {
                                 <ContextEditor value={chat.context} maxLength={2000} onChange={onContextChange}/>
                             </UpdatingContent>
                         </div>
+                        <div className={`${s.switchWrapper} ${processAudioMessagesUpdating ? s.updating : ''}`}>
+                            <Switch checked={chat.processAudioMessages} onChange={toggleProcessAudioMessages}>
+                                { chat.processAudioMessages ? "Сладенький слушает голосовые" : "Сладенький не слушает голосовые" }
+                            </Switch>
+                        </div>
+                        <AnimateHeight className={s.switchErrorWrapper} height={processAudioMessagesUpdateError ? 'auto' : 0}>
+                            <ErrorMessage message={
+                                "Не получилось переключить"
+                            }/>
+                        </AnimateHeight>
                         { showAdvancedSettings && (
                             <div className={s.inlineButton} onClick={hideAdvanced}>
                                 Спрятать продвинутые настройки

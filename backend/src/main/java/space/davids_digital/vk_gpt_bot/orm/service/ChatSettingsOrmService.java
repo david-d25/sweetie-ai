@@ -42,6 +42,7 @@ public class ChatSettingsOrmService {
         entity.gptPresencePenalty = model.gptPresencePenalty();
         entity.botEnabled = model.botEnabled();
         entity.gptModel = model.gptModel();
+        entity.processAudioMessages = model.processAudioMessages();
         return entity;
     }
 
@@ -60,7 +61,8 @@ public class ChatSettingsOrmService {
                 entity.gptFrequencyPenalty,
                 entity.gptPresencePenalty,
                 entity.botEnabled,
-                entity.gptModel
+                entity.gptModel,
+                entity.processAudioMessages
         );
     }
 }

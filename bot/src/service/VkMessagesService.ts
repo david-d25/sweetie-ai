@@ -75,17 +75,6 @@ export default class VkMessagesService {
         return (await this.messagesOrmService.getMessagesByPeerIdWithLimitSortedByTimestamp(peerId, count)).reverse();
     }
 
-    async getMessage(peerId: number, startMessageId: number): Promise<VkMessage | null> {
-        const history = await this.context.vk.api.messages.getHistory({
-            peer_id: peerId,
-            start_message_id: startMessageId,
-            count: 1
-        });
-        if (history.items.length == 0)
-            return null;
-        return this.vkHistoryMessageToModel(history.items[0]);
-    }
-
     // Doesn't work, I have no idea why
     // async uploadDocumentAttachment(toId: number, filename: string, doc: string | Buffer): Promise<string> {
     //     const uploadServerResponse = await this.vk.api.docs.getMessagesUploadServer({
@@ -184,7 +173,7 @@ export default class VkMessagesService {
         };
         return await this.vk.api.messages.send(requestBody).then(async (res) => {
             if (saveToHistory) {
-                await this.messagesOrmService.addMessage({
+                await this.messagesOrmService.saveMessage({
                     fromId: 0,
                     conversationMessageId: res,
                     peerId: toId,
@@ -230,27 +219,7 @@ export default class VkMessagesService {
         }
         const message = this.vkMessageDtoToModel(context);
         this.messagesByPeerId.get(peerId)!.push(message);
-        await this.messagesOrmService!.addMessage(message);
-    }
-
-    private vkHistoryMessageToModel(message: MessagesMessage): VkMessage {
-        const result: VkMessage = {
-            conversationMessageId: message.conversation_message_id!,
-            peerId: +message.peer_id!,
-            fromId: +message.from_id!,
-            timestamp: +message.date!,
-            attachments: message.attachments?.map((a: any) => a[a.type] ? a[a.type] as Attachment : a) as Attachment[],
-            text: typeof message.text == 'undefined' ? null : message.text,
-            forwardedMessages: []
-        }
-
-        if (message.fwd_messages) {
-            for (const forward of message.fwd_messages) {
-                result.forwardedMessages.push(this.vkHistoryMessageToModel(forward));
-            }
-        }
-
-        return result;
+        await this.messagesOrmService!.saveMessage(message);
     }
 
     private vkMessageDtoToModel(context: MessageContext): VkMessage {

@@ -44,14 +44,15 @@ public class ChatService {
                 updates.gptFrequencyPenalty().orElse(settings.gptFrequencyPenalty()),
                 updates.gptPresencePenalty().orElse(settings.gptPresencePenalty()),
                 updates.botEnabled().orElse(settings.botEnabled()),
-                updates.gptModel().orElse(settings.gptModel())
+                updates.gptModel().orElse(settings.gptModel()),
+                updates.processAudioMessages().orElse(settings.processAudioMessages())
         );
         validateChatSettings(newSettings);
         return chatSettingsOrmService.save(newSettings);
     }
 
     public void validateChatSettings(ChatSettingsModel settings) {
-        if (settings.context().length() > 2000) {
+        if (settings.context() != null && settings.context().length() > 2000) {
             throw new ValidationException("context is too big, max 2000 symbols");
         }
         if (settings.gptMaxInputTokens() < 0 || settings.gptMaxInputTokens() > 16384) {

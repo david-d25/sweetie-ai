@@ -5,7 +5,8 @@ import {getRandomBotEnablingPhrase} from "../template/BotEnablingPhrases";
 import Command from "../command/Command";
 import ServiceError from "../ServiceError";
 import {isChatId} from "../util/VkUtil";
-import {AudioMessageAttachment, MessageContext} from "vk-io";
+import {AudioMessageAttachment} from "vk-io";
+import axios from "axios";
 
 export default class BotService {
     private static readonly TRIGGER_WORD = "/sweet";
@@ -14,7 +15,6 @@ export default class BotService {
     private chatSettingsService!: ChatSettingsService;
     private commandHandlers: Command[] = [];
     private taggingHandler: Command | null = null;
-    private audioTranscriptWaitList: VkMessage[] = [];
 
     constructor(private context: Context) {
         context.onReady(this.start.bind(this));
@@ -35,76 +35,78 @@ export default class BotService {
     private start() {
         this.messagesService = this.context.vkMessagesService;
         this.chatSettingsService = this.context.chatSettingsService;
-        this.action().then(_ => {});
+        this.tick();
     }
 
-    private async action() {
-        try {
-            await this.processTranscriptWaitList();
-            const messages = this.messagesService.popSinglePeerIdMessages();
-            for (const message of messages) {
-                if (message.text?.trim().startsWith(BotService.TRIGGER_WORD)) {
-                    await this.processCommandMessage(message);
-                } else if (!isChatId(message.peerId)) {
-                    await this.processTaggingMessage(message);
-                } else if (this.taggingHandler != null && this.isSweetieTaggedInThisMessage(message)) {
-                    await this.processTaggingMessage(message);
-                } else if (this.isAudioMessage(message)) {
-                    this.processWhenTranscriptIsReady(message);
-                }
+    private tick() {
+        this.drainAndProcessMessages().then(_ => {}).catch(e => {
+            console.error("Something bad happened\n", e);
+        })
+        setTimeout(() => this.tick(), 1000);
+    }
+
+    private async drainAndProcessMessages() {
+        const messages = this.messagesService.popSinglePeerIdMessages();
+        for (const message of messages) {
+            if (message.text?.trim().startsWith(BotService.TRIGGER_WORD)) {
+                await this.processCommandMessage(message);
+            } else if (!isChatId(message.peerId)) {
+                await this.processTaggingMessage(message);
+            } else if (this.taggingHandler != null && this.isSweetieTaggedInThisMessage(message)) {
+                await this.processTaggingMessage(message);
+            } else if (this.isAudioMessage(message)) {
+                await this.processAudioMessage(message);
             }
-            setTimeout(() => this.action(), 1000);
-        } catch (e) {
-            console.error("Something bad happened, will retry soon\n", e);
-            setTimeout(() => this.action(), 10000);
         }
     }
 
-    private processWhenTranscriptIsReady(message: VkMessage) {
-        console.log(`[${message.peerId}] Audio message detected, waiting for transcript`);
-        this.audioTranscriptWaitList.push(message);
-    }
+    private async processAudioMessage(message: VkMessage) {
+        let chatSettings = await this.context.chatSettingsService.getSettingsOrCreateDefault(message.peerId);
+        if (!chatSettings.botEnabled) {
+            console.log(`[${message.peerId}] Bot is disabled, ignoring audio message`);
+            return;
+        }
+        if (!chatSettings.processAudioMessages) {
+            console.log(`[${message.peerId}] Audio messages processing is disabled, ignoring audio message`);
+            return;
+        }
+        const audioMessage =
+            message.attachments.find(a => a.type == "audio_message") as AudioMessageAttachment | undefined;
+        if (!audioMessage) {
+            console.error(`[${message.peerId}] Audio message not found in message`);
+            return;
+        }
+        let transcript = audioMessage.transcript;
+        if (transcript) {
+            console.log(`[${message.peerId}] Using transcript from message`);
+        } else {
+            console.log(`[${message.peerId}] Creating transcript for audio message`);
+            transcript = await this.context.audioService.createTranscript(
+                Buffer.from(
+                    (
+                        await axios.post(
+                            audioMessage.mp3Url!,
+                            null,
+                            {
+                                responseType: 'arraybuffer'
+                            }
+                        )
+                    ).data
+                ),
+                "whisper-1"
+            );
+        }
 
-    private async processTranscriptWaitList() {
-        for (let i = 0; i < this.audioTranscriptWaitList.length; i++){
-            const deferredMessage = this.audioTranscriptWaitList[i];
-            let message = null;
-            try {
-                message = await this.messagesService.getMessage(
-                    deferredMessage.peerId,
-                    deferredMessage.conversationMessageId
-                );
-            } catch (e) {
-                console.error(e);
-            }
-            if (!message) {
-                console.error(`[${deferredMessage.peerId}] Couldn't get history when waiting for transcript, message deleted from wait list`);
-                this.audioTranscriptWaitList.splice(i, 1);
-                i--;
-                continue;
-            }
-            const audioMessage = message.attachments.find(a => a.type = "audio_message") as AudioMessageAttachment | undefined;
-            if (!audioMessage) {
-                console.error(`[${message.peerId}] Audio message not found in wait list message`);
-                this.audioTranscriptWaitList.splice(i, 1);
-                i--;
-                continue;
-            }
-            if (audioMessage.transcript) {
-                this.audioTranscriptWaitList.splice(i, 1);
-                i--;
-                const transcript = audioMessage.transcript;
-                const triggers = ['сладенький,', 'сладенький.', 'sweetie,', 'sweetie.'];
-                const trigger = triggers.find(t => transcript.toLowerCase().startsWith(t));
-                if (trigger) {
-                    console.log(`[${message.peerId}] Triggered by audio message`);
-                    await this.processTaggingMessage(message);
-                }
-            } else if (message.timestamp + 60 < Date.now() / 1000) {
-                console.error(`[${message.peerId}] Waited for transcript too long, giving up`);
-                this.audioTranscriptWaitList.splice(i, 1);
-                i--;
-            }
+        const triggers = ['сладенький', 'сладенькая', 'sweetie'];
+        const trigger = triggers.find(t => transcript!.toLowerCase().startsWith(t));
+        if (trigger) {
+            console.log(`[${message.peerId}] Triggered by audio message`);
+            const newAttachment = JSON.parse(JSON.stringify(audioMessage));
+            newAttachment.transcript = transcript;
+            newAttachment.type = "audio_message";
+            message.attachments[0] = newAttachment;
+            await this.context.vkMessagesOrmService.saveAttachment(message, 0, newAttachment);
+            await this.processTaggingMessage(message);
         }
     }
 

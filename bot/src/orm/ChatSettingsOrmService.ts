@@ -27,6 +27,9 @@ export default class ChatSettingsOrmService {
                 gpt_model varchar default 'gpt-3.5-turbo'
             );
         `);
+        await this.client.query(`
+            alter table chat_settings add column if not exists process_audio_messages boolean default false;
+        `);
     }
 
     async getSettings(peerId: number): Promise<ChatSettingsModel | null> {
@@ -56,9 +59,10 @@ export default class ChatSettingsOrmService {
                     gpt_frequency_penalty,
                     gpt_presence_penalty,
                     bot_enabled,
-                    gpt_model
+                    gpt_model,
+                    process_audio_messages
                 ) values (
-                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
                 ) on conflict (peer_id) do update set
                      name = $2,
                      context = $3,
@@ -70,7 +74,8 @@ export default class ChatSettingsOrmService {
                      gpt_frequency_penalty = $9,
                      gpt_presence_penalty = $10,
                      bot_enabled = $11,
-                     gpt_model = $12
+                     gpt_model = $12,
+                     process_audio_messages = $13
                 returning *
             `,
             [
@@ -86,6 +91,7 @@ export default class ChatSettingsOrmService {
                 entity.gpt_presence_penalty,
                 entity.bot_enabled,
                 entity.gpt_model,
+                entity.process_audio_messages
             ]
         );
         if (rows.rows.length === 0) {
@@ -126,6 +132,7 @@ export default class ChatSettingsOrmService {
             gpt_top_p: model.gptTopP,
             gpt_frequency_penalty: model.gptFrequencyPenalty,
             gpt_presence_penalty: model.gptPresencePenalty,
+            process_audio_messages: model.processAudioMessages
         }
     }
 
@@ -142,6 +149,7 @@ export default class ChatSettingsOrmService {
             gptTopP: entity.gpt_top_p,
             gptFrequencyPenalty: entity.gpt_frequency_penalty,
             gptPresencePenalty: entity.gpt_presence_penalty,
+            processAudioMessages: entity.process_audio_messages
         }
     }
 }
@@ -159,4 +167,5 @@ export type ChatSettingsEntity = {
     gpt_top_p: number,
     gpt_frequency_penalty: number,
     gpt_presence_penalty: number,
+    process_audio_messages: boolean
 }

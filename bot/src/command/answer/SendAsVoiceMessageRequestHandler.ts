@@ -16,7 +16,7 @@ export default class SendAsVoiceMessageRequestHandler implements MetaRequestHand
             response.metaRequestErrors.push("Can't generate audio: message has no text");
             return;
         }
-        const audio = await this.context.ttsService.generateSpeech(response.text, "tts-1-hd", "shimmer");
+        const audio = await this.context.audioService.generateSpeech(response.text, "tts-1-hd", "shimmer");
         const attachment = await this.context.vkMessagesService.uploadVoiceMessage(message.peerId, audio);
         response.attachments = [attachment];
     }

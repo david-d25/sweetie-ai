@@ -1,6 +1,7 @@
 import {Client} from 'pg';
 import {VkMessage} from "service/VkMessagesService";
 import {Context} from "../Context";
+import {Attachment, ExternalAttachment} from "vk-io";
 
 export default class VkMessagesOrmService {
     private client!: Client;
@@ -62,30 +63,25 @@ export default class VkMessagesOrmService {
         `);
     }
 
-    async addMessage(message: VkMessage) {
+    async saveMessage(message: VkMessage) {
         const timestamp = new Date(message.timestamp * 1000).toISOString();
         await this.client.query(
             `
                 insert into vk_messages (conversation_message_id, peer_id, from_id, timestamp, text)
                 values ($1, $2, $3, $4, $5)
-                on conflict do nothing
+                on conflict (conversation_message_id, peer_id)
+                    do update set
+                                  from_id = $3,
+                                  timestamp = $4,
+                                  text = $5
             `,
             [message.conversationMessageId, message.peerId, message.fromId, timestamp, message.text]
         );
         for (const [i, attachment] of message.attachments.entries()) {
-            await this.client.query(
-                `
-                    insert into vk_message_attachments (
-                        conversation_message_id, peer_id, order_index, attachment_dto_json
-                    )
-                    values ($1, $2, $3, $4)
-                    on conflict do nothing
-                `,
-                [message.conversationMessageId, message.peerId, i, JSON.stringify(attachment)]
-            );
+            await this.saveAttachment(message, i, attachment);
         }
         for (const forwardedMessage of message.forwardedMessages) {
-            await this.addMessage(forwardedMessage);
+            await this.saveMessage(forwardedMessage);
             await this.client.query(
                 `
                     insert into vk_message_forwards (
@@ -102,6 +98,23 @@ export default class VkMessagesOrmService {
                 ]
             );
         }
+    }
+
+    async saveAttachment(message: VkMessage, orderIndex: number, attachment: Attachment | ExternalAttachment) {
+        await this.client.query(
+            `
+                    insert into vk_message_attachments (
+                        conversation_message_id, peer_id, order_index, attachment_dto_json
+                    )
+                    values ($1, $2, $3, $4)
+                    on conflict (
+                        conversation_message_id,
+                        peer_id,
+                        order_index
+                    ) do update set attachment_dto_json = $4
+                `,
+            [message.conversationMessageId, message.peerId, orderIndex, JSON.stringify(attachment)]
+        );
     }
 
     async getMessagesByPeerIdWithLimitSortedByTimestamp(peerId: number, limit: number): Promise<VkMessage[]> {

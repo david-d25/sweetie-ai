@@ -3,6 +3,7 @@ import {Context} from "../Context";
 
 export type ChatSettingsModel = {
     botEnabled: boolean,
+    processAudioMessages: boolean,
     nameCached: string | null,
     context: string | null,
     memory: string | null,
@@ -74,6 +75,10 @@ export default class ChatSettingsService {
 
     async setGptPresencePenalty(peerId: number, gptPresencePenalty: number): Promise<ChatSettingsModel> {
         return this.changeSettings(peerId, model => model.gptPresencePenalty = gptPresencePenalty)
+    }
+
+    async setProcessAudioMessages(peerId: number, processAudioMessages: boolean): Promise<ChatSettingsModel> {
+        return this.changeSettings(peerId, model => model.processAudioMessages = processAudioMessages)
     }
 
     private async changeSettings(

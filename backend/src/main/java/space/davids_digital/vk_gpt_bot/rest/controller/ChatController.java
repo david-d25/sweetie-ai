@@ -80,6 +80,7 @@ public class ChatController {
                 chatSettings.gptFrequencyPenalty(),
                 chatSettings.gptPresencePenalty(),
                 chatSettings.gptModel(),
+                chatSettings.processAudioMessages(),
                 availableModels
         );
     }

@@ -44,4 +44,7 @@ public class ChatSettingsEntity {
 
     @Column(name = "gpt_model")
     public String gptModel;
+
+    @Column(name = "process_audio_messages")
+    public boolean processAudioMessages;
 }

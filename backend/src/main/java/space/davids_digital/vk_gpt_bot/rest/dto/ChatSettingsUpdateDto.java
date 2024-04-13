@@ -11,5 +11,6 @@ public record ChatSettingsUpdateDto(
         Optional<Double> gptTopP,
         Optional<Double> gptFrequencyPenalty,
         Optional<Double> gptPresencePenalty,
-        Optional<String> gptModel
+        Optional<String> gptModel,
+        Optional<Boolean> processAudioMessages
 ) {}

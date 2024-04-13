@@ -18,7 +18,7 @@ import TemporaryFileHostService from "./service/TemporaryFileHostService";
 import {VkUsersOrmService} from "./orm/VkUsersOrmService";
 import UsagePlanOrmService from "./orm/UsagePlanOrmService";
 import UsagePlanService from "./service/UsagePlanService";
-import TtsService from "./service/TtsService";
+import AudioService from "./service/AudioService";
 import AppCeosOrmService from "./orm/AppCeosOrmService";
 
 export class Context {
@@ -45,7 +45,7 @@ export class Context {
     metaphorService!: MetaphorService;
     temporaryFilesHostService!: TemporaryFileHostService;
     usagePlanService!: UsagePlanService;
-    ttsService!: TtsService;
+    audioService!: AudioService;
 
     readyFlag = false;
     readyListeners: (() => void)[] = [];

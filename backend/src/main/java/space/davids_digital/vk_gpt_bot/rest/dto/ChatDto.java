@@ -15,5 +15,6 @@ public record ChatDto(
         double gptFrequencyPenalty,
         double gptPresencePenalty,
         String gptModel,
+        boolean processAudioMessages,
         List<String> availableGptModels
 ) {}

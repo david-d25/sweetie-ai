@@ -35,6 +35,7 @@ export default class SettingsCommand extends Command {
             response += `top_p=${settings.gptTopP}\n`;
             response += `frequency_penalty=${settings.gptFrequencyPenalty}\n`;
             response += `presence_penalty=${settings.gptPresencePenalty}\n`;
+            response += `process_audio_messages=${settings.processAudioMessages}\n`;
             await vkMessagesService.send(message.peerId, response);
         } else if (subCommand == "get") {
             if (text.length == 0)
@@ -53,6 +54,8 @@ export default class SettingsCommand extends Command {
                 value = settings.gptFrequencyPenalty;
             if (settingName == "presence_penalty")
                 value = settings.gptPresencePenalty;
+            if (settingName == "process_audio_messages")
+                value = settings.processAudioMessages;
 
             await vkMessagesService.send(message.peerId, `${settingName}=${value}`);
         } else if (subCommand == "set") {
@@ -107,8 +110,12 @@ export default class SettingsCommand extends Command {
                 if (isNaN(value) || value < 0 || value > 2) {
                     await vkMessagesService.send(message.peerId, `Это должно быть число от 0 до 2`);
                     return;
-                } else
+                } else {
                     await chatSettingsService.setGptPresencePenalty(message.peerId, value);
+                }
+            } else if (settingName == "process_audio_messages") {
+                const value = settingValue == "true" || settingValue == "yes";
+                await chatSettingsService.setProcessAudioMessages(message.peerId, value);
             } else {
                 await vkMessagesService.send(message.peerId, `Нет такого параметра`);
             }

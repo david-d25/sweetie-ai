@@ -30,7 +30,7 @@ import UsagePlanService from "./service/UsagePlanService";
 import PlanCommand from "./command/PlanCommand";
 import GrantCommand from "./command/GrantCommand";
 import GiveCommand from "./command/GiveCommand";
-import TtsService from "./service/TtsService";
+import AudioService from "./service/AudioService";
 import AppCeosOrmService from "./orm/AppCeosOrmService";
 
 function getAppVersion() {
@@ -102,7 +102,7 @@ async function ready() {
     context.metaphorService = new MetaphorService(context);
     context.temporaryFilesHostService = new TemporaryFileHostService(context);
     context.usagePlanService = new UsagePlanService(context);
-    context.ttsService = new TtsService(context);
+    context.audioService = new AudioService(context);
 
     context.ready();
 

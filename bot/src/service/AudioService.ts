@@ -2,8 +2,9 @@ import ConfigService from "./ConfigService";
 import {Context} from "../Context";
 import axios, {AxiosRequestConfig} from "axios";
 import {createOpenAiWrapperError} from "../util/OpenAiUtil";
+import FormData from "form-data";
 
-export default class TtsService {
+export default class AudioService {
     private config!: ConfigService;
     private jsonMediaType = "application/json; charset=utf-8";
     private apiKey!: string;
@@ -29,6 +30,29 @@ export default class TtsService {
         try {
             const response = await axios.post(apiUrl, body, config);
             return Buffer.from(response.data);
+        } catch (e) {
+            throw createOpenAiWrapperError(e);
+        }
+    }
+
+    async createTranscript(file: Buffer, model: string): Promise<string> {
+        const apiUrl = "https://api.openai.com/v1/audio/transcriptions";
+        const form = new FormData();
+        form.append('file', file, {
+            filename: 'audio.mp3',
+            contentType: 'audio/mpeg',
+        });
+        form.append('model', model);
+        const config = {
+            headers: {
+                ...form.getHeaders(),
+                'Content-Type': 'multipart/form-data',
+                'Authorization': `Bearer ${this.apiKey}`
+            }
+        };
+        try {
+            const response = await axios.post(apiUrl, form, config);
+            return response.data['text'];
         } catch (e) {
             throw createOpenAiWrapperError(e);
         }

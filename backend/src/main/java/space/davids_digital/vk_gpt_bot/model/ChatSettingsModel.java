@@ -11,5 +11,6 @@ public record ChatSettingsModel(
         double gptFrequencyPenalty,
         double gptPresencePenalty,
         boolean botEnabled,
-        String gptModel
+        String gptModel,
+        boolean processAudioMessages
 ) {}
