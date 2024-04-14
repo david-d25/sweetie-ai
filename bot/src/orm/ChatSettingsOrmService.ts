@@ -30,6 +30,15 @@ export default class ChatSettingsOrmService {
         await this.client.query(`
             alter table chat_settings add column if not exists process_audio_messages boolean default false;
         `);
+        await this.client.query(`
+            alter table chat_settings add column if not exists tts_voice text default 'alloy';
+        `);
+        await this.client.query(`
+            alter table chat_settings add column if not exists tts_speed real default 1;
+        `);
+        await this.client.query(`
+            alter table chat_settings add column if not exists add_transcript_to_voice boolean default false;
+        `);
     }
 
     async getSettings(peerId: number): Promise<ChatSettingsModel | null> {
@@ -60,9 +69,12 @@ export default class ChatSettingsOrmService {
                     gpt_presence_penalty,
                     bot_enabled,
                     gpt_model,
-                    process_audio_messages
+                    process_audio_messages,
+                    tts_voice,
+                    tts_speed,
+                    add_transcript_to_voice
                 ) values (
-                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
+                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16
                 ) on conflict (peer_id) do update set
                      name = $2,
                      context = $3,
@@ -75,7 +87,10 @@ export default class ChatSettingsOrmService {
                      gpt_presence_penalty = $10,
                      bot_enabled = $11,
                      gpt_model = $12,
-                     process_audio_messages = $13
+                     process_audio_messages = $13,
+                     tts_voice = $14,
+                     tts_speed = $15,
+                     add_transcript_to_voice = $16
                 returning *
             `,
             [
@@ -91,7 +106,10 @@ export default class ChatSettingsOrmService {
                 entity.gpt_presence_penalty,
                 entity.bot_enabled,
                 entity.gpt_model,
-                entity.process_audio_messages
+                entity.process_audio_messages,
+                entity.tts_voice,
+                entity.tts_speed,
+                entity.add_transcript_to_voice
             ]
         );
         if (rows.rows.length === 0) {
@@ -132,7 +150,10 @@ export default class ChatSettingsOrmService {
             gpt_top_p: model.gptTopP,
             gpt_frequency_penalty: model.gptFrequencyPenalty,
             gpt_presence_penalty: model.gptPresencePenalty,
-            process_audio_messages: model.processAudioMessages
+            process_audio_messages: model.processAudioMessages,
+            tts_voice: model.ttsVoice,
+            tts_speed: model.ttsSpeed,
+            add_transcript_to_voice: model.addTranscriptToVoice
         }
     }
 
@@ -149,7 +170,10 @@ export default class ChatSettingsOrmService {
             gptTopP: entity.gpt_top_p,
             gptFrequencyPenalty: entity.gpt_frequency_penalty,
             gptPresencePenalty: entity.gpt_presence_penalty,
-            processAudioMessages: entity.process_audio_messages
+            processAudioMessages: entity.process_audio_messages,
+            ttsVoice: entity.tts_voice,
+            ttsSpeed: entity.tts_speed,
+            addTranscriptToVoice: entity.add_transcript_to_voice
         }
     }
 }
@@ -167,5 +191,8 @@ export type ChatSettingsEntity = {
     gpt_top_p: number,
     gpt_frequency_penalty: number,
     gpt_presence_penalty: number,
-    process_audio_messages: boolean
+    process_audio_messages: boolean,
+    tts_voice: string,
+    tts_speed: number,
+    add_transcript_to_voice: boolean
 }

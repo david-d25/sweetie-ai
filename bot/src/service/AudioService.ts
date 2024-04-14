@@ -16,7 +16,7 @@ export default class AudioService {
         });
     }
 
-    async generateSpeech(text: string, model: string, voice: string): Promise<Buffer> {
+    async generateSpeech(text: string, model: string, voice: string, speed: number = 1): Promise<Buffer> {
         const apiUrl = "https://api.openai.com/v1/audio/speech";
         const config: AxiosRequestConfig = {
             ...this.createAxiosConfig(),
@@ -26,6 +26,7 @@ export default class AudioService {
         body['model'] = model;
         body['input'] = text;
         body['voice'] = voice;
+        body['speed'] = speed;
         body['response_format'] = 'opus';
         try {
             const response = await axios.post(apiUrl, body, config);

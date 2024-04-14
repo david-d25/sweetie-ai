@@ -3,13 +3,8 @@ import VkMessagesOrmService from "orm/VkMessagesOrmService";
 import {Context} from "../Context";
 import {
     GroupsGroupFull,
-    MessagesMessage,
-    MessagesMessageAttachment,
     UsersUserFull
 } from "vk-io/lib/api/schemas/objects";
-import FormData from "form-data";
-import axios from "axios";
-import {optimizeForVkAudioMessage} from "../util/AudioUtil";
 
 export type VkMessage = {
     conversationMessageId: number;
@@ -93,40 +88,16 @@ export default class VkMessagesService {
     //     return `doc${attachment.ownerId}_${attachment.id}${attachment.accessKey ? `_${attachment.accessKey}` : ''}`;
     // }
 
-    // Doesn't work, I have no idea why
     async uploadVoiceMessage(toId: number, audio: Buffer) {
-        const uploadServerResponse = await this.vk.api.docs.getMessagesUploadServer({
-            type: "audio_message",
+        const audioMessage = await this.vk.upload.audioMessage({
             peer_id: toId,
-        });
-        const uploadServerUrl = uploadServerResponse.upload_url;
-        // const audioMessage = await this.vk.upload.audioMessage({
-        //     peer_id: toId,
-        //     source: {
-        //         // uploadUrl: uploadServerUrl,
-        //         values: [{
-        //             value: await optimizeForVkAudioMessage(audio),
-        //             contentType: 'audio/opus',
-        //         }]
-        //     }
-        // });
-        const optimizedAudio = await optimizeForVkAudioMessage(audio);
-        const form = new FormData();
-        form.append('file', optimizedAudio, {
-            filename: 'audio.opus',
-            // contentType: 'audio/opus'
-        });
-        const config = {
-            headers: {
-                ...form.getHeaders(),
-                'Content-Type': 'multipart/form-data',
+            source: {
+                values: [{
+                    value: audio,
+                    contentType: 'audio/opus',
+                }]
             }
-        };
-        const uploadResponse = await axios.post(uploadServerUrl, form, config);
-        const uploadedAudioData = uploadResponse.data;
-        const saveResponse = await this.vk.api.docs.save({ file: uploadedAudioData['file'] });
-        console.dir(saveResponse);
-        const audioMessage = saveResponse.data['response']['audio_message']
+        });
         return `audio_message${audioMessage.ownerId}_${audioMessage.id}`;
     }
 

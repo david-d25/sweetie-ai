@@ -14,6 +14,7 @@ import WebSearchRequestHandler from "./answer/WebSearchRequestHandler";
 import GetSearchResultContentMetaRequestHandler from "./answer/GetSearchResultContentMetaRequestHandler";
 import {AudioMessageAttachment, PhotoAttachment} from "vk-io";
 import ReviewMetaRequestHandler from "./answer/ReviewMetaRequestHandler";
+import SendAsAudioMessageRequestHandler from "./answer/SendAsAudioMessageRequestHandler";
 
 export default class AnswerCommand extends Command {
     private metaRequestHandlers: MetaRequestHandler[];
@@ -27,6 +28,7 @@ export default class AnswerCommand extends Command {
             new SendLaterMetaRequestHandler(context),
             new WebSearchRequestHandler(context),
             new GetSearchResultContentMetaRequestHandler(context),
+            new SendAsAudioMessageRequestHandler(context),
             new ReviewMetaRequestHandler()
         ];
     }
@@ -168,6 +170,7 @@ export default class AnswerCommand extends Command {
     }
 
     private async handleMetaRequests(requests: MetaRequest[], message: VkMessage, responseMessage: ResponseMessage): Promise<void> {
+        responseMessage.text = responseMessage.text.replaceAll(/@call:(\w+)\((.*?)\)\n?/g, "");
         for (let i in requests) {
             const request = requests[i];
             console.log(`[${message.peerId}] Handling meta-request ${+i+1}/${requests.length}: ${request.functionName}, args: ${JSON.stringify(request.args)}`);
@@ -186,7 +189,6 @@ export default class AnswerCommand extends Command {
                 console.error(e);
             }
         }
-        responseMessage.text = responseMessage.text.replaceAll(/@call:(\w+)\((.*?)\)\n?/g, "");
     }
 
     private calculateMaxHistoryMessagesSize(

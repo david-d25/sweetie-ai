@@ -36,6 +36,10 @@ export default class SettingsCommand extends Command {
             response += `frequency_penalty=${settings.gptFrequencyPenalty}\n`;
             response += `presence_penalty=${settings.gptPresencePenalty}\n`;
             response += `process_audio_messages=${settings.processAudioMessages}\n`;
+            response += `tts_voice=${settings.ttsVoice}\n`;
+            response += `tts_speed=${settings.ttsSpeed}\n`;
+            response += `add_transcript_to_voice=${settings.addTranscriptToVoice}\n`
+
             await vkMessagesService.send(message.peerId, response);
         } else if (subCommand == "get") {
             if (text.length == 0)
@@ -56,6 +60,12 @@ export default class SettingsCommand extends Command {
                 value = settings.gptPresencePenalty;
             if (settingName == "process_audio_messages")
                 value = settings.processAudioMessages;
+            if (settingName == "tts_voice")
+                value = settings.ttsVoice;
+            if (settingName == "tts_speed")
+                value = settings.ttsSpeed;
+            if (settingName == "add_transcript_to_voice")
+                value = settings.addTranscriptToVoice;
 
             await vkMessagesService.send(message.peerId, `${settingName}=${value}`);
         } else if (subCommand == "set") {
@@ -116,6 +126,25 @@ export default class SettingsCommand extends Command {
             } else if (settingName == "process_audio_messages") {
                 const value = settingValue == "true" || settingValue == "yes";
                 await chatSettingsService.setProcessAudioMessages(message.peerId, value);
+            } else if (settingName == "tts_voice") {
+                const available = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'];
+                if (!available.includes(settingValue)) {
+                    await vkMessagesService.send(message.peerId, `Доступные значения: ${available.join(", ")}`);
+                    return;
+                } else {
+                    await chatSettingsService.setTtsVoice(message.peerId, settingValue);
+                }
+            } else if (settingName == "tts_speed") {
+                const value = parseFloat(settingValue);
+                if (isNaN(value) || value < 0.25 || value > 4) {
+                    await vkMessagesService.send(message.peerId, `Это должно быть число от 0.25 до 4`);
+                    return;
+                } else {
+                    await chatSettingsService.setTtsSpeed(message.peerId, value);
+                }
+            } else if (settingName == "add_transcript_to_voice") {
+                const value = settingValue == "true" || settingValue == "yes";
+                await chatSettingsService.setAddTranscriptToVoice(message.peerId, value);
             } else {
                 await vkMessagesService.send(message.peerId, `Нет такого параметра`);
             }

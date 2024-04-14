@@ -13,7 +13,10 @@ export type ChatSettingsModel = {
     gptTemperature: number,
     gptTopP: number,
     gptFrequencyPenalty: number,
-    gptPresencePenalty: number
+    gptPresencePenalty: number,
+    ttsVoice: string,
+    ttsSpeed: number,
+    addTranscriptToVoice: boolean
 }
 
 export default class ChatSettingsService {
@@ -79,6 +82,18 @@ export default class ChatSettingsService {
 
     async setProcessAudioMessages(peerId: number, processAudioMessages: boolean): Promise<ChatSettingsModel> {
         return this.changeSettings(peerId, model => model.processAudioMessages = processAudioMessages)
+    }
+
+    async setTtsVoice(peerId: number, ttsVoice: string): Promise<ChatSettingsModel> {
+        return this.changeSettings(peerId, model => model.ttsVoice = ttsVoice)
+    }
+
+    async setTtsSpeed(peerId: number, ttsSpeed: number): Promise<ChatSettingsModel> {
+        return this.changeSettings(peerId, model => model.ttsSpeed = ttsSpeed)
+    }
+
+    async setAddTranscriptToVoice(peerId: number, addTranscriptToVoice: boolean): Promise<ChatSettingsModel> {
+        return this.changeSettings(peerId, model => model.addTranscriptToVoice = addTranscriptToVoice)
     }
 
     private async changeSettings(
