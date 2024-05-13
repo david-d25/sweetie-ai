@@ -38,7 +38,6 @@ export default class SettingsCommand extends Command {
             response += `process_audio_messages=${settings.processAudioMessages}\n`;
             response += `tts_voice=${settings.ttsVoice}\n`;
             response += `tts_speed=${settings.ttsSpeed}\n`;
-            response += `add_transcript_to_voice=${settings.addTranscriptToVoice}\n`
 
             await vkMessagesService.send(message.peerId, response);
         } else if (subCommand == "get") {
@@ -64,8 +63,6 @@ export default class SettingsCommand extends Command {
                 value = settings.ttsVoice;
             if (settingName == "tts_speed")
                 value = settings.ttsSpeed;
-            if (settingName == "add_transcript_to_voice")
-                value = settings.addTranscriptToVoice;
 
             await vkMessagesService.send(message.peerId, `${settingName}=${value}`);
         } else if (subCommand == "set") {
@@ -142,9 +139,6 @@ export default class SettingsCommand extends Command {
                 } else {
                     await chatSettingsService.setTtsSpeed(message.peerId, value);
                 }
-            } else if (settingName == "add_transcript_to_voice") {
-                const value = settingValue == "true" || settingValue == "yes";
-                await chatSettingsService.setAddTranscriptToVoice(message.peerId, value);
             } else {
                 await vkMessagesService.send(message.peerId, `Нет такого параметра`);
             }

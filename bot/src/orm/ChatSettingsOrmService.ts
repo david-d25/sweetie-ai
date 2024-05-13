@@ -37,7 +37,7 @@ export default class ChatSettingsOrmService {
             alter table chat_settings add column if not exists tts_speed real default 1;
         `);
         await this.client.query(`
-            alter table chat_settings add column if not exists add_transcript_to_voice boolean default false;
+            alter table chat_settings drop column if exists add_transcript_to_voice;
         `);
     }
 
@@ -108,8 +108,7 @@ export default class ChatSettingsOrmService {
                 entity.gpt_model,
                 entity.process_audio_messages,
                 entity.tts_voice,
-                entity.tts_speed,
-                entity.add_transcript_to_voice
+                entity.tts_speed
             ]
         );
         if (rows.rows.length === 0) {
@@ -152,8 +151,7 @@ export default class ChatSettingsOrmService {
             gpt_presence_penalty: model.gptPresencePenalty,
             process_audio_messages: model.processAudioMessages,
             tts_voice: model.ttsVoice,
-            tts_speed: model.ttsSpeed,
-            add_transcript_to_voice: model.addTranscriptToVoice
+            tts_speed: model.ttsSpeed
         }
     }
 
@@ -172,8 +170,7 @@ export default class ChatSettingsOrmService {
             gptPresencePenalty: entity.gpt_presence_penalty,
             processAudioMessages: entity.process_audio_messages,
             ttsVoice: entity.tts_voice,
-            ttsSpeed: entity.tts_speed,
-            addTranscriptToVoice: entity.add_transcript_to_voice
+            ttsSpeed: entity.tts_speed
         }
     }
 }
@@ -193,6 +190,5 @@ export type ChatSettingsEntity = {
     gpt_presence_penalty: number,
     process_audio_messages: boolean,
     tts_voice: string,
-    tts_speed: number,
-    add_transcript_to_voice: boolean
+    tts_speed: number
 }
