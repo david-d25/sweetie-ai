@@ -52,7 +52,11 @@ export default class BotService {
                 await this.processCommandMessage(message);
             } else if (!isChatId(message.peerId)) {
                 await this.processTaggingMessage(message);
-            } else if (this.taggingHandler != null && this.isSweetieTaggedInThisMessage(message)) {
+            } else if (
+                this.taggingHandler != null && (
+                    this.isSweetieTaggedInThisMessage(message) || this.isSingleSweetieMessageForwarded(message)
+                )
+            ) {
                 await this.processTaggingMessage(message);
             } else if (this.isAudioMessage(message)) {
                 await this.processAudioMessage(message);
@@ -99,13 +103,13 @@ export default class BotService {
 
         const triggers = ['сладенький', 'сладенькая', 'sweetie'];
         const trigger = triggers.find(t => transcript!.toLowerCase().startsWith(t));
+        const newAttachment = JSON.parse(JSON.stringify(audioMessage));
+        newAttachment.transcript = transcript;
+        newAttachment.type = "audio_message";
+        message.attachments[0] = newAttachment;
+        await this.context.vkMessagesOrmService.saveAttachment(message, 0, newAttachment);
         if (trigger) {
             console.log(`[${message.peerId}] Triggered by audio message`);
-            const newAttachment = JSON.parse(JSON.stringify(audioMessage));
-            newAttachment.transcript = transcript;
-            newAttachment.type = "audio_message";
-            message.attachments[0] = newAttachment;
-            await this.context.vkMessagesOrmService.saveAttachment(message, 0, newAttachment);
             await this.processTaggingMessage(message);
         }
     }
@@ -223,5 +227,9 @@ export default class BotService {
         if (message.text == null)
             return false;
         return new RegExp(`\\[club${this.context.configService.getAppConfig().vkGroupId}\\|.*]`).test(message.text)
+    }
+
+    private isSingleSweetieMessageForwarded(message: VkMessage): boolean {
+        return message.forwardedMessages.length == 1 && message.forwardedMessages[0].fromId == -this.context.configService.getAppConfig().vkGroupId;
     }
 }

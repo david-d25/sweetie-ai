@@ -60,7 +60,7 @@ export default class AnswerCommand extends Command {
         let gptRequestIterations = 0;
         const maxGptRequestIterations = 6;
         do {
-            const visionSupported = chatSettings.gptModel.includes("vision") || chatSettings.gptModel == "gpt-4-turbo";
+            const visionSupported = chatSettings.gptModel.includes("vision") || chatSettings.gptModel == "gpt-4-turbo" || chatSettings.gptModel == "gpt-4o";
             let chatMessages = await this.buildChatMessages(message, response.metaRequestResults, visionSupported);
             response.metaRequestResults = [];
             let maxMessagesSize = this.calculateMaxHistoryMessagesSize(chatSettings, chatMessages);
@@ -170,7 +170,7 @@ export default class AnswerCommand extends Command {
     }
 
     private async handleMetaRequests(requests: MetaRequest[], message: VkMessage, responseMessage: ResponseMessage): Promise<void> {
-        responseMessage.text = responseMessage.text.replaceAll(/@call:(\w+)\((.*?)\)\n?/g, "");
+        responseMessage.text = responseMessage.text.replaceAll(/@call:(\w+)\((.*?)\)\n?/gms, "");
         for (let i in requests) {
             const request = requests[i];
             console.log(`[${message.peerId}] Handling meta-request ${+i+1}/${requests.length}: ${request.functionName}, args: ${JSON.stringify(request.args)}`);
@@ -230,16 +230,17 @@ export default class AnswerCommand extends Command {
     }
 
     private extractMetaRequests(text: string): MetaRequestParsingResult[] {
-        const regex = /@call:(\w+)\((.*?)\)/g;
+        const regex = /@call:(\w+)\((.*?)\)/gms;
         const result = [];
         let match;
         while ((match = regex.exec(text)) !== null) {
             const functionName = match[1];
-            const rawArgs = match[2];
+            const rawArgs = match[2].replaceAll('\n', "\\n");
             try {
                 const args = JSON.parse('[' + rawArgs + ']');
                 result.push({ request: { functionName, args }, raw: match[0], parsingError: false });
             } catch (error) {
+                console.error(error);
                 result.push({ request: { functionName, args: [] }, raw: match[0], parsingError: true });
             }
         }

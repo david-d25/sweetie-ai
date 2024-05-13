@@ -145,7 +145,7 @@ export default class VkMessagesService {
         return await this.vk.api.messages.send(requestBody).then(async (res) => {
             if (saveToHistory) {
                 await this.messagesOrmService.saveMessage({
-                    fromId: 0,
+                    fromId: -this.context.configService.getAppConfig().vkGroupId,
                     conversationMessageId: res,
                     peerId: toId,
                     text: message,

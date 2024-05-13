@@ -8,29 +8,25 @@ export default class SendAsAudioMessageRequestHandler implements MetaRequestHand
     constructor(private context: Context) {}
 
     canYouHandleThis(requestName: string): boolean {
-        return requestName === 'sendAsAudioMessage';
+        return requestName === 'audioMessage';
     }
 
     async handle(message: VkMessage, request: MetaRequest, response: ResponseMessage): Promise<void> {
-        if (response.text == null) {
-            console.error(`[${message.peerId}] 'sendAsVoiceMessage' failed: Can't generate audio: message has no text`)
-            response.metaRequestResults.push("SYSTEM: 'sendAsVoiceMessage' failed: First type your text, and then call this function!");
+        if (request.args.length === 0) {
+            response.metaRequestResults.push("SYSTEM: 'sendAsVoiceMessage' requires text argument");
             return;
         }
         const chatSettings = await this.context.chatSettingsService.getSettingsOrCreateDefault(message.peerId);
         await this.context.vkMessagesService.indicateActivity(message.peerId, "audiomessage");
         try {
             const audio = await this.context.audioService.generateSpeech(
-                response.text,
+                request.args.join(" "),
                 "tts-1-hd",
                 chatSettings.ttsVoice,
                 chatSettings.ttsSpeed
             );
             const attachment = await this.context.vkMessagesService.uploadVoiceMessage(message.peerId, audio);
             response.attachments = [attachment];
-            if (!chatSettings.addTranscriptToVoice) {
-                response.text = '';
-            }
         } catch (e) {
             console.error(e);
             response.metaRequestResults.push("SYSTEM: 'sendAsVoiceMessage' failed: " + e);
