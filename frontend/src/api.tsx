@@ -10,7 +10,7 @@ api.interceptors.response.use(
     error => {
         if (error.response && (error.response.status === 401 || error.response.status === 403)) {
             api.post("/logout").then(() => {});
-            location.assign('/login');
+            location.assign(process.env['FRONTEND_BASE_PATH'] + '/login');
         }
         return Promise.reject(error);
     }
