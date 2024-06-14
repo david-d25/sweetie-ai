@@ -71,10 +71,9 @@ export default class ChatSettingsOrmService {
                     gpt_model,
                     process_audio_messages,
                     tts_voice,
-                    tts_speed,
-                    add_transcript_to_voice
+                    tts_speed
                 ) values (
-                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16
+                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
                 ) on conflict (peer_id) do update set
                      name = $2,
                      context = $3,
@@ -89,8 +88,7 @@ export default class ChatSettingsOrmService {
                      gpt_model = $12,
                      process_audio_messages = $13,
                      tts_voice = $14,
-                     tts_speed = $15,
-                     add_transcript_to_voice = $16
+                     tts_speed = $15
                 returning *
             `,
             [
