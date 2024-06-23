@@ -10,7 +10,11 @@ export default class GrantCommand extends Command {
         return "/sweet grant (plan)[:days] (user)";
     }
 
-    requiresPrivileges(peerId: number): boolean {
+    chatAdminOnly(peerId: number): boolean {
+        return true;
+    }
+
+    appCeoOnly(): boolean {
         return true;
     }
 

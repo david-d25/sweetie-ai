@@ -1,5 +1,6 @@
 import {exit} from "node:process";
 import * as process from "process";
+import LoggingService, {Logger} from "./LoggingService";
 
 export type AppConfig = {
     backendUrl: string;
@@ -15,9 +16,16 @@ export type AppConfig = {
     fileHostingPort: number;
     fileHostingUrlBase: string;
     fileHostingMaxStorageSizeBytes: number;
+    mode: "production" | "development";
 }
 
 export default class ConfigService {
+    private logger: Logger;
+
+    constructor(private loggingService: LoggingService) {
+        this.logger = loggingService.getRootLogger().newSublogger("ConfigService");
+    }
+
     getEnv(key: string, defaultValue: string | null = null): string | null {
         return (key in process.env) ? process.env[key]! : defaultValue;
     }
@@ -60,6 +68,15 @@ export default class ConfigService {
             fileHostingPort: this.requireNumericEnv('FILE_HOSTING_PORT'),
             fileHostingUrlBase: this.requireEnv('FILE_HOSTING_URL_BASE'),
             fileHostingMaxStorageSizeBytes: this.requireNumericEnv('FILE_HOSTING_MAX_STORAGE_SIZE_BYTES'),
+            mode: this.readModeValue(this.requireEnv('BOT_MODE'))
         }
+    }
+
+    private readModeValue(value: string): "production" | "development" {
+        if (value == "production" || value == "development") {
+            return value;
+        }
+        this.logger.warn(`Invalid mode value: ${value}, using 'production'`);
+        return "production";
     }
 }

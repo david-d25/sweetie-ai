@@ -101,6 +101,10 @@ export default class VkMessagesOrmService {
     }
 
     async saveAttachment(message: VkMessage, orderIndex: number, attachment: Attachment | ExternalAttachment) {
+        const enrichedAttachment = {
+            ...attachment.toJSON(),
+            type: attachment.type
+        };
         await this.client.query(
             `
                     insert into vk_message_attachments (
@@ -113,7 +117,7 @@ export default class VkMessagesOrmService {
                         order_index
                     ) do update set attachment_dto_json = $4
                 `,
-            [message.conversationMessageId, message.peerId, orderIndex, JSON.stringify(attachment)]
+            [message.conversationMessageId, message.peerId, orderIndex, JSON.stringify(enrichedAttachment)]
         );
     }
 
@@ -137,6 +141,15 @@ export default class VkMessagesOrmService {
         });
         const resultUnfiltered = await Promise.all(resultPromises);
         return resultUnfiltered.filter(it => it !== null) as VkMessage[];
+    }
+
+    async getMaxConversationMessageIdByPeerId(peerId: number): Promise<number> {
+        const rows = await this.client.query(
+            `select max(conversation_message_id) as max_conversation_message_id
+                from vk_messages where peer_id = $1`,
+            [peerId]
+        );
+        return +rows.rows[0]['max_conversation_message_id'] || 0;
     }
 
     async getMessage(conversationMessageId: number, peerId: number): Promise<VkMessage | null> {

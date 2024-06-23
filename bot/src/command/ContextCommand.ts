@@ -8,7 +8,7 @@ export default class ContextCommand extends Command {
         super(context);
     }
 
-    requiresPrivileges(peerId: number): boolean {
+    chatAdminOnly(peerId: number): boolean {
         return true;
     }
 

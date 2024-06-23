@@ -3,8 +3,8 @@ import axios, {AxiosError, AxiosResponse} from "axios";
 import ServiceError from "../ServiceError";
 
 export default class MetaphorService {
-    private static SEARCH_ENDPOINT = "https://api.metaphor.systems/search";
-    private static GET_CONTENT_ENDPOINT = "https://api.metaphor.systems/contents"
+    private static SEARCH_ENDPOINT = "https://api.exa.ai/search";
+    private static GET_CONTENT_ENDPOINT = "https://api.exa.ai/contents"
 
     private apiKey!: string;
 
@@ -38,10 +38,13 @@ export default class MetaphorService {
 
     async getContent(documentId: string): Promise<string> {
         try {
-            const response = await axios.get(MetaphorService.GET_CONTENT_ENDPOINT + "?ids=" + documentId, {
+            const body: any = {};
+            body['ids'] = [documentId];
+            const response = await axios.post(MetaphorService.GET_CONTENT_ENDPOINT, body, {
                 headers: {
                     'x-api-key': this.apiKey,
                     'Accept': 'application/json',
+                    'Content-Type': 'application/json'
                 }
             });
             return this.extractFirstContent(response);
@@ -70,7 +73,7 @@ export default class MetaphorService {
 
     private extractFirstContent(response: AxiosResponse): string {
         const data = response.data;
-        return data['contents'][0]['extract'];
+        return data['results'][0]['text'];
     }
 
     private parseSearchResults(response: AxiosResponse): MetaphorSearchResult[] {
@@ -82,7 +85,7 @@ export default class MetaphorService {
                 title: result.title,
                 publishedDate: result.publishedDate,
                 score: result.score,
-                metaphorSearchResultId: result.id
+                id: result.id
             });
         }
         return results;
@@ -90,9 +93,9 @@ export default class MetaphorService {
 }
 
 export type MetaphorSearchResult = {
+    id: string,
     url: string,
     title: string,
     publishedDate: string,
     score: number,
-    metaphorSearchResultId: string
 }

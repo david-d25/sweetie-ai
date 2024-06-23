@@ -12,7 +12,11 @@ export default class Command {
         return "";
     }
 
-    requiresPrivileges(peerId: number): boolean {
+    chatAdminOnly(peerId: number): boolean {
+        return false;
+    }
+
+    appCeoOnly(): boolean {
         return false;
     }
 

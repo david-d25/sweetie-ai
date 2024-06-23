@@ -1,17 +1,21 @@
 import {Context} from "../Context";
+import {Logger} from "./LoggingService";
 
 export default class DeferredVkMessagesService {
+    private logger!: Logger;
+
     constructor(private context: Context) {
         context.onReady(() => this.init());
     }
 
     private init() {
+        this.logger = this.context.loggingService.getRootLogger().newSublogger("DeferredVkMessagesService");
         setInterval(this.scheduledRoutine.bind(this), 3000);
     }
 
     private scheduledRoutine() {
         this.checkAndSendMessages().catch(
-            error => console.error('DeferredVkMessagesService.scheduledRoutine: error', error)
+            error => this.logger.error('scheduledRoutine error: ' + error)
         );
     }
 
@@ -19,7 +23,9 @@ export default class DeferredVkMessagesService {
         const deferredMessages = await this.context.deferredVkMessagesOrmService.getAll();
         for (const message of deferredMessages) {
             if (message.sendAt <= new Date()) {
-                console.log(`[${message.peerId}] Sending deferred message to ${message.peerId}, text=${message.text}`);
+                this.logger.newSublogger(`peer_id:${message.peerId}`).info(
+                    `Sending deferred message to ${message.peerId}`
+                );
                 await this.context.vkMessagesService.send(message.peerId, message.text);
                 await this.context.deferredVkMessagesOrmService.delete(message.id);
             }

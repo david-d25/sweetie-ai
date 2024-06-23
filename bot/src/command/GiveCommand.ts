@@ -10,12 +10,16 @@ export default class GiveCommand extends Command {
         return "/sweet give (credits_amount) (user)";
     }
 
-    requiresPrivileges(peerId: number): boolean {
+    chatAdminOnly(peerId: number): boolean {
+        return true;
+    }
+
+    appCeoOnly(): boolean {
         return true;
     }
 
     async handle(command: string, rawArguments: string, message: VkMessage): Promise<void> {
-        const { vkMessagesService} = this.context;
+        const { vkMessagesService } = this.context;
 
         const firstArg = rawArguments.split(" ")[0];
         const restArgs = rawArguments.substring(firstArg.length + 1);

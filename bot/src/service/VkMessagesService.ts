@@ -1,10 +1,15 @@
-import {Attachment, ExternalAttachment, MessageContext, VK} from "vk-io";
+import {
+    Attachment,
+    AudioMessageAttachment,
+    ExternalAttachment,
+    MessageContext,
+    PhotoAttachment,
+    VK
+} from "vk-io";
 import VkMessagesOrmService from "orm/VkMessagesOrmService";
 import {Context} from "../Context";
-import {
-    GroupsGroupFull,
-    UsersUserFull
-} from "vk-io/lib/api/schemas/objects";
+import {GroupsGroupFull, UsersUserFull} from "vk-io/lib/api/schemas/objects";
+import {Logger} from "./LoggingService";
 
 export type VkMessage = {
     conversationMessageId: number;
@@ -29,6 +34,7 @@ export default class VkMessagesService {
     private static readonly MAX_ATTACHMENTS_PER_MESSAGE = 10;
     private vk!: VK;
     private messagesOrmService!: VkMessagesOrmService;
+    private logger!: Logger;
 
     constructor (private context: Context) {
         context.onReady(this.start.bind(this));
@@ -39,11 +45,12 @@ export default class VkMessagesService {
     private start() {
         this.vk = this.context.vk!;
         this.messagesOrmService = this.context.vkMessagesOrmService!;
+        this.logger = this.context.loggingService.getRootLogger().newSublogger('VkMessagesService');
 
         this.vk.updates.start().then(() => {
-            console.log("Started VK messages long polling");
+            this.logger.info("Started VK messages long polling");
         }).catch(error => {
-            console.error('Error starting Long Polling:', error);
+            this.logger.error('Error starting Long Polling: ' + error);
         });
 
         this.vk.updates.on('message_new', async (context, next) => {
@@ -52,7 +59,7 @@ export default class VkMessagesService {
         });
 
         this.vk.updates.on('error', error => {
-            console.error('Error in updates:', error);
+            this.logger.error('Error in updates: ' + error);
         });
     }
 
@@ -65,31 +72,12 @@ export default class VkMessagesService {
         return result;
     }
 
-    // TODO move to orm layer
-    async getDatabaseHistory(peerId: number, count: number): Promise<VkMessage[]> {
+    async getStoredMessagesHistory(peerId: number, count: number): Promise<VkMessage[]> {
         return (await this.messagesOrmService.getMessagesByPeerIdWithLimitSortedByTimestamp(peerId, count)).reverse();
     }
 
-    // Doesn't work, I have no idea why
-    // async uploadDocumentAttachment(toId: number, filename: string, doc: string | Buffer): Promise<string> {
-    //     const uploadServerResponse = await this.vk.api.docs.getMessagesUploadServer({
-    //         type: "doc",
-    //         peer_id: toId
-    //     });
-    //     const uploadServerUrl = uploadServerResponse.upload_url;
-    //     const attachment = await this.vk.upload.messageDocument({
-    //         peer_id: toId,
-    //         source: {
-    //             uploadUrl: uploadServerUrl,
-    //             filename: filename,
-    //             value: doc,
-    //         }
-    //     });
-    //     return `doc${attachment.ownerId}_${attachment.id}${attachment.accessKey ? `_${attachment.accessKey}` : ''}`;
-    // }
-
-    async uploadVoiceMessage(toId: number, audio: Buffer) {
-        const audioMessage = await this.vk.upload.audioMessage({
+    async uploadVoiceMessage(toId: number, audio: Buffer): Promise<AudioMessageAttachment> {
+        return  await this.vk.upload.audioMessage({
             peer_id: toId,
             source: {
                 values: [{
@@ -98,13 +86,12 @@ export default class VkMessagesService {
                 }]
             }
         });
-        return `audio_message${audioMessage.ownerId}_${audioMessage.id}`;
     }
 
-    async uploadPhotoAttachments(toId: number, images: (string | Buffer)[]): Promise<string[]> {
+    async uploadPhotoAttachments(toId: number, images: (string | Buffer)[]): Promise<PhotoAttachment[]> {
         const uploadServerResponse = await this.vk.api.photos.getMessagesUploadServer({});
         const uploadServerUrl = uploadServerResponse.upload_url;
-        const attachments = await Promise.all(
+        return await Promise.all(
             images.map(image => this.vk.upload.messagePhoto({
                 peer_id: toId,
                 source: {
@@ -115,7 +102,6 @@ export default class VkMessagesService {
                 }
             }))
         );
-        return attachments.map(it => `photo${it.ownerId}_${it.id}${it.accessKey ? `_${it.accessKey}` : ''}`);
     }
 
     async indicateActivity(peerId: number, type: "audiomessage" | "file" | "photo" | "typing" | "video") {
@@ -125,13 +111,35 @@ export default class VkMessagesService {
                 type
             });
         } catch (e) {
-            console.error(`[${peerId}] Could not indicate activity`, e);
+            this.logger.newSublogger(peerId.toString()).error(`Could not indicate activity: ` + e);
         }
     }
 
-    async send(toId: number, message: string, attachments: string[] = [], saveToHistory: boolean = true): Promise<number> {
+    async sendSticker(toId: number, stickerId: number): Promise<number> {
+        return await this.vk.api.messages.send({
+            peer_id: toId,
+            random_id: Math.floor(Math.random()*10000000),
+            sticker_id: stickerId
+        }).then(async (res) => {
+            if (res == 0) {
+                res = -await this.messagesOrmService.getMaxConversationMessageIdByPeerId(toId) - 1;
+            }
+            await this.messagesOrmService.saveMessage({
+                fromId: -this.context.configService.getAppConfig().vkGroupId,
+                conversationMessageId: res,
+                peerId: toId,
+                text: null,
+                attachments: [await this.context.vkStickerPacksService.imitateStickerAttachment(stickerId)],
+                timestamp: new Date().getTime() / 1000,
+                forwardedMessages: []
+            });
+            return res;
+        });
+    }
+
+    async send(toId: number, message: string, attachments: Attachment[] = [], saveToHistory: boolean = true): Promise<number> {
         if (attachments.length > VkMessagesService.MAX_ATTACHMENTS_PER_MESSAGE) {
-            console.warn(`[send] Too many attachments (${attachments.length}), only ${VkMessagesService.MAX_ATTACHMENTS_PER_MESSAGE} will be sent`);
+            this.logger.warn(`[send] Too many attachments (${attachments.length}), only ${VkMessagesService.MAX_ATTACHMENTS_PER_MESSAGE} will be sent`);
             attachments = attachments.slice(0, VkMessagesService.MAX_ATTACHMENTS_PER_MESSAGE);
         }
         if (message.trim().length == 0 && attachments.length == 0)
@@ -140,16 +148,19 @@ export default class VkMessagesService {
             peer_id: toId,
             random_id: Math.floor(Math.random()*10000000),
             message,
-            attachment: attachments.join(',')
+            attachment: attachments.map(a => this.attachmentToString(a)).join(',')
         };
         return await this.vk.api.messages.send(requestBody).then(async (res) => {
+            if (res == 0) {
+                res = -await this.messagesOrmService.getMaxConversationMessageIdByPeerId(toId) - 1;
+            }
             if (saveToHistory) {
                 await this.messagesOrmService.saveMessage({
                     fromId: -this.context.configService.getAppConfig().vkGroupId,
                     conversationMessageId: res,
                     peerId: toId,
                     text: message,
-                    attachments: [],
+                    attachments: attachments,
                     timestamp: new Date().getTime() / 1000,
                     forwardedMessages: []
                 });
@@ -181,6 +192,18 @@ export default class VkMessagesService {
             }
         });
         return result ? result : [];
+    }
+
+    private attachmentToString(attachment: Attachment | ExternalAttachment): string {
+        if (attachment.type == 'photo') {
+            const it = attachment as PhotoAttachment;
+            return `photo${it.ownerId}_${it.id}${it.accessKey ? `_${it.accessKey}` : ''}`;
+        } else if (attachment.type == 'audio_message') {
+            const it = attachment as AudioMessageAttachment;
+            return `audio_message${it.ownerId}_${it.id}`;
+        } else {
+            throw new Error(`Unsupported attachment type: ${attachment.type}`);
+        }
     }
 
     private async processNewMessage(context: MessageContext) {

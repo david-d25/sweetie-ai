@@ -2,6 +2,7 @@ import {Context} from "../Context";
 import {AppConfig} from "./ConfigService";
 import express, {Express} from "express";
 import ServiceError from "../ServiceError";
+import {Logger} from "./LoggingService";
 
 type HostedFile = {
     id: number;
@@ -13,6 +14,7 @@ type HostedFile = {
 
 export default class TemporaryFileHostService {
     private config!: AppConfig;
+    private logger!: Logger;
     private server!: Express;
     private idCounter = 0;
     private files = new Map<number, HostedFile>();
@@ -20,6 +22,7 @@ export default class TemporaryFileHostService {
     constructor(context: Context) {
         context.onReady(() => {
             this.config = context.configService.getAppConfig();
+            this.logger = context.loggingService.getRootLogger().newSublogger('TemporaryFileHostService');
             this.startListeningForExpiredFiles();
             this.init();
         });
@@ -44,7 +47,7 @@ export default class TemporaryFileHostService {
         });
         const port = this.config.fileHostingPort;
         this.server.listen(port, () => {
-            console.log(`File hosting server listening at port ${port}, url base: ${this.config.fileHostingUrlBase}`)
+            this.logger.info(`File hosting server listening at port ${port}, url base: ${this.config.fileHostingUrlBase}`)
         });
     }
 
@@ -61,8 +64,8 @@ export default class TemporaryFileHostService {
             hostUntil: hostUntil
         };
         this.files.set(id, hostedFile);
-        console.log(`Added file '${name}' with id ${id}, size ${this.userFriendlySize(content.length)}, will be hosted for ${hostingTimeSeconds} seconds`);
-        console.log(`Memory usage: ${this.userFriendlySize(this.getFilesMemoryUsageBytes())} / ${this.userFriendlySize(this.config.fileHostingMaxStorageSizeBytes)}`);
+        this.logger.info(`Added file '${name}' with id ${id}, size ${this.userFriendlySize(content.length)}, will be hosted for ${hostingTimeSeconds} seconds`);
+        this.logger.info(`Memory usage: ${this.userFriendlySize(this.getFilesMemoryUsageBytes())} / ${this.userFriendlySize(this.config.fileHostingMaxStorageSizeBytes)}`);
         return this.createDownloadLink(hostedFile);
     }
 
@@ -73,7 +76,7 @@ export default class TemporaryFileHostService {
                 throw new ServiceError(`Not enough storage space for, required ${this.userFriendlySize(requiredBytes)}`);
             }
             this.files.delete(oldestFile.id);
-            console.log(`Deleted file ${oldestFile.name} with id ${oldestFile.id}, size ${this.userFriendlySize(oldestFile.content.length)}, to free up space for ${this.userFriendlySize(requiredBytes)}`);
+            this.logger.info(`Deleted file ${oldestFile.name} with id ${oldestFile.id}, size ${this.userFriendlySize(oldestFile.content.length)}, to free up space for ${this.userFriendlySize(requiredBytes)}`);
         }
     }
 
@@ -85,11 +88,11 @@ export default class TemporaryFileHostService {
                 if (hostedFile.hostUntil < now) {
                     this.files.delete(id);
                     cleanedUpMemory += hostedFile.content.length;
-                    console.log(`Deleted file ${hostedFile.name} with id ${id}, size ${this.userFriendlySize(hostedFile.content.length)}`);
+                    this.logger.info(`Deleted file ${hostedFile.name} with id ${id}, size ${this.userFriendlySize(hostedFile.content.length)}`);
                 }
             }
             if (cleanedUpMemory != 0)
-                console.log(`Cleaned up ${this.userFriendlySize(cleanedUpMemory)} of memory, usage: ${this.userFriendlySize(this.getFilesMemoryUsageBytes())} / ${this.userFriendlySize(this.config.fileHostingMaxStorageSizeBytes)}`);
+                this.logger.info(`Cleaned up ${this.userFriendlySize(cleanedUpMemory)} of memory, usage: ${this.userFriendlySize(this.getFilesMemoryUsageBytes())} / ${this.userFriendlySize(this.config.fileHostingMaxStorageSizeBytes)}`);
         }, 2500);
     }
 

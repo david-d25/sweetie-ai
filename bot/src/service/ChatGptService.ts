@@ -3,15 +3,69 @@ import ConfigService from "service/ConfigService";
 import {Context} from "../Context";
 import GPT4Tokenizer from "gpt4-tokenizer";
 import {createOpenAiWrapperError} from "../util/OpenAiUtil";
+import {AssistantObject, AssistantFunctionParameter} from "../gpt/tool/function/AssistantFunction";
 
 export type OpenAiModel = {
-    id: string,
-    created: number,
-    ownedBy: string,
+    id: string;
+    created: number;
+    ownedBy: string;
 }
 
-export default class ChatGptService {
+export type CompletionResponse = {
+    content: string | null;
+    toolCalls: CompletionToolCallDto[];
+}
 
+export type CompletionToolCallDto = {
+    id: string;
+    type: "function";
+    function: {
+        name: string;
+        arguments: string;
+    }
+}
+
+export type FunctionDescriptorDto = {
+    name: string;
+    description: string;
+    parameters?: AssistantObject;
+}
+
+export type CompletionSystemMessageDto = {
+    role: "system";
+    content: string;
+}
+export type CompletionUserMessageDto = {
+    role: "user";
+    name?: string;
+    content: string | CompletionUserMessageContentItemDto[];
+}
+export type CompletionUserMessageContentItemDto = CompletionUserMessageTextContentItemDto
+    | CompletionUserMessageImageUrlContentItemDto;
+export type CompletionUserMessageTextContentItemDto = {
+    type: "text";
+    text: string;
+}
+export type CompletionUserMessageImageUrlContentItemDto = {
+    type: "image_url";
+    image_url: { url: string };
+}
+export type CompletionAssistantMessageDto = {
+    role: "assistant";
+    content: string | null;
+    tool_calls?: CompletionToolCallDto[];
+}
+export type CompletionToolMessageDto = {
+    role: "tool";
+    content: string;
+    tool_call_id: string;
+}
+export type CompletionMessageDto = CompletionSystemMessageDto
+    | CompletionUserMessageDto
+    | CompletionAssistantMessageDto
+    | CompletionToolMessageDto;
+
+export default class ChatGptService {
     private config!: ConfigService;
     private jsonMediaType = "application/json; charset=utf-8";
     private apiKey!: string;
@@ -25,37 +79,27 @@ export default class ChatGptService {
     }
 
     async request(
-        systemMessage: string,
-        chatMessages: {
-            role: string,
-            name?: string,
-            content: string | object
-        }[],
+        messages: CompletionMessageDto[],
+        functions: FunctionDescriptorDto[],
         model: string,
         maxTokens: number,
         temperature: number,
         topP: number,
         frequencyPenalty: number,
         presencePenalty: number
-    ): Promise<string> {
+    ): Promise<CompletionResponse> {
         const apiUrl = "https://api.openai.com/v1/chat/completions";
-        const messages = [];
 
-        messages.push({
-            role: "system",
-            content: systemMessage
-        });
-
-        chatMessages.forEach(message => {
-            messages.push({
-                role: message.role,
-                name: message.name,
-                content: message.content
-            });
+        const tools = functions.map(f => {
+            return {
+                "type": "function",
+                "function": f
+            }
         });
 
         const body: any = {};
         body['messages'] = messages;
+        body['tools'] = tools;
         body['model'] = model;
         body['max_tokens'] = maxTokens;
         body['temperature'] = temperature;
@@ -68,7 +112,10 @@ export default class ChatGptService {
 
         try {
             const response = await axios.post(apiUrl, body, config);
-            return response.data['choices'][0]['message']['content'];
+            return {
+                content: response.data['choices'][0]['message']['content'],
+                toolCalls: response.data['choices'][0]['message']['tool_calls']
+            };
         } catch (e) {
             throw createOpenAiWrapperError(e);
         }
@@ -104,7 +151,11 @@ export default class ChatGptService {
     }
 
     estimateTokensCount(model: string, message: string): number {
-        if (model.startsWith('gpt-4') || model.startsWith('gpt-3.5') || model.startsWith('ft:gpt-4') || model.startsWith('ft:gpt-3.5')) {
+        if (model.startsWith('gpt-4')
+            || model.startsWith('gpt-3.5')
+            || model.startsWith('ft:gpt-4')
+            || model.startsWith('ft:gpt-3.5')
+        ) {
             return this.gpt4Tokenizer.estimateTokenCount(message);
         } else {
             return message.length;

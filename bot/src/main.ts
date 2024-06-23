@@ -32,23 +32,31 @@ import GrantCommand from "./command/GrantCommand";
 import GiveCommand from "./command/GiveCommand";
 import AudioService from "./service/AudioService";
 import AppCeosOrmService from "./orm/AppCeosOrmService";
+import LoggingService from "./service/LoggingService";
+import VkStickerPacksOrmService from "./orm/VkStickerPacksOrmService";
+import VkStickerPacksService from "./service/VkStickerPacksService";
+
+const loggingService = new LoggingService();
+const log = loggingService.getRootLogger();
 
 function getAppVersion() {
     const defaultVersion = "(unknown version)";
     try {
         return require("../package.json").version || defaultVersion;
     } catch (e) {
-        console.warn("Couldn't get version from package.json");
+        log.warn("Couldn't get version from package.json");
     }
     return defaultVersion;
 }
 
 export const version = getAppVersion();
 
-console.log("Sweetie AI version " + version);
+log.info("Sweetie AI version " + version);
 
-const configService = new ConfigService();
+const configService = new ConfigService(loggingService);
 const config = configService.getAppConfig();
+
+log.info("Running in " + config.mode + " mode");
 
 const vk = new VK({
     token: config.vkAccessToken,
@@ -68,10 +76,10 @@ const postgresClient = new Client({
 
 postgresClient.connect((error: any) => {
     if (error) {
-        console.error("Couldn't connect to database", error);
+        log.error("Couldn't connect to database: " + error);
         exit(1);
     } else {
-        console.log("Connected to database");
+        log.info("Connected to database");
         ready().then(() => {});
     }
 });
@@ -82,6 +90,7 @@ async function ready() {
     context.configService = configService;
     context.postgresClient = postgresClient;
     context.vk = vk;
+    context.loggingService = loggingService;
 
     context.chatSettingsOrmService = new ChatSettingsOrmService(context);
     context.vkMessagesOrmService = new VkMessagesOrmService(context);
@@ -90,6 +99,7 @@ async function ready() {
     context.usagePlanOrmService = new UsagePlanOrmService(context);
     context.vkUsersOrmService = new VkUsersOrmService(context);
     context.appCeosOrmService = new AppCeosOrmService(context);
+    context.vkStickerPacksOrmService = new VkStickerPacksOrmService(context);
 
     context.botService = new BotService(context);
     context.userPermissionsService = new UserPermissionsService(context);
@@ -103,6 +113,7 @@ async function ready() {
     context.temporaryFilesHostService = new TemporaryFileHostService(context);
     context.usagePlanService = new UsagePlanService(context);
     context.audioService = new AudioService(context);
+    context.vkStickerPacksService = new VkStickerPacksService(context);
 
     context.ready();
 

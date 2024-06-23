@@ -32,7 +32,7 @@ services:
     ports:
       - "9005:9005"
     environment:
-      - BACKEND_URL=backend:8080
+      - BACKEND_URL=http://backend:8080
       - DB_NAME
       - DB_HOST
       - DB_PASSWORD
@@ -45,5 +45,6 @@ services:
       - FILE_HOSTING_PORT=9005
       - FILE_HOSTING_URL_BASE
       - FILE_HOSTING_MAX_STORAGE_SIZE_BYTES=67108864 # 64 MB
+      - BOT_MODE=production
     depends_on:
       - backend

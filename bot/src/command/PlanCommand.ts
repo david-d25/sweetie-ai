@@ -11,7 +11,7 @@ export default class PlanCommand extends Command {
         return "/sweet plan (...)";
     }
 
-    requiresPrivileges(peerId: number): boolean {
+    chatAdminOnly(peerId: number): boolean {
         return false;
     }
 

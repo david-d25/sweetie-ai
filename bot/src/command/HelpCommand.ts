@@ -22,14 +22,14 @@ export default class HelpCommand extends Command {
         response += `Sweetie AI v${version}\n\n`;
         response += `Вот что можно сделать:\n`
         botService.getCommandHandlers()
-            .filter(command => !command.requiresPrivileges(message.peerId))
+            .filter(command => !command.chatAdminOnly(message.peerId) && !command.appCeoOnly())
             .forEach(command => {
                 response += `${command.getCommandShortUsage()}\n`
             });
         if (await userPermissionsService.isUserPrivileged(message.peerId, message.fromId)) {
             response += `\nАдминские команды:\n`
             botService.getCommandHandlers()
-                .filter(command => command.requiresPrivileges(message.peerId))
+                .filter(command => command.chatAdminOnly(message.peerId) && !command.appCeoOnly())
                 .forEach(command => {
                     response += `${command.getCommandShortUsage()}\n`
                 });

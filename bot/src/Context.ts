@@ -20,11 +20,15 @@ import UsagePlanOrmService from "./orm/UsagePlanOrmService";
 import UsagePlanService from "./service/UsagePlanService";
 import AudioService from "./service/AudioService";
 import AppCeosOrmService from "./orm/AppCeosOrmService";
+import LoggingService from "./service/LoggingService";
+import VkStickerPacksOrmService from "./orm/VkStickerPacksOrmService";
+import VkStickerPacksService from "./service/VkStickerPacksService";
 
 export class Context {
     configService!: ConfigService;
     postgresClient!: Client;
     vk!: VK;
+    loggingService!: LoggingService;
 
     chatSettingsOrmService!: ChatSettingsOrmService;
     vkMessagesOrmService!: VkMessagesOrmService;
@@ -33,6 +37,7 @@ export class Context {
     vkUsersOrmService!: VkUsersOrmService;
     usagePlanOrmService!: UsagePlanOrmService;
     appCeosOrmService!: AppCeosOrmService;
+    vkStickerPacksOrmService!: VkStickerPacksOrmService;
 
     botService!: BotService;
     userPermissionsService!: UserPermissionsService;
@@ -46,6 +51,7 @@ export class Context {
     temporaryFilesHostService!: TemporaryFileHostService;
     usagePlanService!: UsagePlanService;
     audioService!: AudioService;
+    vkStickerPacksService!: VkStickerPacksService;
 
     readyFlag = false;
     readyListeners: (() => void)[] = [];

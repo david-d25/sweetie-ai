@@ -7,6 +7,7 @@ import ServiceError from "../ServiceError";
 import {isChatId} from "../util/VkUtil";
 import {AudioMessageAttachment} from "vk-io";
 import axios from "axios";
+import {Logger} from "./LoggingService";
 
 export default class BotService {
     private static readonly TRIGGER_WORD = "/sweet";
@@ -15,6 +16,7 @@ export default class BotService {
     private chatSettingsService!: ChatSettingsService;
     private commandHandlers: Command[] = [];
     private taggingHandler: Command | null = null;
+    private logger!: Logger;
 
     constructor(private context: Context) {
         context.onReady(this.start.bind(this));
@@ -35,12 +37,13 @@ export default class BotService {
     private start() {
         this.messagesService = this.context.vkMessagesService;
         this.chatSettingsService = this.context.chatSettingsService;
+        this.logger = this.context.loggingService.getRootLogger().newSublogger('BotService');
         this.tick();
     }
 
     private tick() {
         this.drainAndProcessMessages().then(_ => {}).catch(e => {
-            console.error("Something bad happened\n", e);
+            this.logger.error("Something bad happened: " + e);
         })
         setTimeout(() => this.tick(), 1000);
     }
@@ -65,26 +68,27 @@ export default class BotService {
     }
 
     private async processAudioMessage(message: VkMessage) {
+        const logger = this.logger.newSublogger(`peer_id:${message.peerId}`);
         let chatSettings = await this.context.chatSettingsService.getSettingsOrCreateDefault(message.peerId);
         if (!chatSettings.botEnabled) {
-            console.log(`[${message.peerId}] Bot is disabled, ignoring audio message`);
+            logger.info(`Bot is disabled, ignoring audio message`);
             return;
         }
         if (!chatSettings.processAudioMessages) {
-            console.log(`[${message.peerId}] Audio messages processing is disabled, ignoring audio message`);
+            logger.info(`Audio messages processing is disabled, ignoring audio message`);
             return;
         }
         const audioMessage =
             message.attachments.find(a => a.type == "audio_message") as AudioMessageAttachment | undefined;
         if (!audioMessage) {
-            console.error(`[${message.peerId}] Audio message not found in message`);
+            logger.error(`Audio message not found in message`);
             return;
         }
         let transcript = audioMessage.transcript;
         if (transcript) {
-            console.log(`[${message.peerId}] Using transcript from message`);
+            logger.info(`Using transcript from message`);
         } else {
-            console.log(`[${message.peerId}] Creating transcript for audio message`);
+            logger.info(`Creating transcript for audio message`);
             transcript = await this.context.audioService.createTranscript(
                 Buffer.from(
                     (
@@ -109,34 +113,36 @@ export default class BotService {
         message.attachments[0] = newAttachment;
         await this.context.vkMessagesOrmService.saveAttachment(message, 0, newAttachment);
         if (trigger) {
-            console.log(`[${message.peerId}] Triggered by audio message`);
+            logger.info(`Triggered by audio message`);
             await this.processTaggingMessage(message);
         }
     }
 
     private async processTaggingMessage(message: VkMessage) {
+        const logger = this.logger.newSublogger(`peer_id:${message.peerId}`);
         let chatSettings = await this.context.chatSettingsService.getSettingsOrCreateDefault(message.peerId);
         if (!chatSettings.botEnabled) {
-            console.log(`[${message.peerId}] Bot is disabled, ignoring tagging`);
+            logger.info(`Bot is disabled, ignoring tagging`);
             return;
         }
-        if (!message.text && !message.attachments.find(a => a.type == "audio_message" || a.type == "photo")) {
-            console.log(`[${message.peerId}] Message has no text, ignoring`);
+        if (!message.text && !message.attachments.find(a => ["audio_message", "photo", "sticker"].includes(a.type))) {
+            logger.info(`Message has no text or audio message or sticker, ignoring`);
             return;
         }
 
-        console.log(`[${message.peerId}] Got tagging/private message: ${message.text}`);
+        logger.info(`Got tagging/private message: ${message.text}`);
         if (this.taggingHandler != null) {
             try {
                 await this.taggingHandler.handle("", message.text!, message);
             } catch (e) {
-                console.error(`[${message.peerId}] Error while handling tagging`, e);
+                logger.error('Error while handling tagging: ' + e);
+                console.error(e);
                 if (e instanceof ServiceError) {
-                    await this.messagesService.send(message.peerId, `Не могу это сделать (${e.message})`);
+                    await this.messagesService.send(message.peerId, 'Не могу это сделать (${e.message})');
                 } else {
                     await this.messagesService.send(
                         message.peerId,
-                        `В Сладеньком что-то сломалось и он не может ответить, попробуйте спросить позже.`
+                        '(Простите, во мне сломалось что-то важное и я не могу ответить)'
                     );
                 }
             }
@@ -144,6 +150,7 @@ export default class BotService {
     }
 
     private async processCommandMessage(message: VkMessage) {
+        const logger = this.logger.newSublogger(`peer_id:${message.peerId}`);
         let chatSettings = await this.context.chatSettingsService.getSettingsOrCreateDefault(message.peerId);
 
         const text = message.text!.trim();
@@ -167,22 +174,32 @@ export default class BotService {
                 return;
             }
             await this.chatSettingsService.setBotEnabled(message.peerId, true);
-            console.log(`[${message.peerId}] Bot enabled`);
+            logger.info(`Bot enabled`);
             await this.messagesService.send(message.peerId, getRandomBotEnablingPhrase());
             return;
         }
 
         if (!chatSettings.botEnabled) {
-            console.log(`[${message.peerId}] Bot is disabled, ignoring command`);
+            logger.info(`Bot is disabled, ignoring command`);
             return;
         }
 
-        console.log(`[${message.peerId}] Got command message: ${message.text}`);
+        logger.info(`Got command message: ${message.text}`);
 
         const argumentsRaw = refinedCommandString.slice(commandName.length).trim();
         for (const command of this.commandHandlers) {
             if (command.canYouHandleThisCommand(commandName, message)) {
-                if (command.requiresPrivileges(message.peerId)) {
+                if (command.appCeoOnly()) {
+                    const privileged = await this.context.userPermissionsService.isUserAppCeo(message.fromId);
+                    if (!privileged) {
+                        await this.messagesService.send(
+                            message.peerId,
+                            `Только CEO Сладенького может выполнить '${commandName}'`
+                        );
+                        return;
+                    }
+                }
+                if (command.chatAdminOnly(message.peerId)) {
                     const privileged = await this.context.userPermissionsService.isUserPrivileged(
                         message.peerId,
                         message.fromId
@@ -198,13 +215,14 @@ export default class BotService {
                 try {
                     await command.handle(commandName, argumentsRaw, message);
                 } catch (e) {
-                    console.error(`[${message.peerId}] Error while handling command '${commandName}'`, e);
+                    logger.error(`Error while handling command '${commandName}': ` + e);
+                    console.error(e);
                     if (e instanceof ServiceError) {
                         await this.messagesService.send(message.peerId, `Не могу это сделать (${e.message})`);
                     } else {
                         await this.messagesService.send(
                             message.peerId,
-                            `В Сладеньком что-то сломалось и он не может ответить, попробуйте спросить позже.`
+                            `(Простите, во мне сломалось что-то важное и я не могу ответить)`
                         );
                     }
                 }

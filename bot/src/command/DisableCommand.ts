@@ -12,7 +12,7 @@ export default class DisableCommand extends Command {
         return '/sweet disable';
     }
 
-    requiresPrivileges(peerId: number): boolean {
+    chatAdminOnly(peerId: number): boolean {
         return true;
     }
 

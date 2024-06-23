@@ -10,7 +10,7 @@ export default class AdminsCommand extends Command {
         return "/sweet admins (...)";
     }
 
-    requiresPrivileges(peerId: number): boolean {
+    chatAdminOnly(peerId: number): boolean {
         return true;
     }
 

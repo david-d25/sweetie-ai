@@ -22,6 +22,6 @@ public class VkMessageEntity {
     @Column(name = "timestamp")
     public Instant timestamp;
 
-    @Column(name = "text")
+    @Column(name = "text", columnDefinition = "text")
     public String text;
 }

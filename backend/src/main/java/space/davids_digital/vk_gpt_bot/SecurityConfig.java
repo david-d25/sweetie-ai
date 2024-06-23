@@ -20,7 +20,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorizeRequests ->
                         authorizeRequests
-                                .requestMatchers("/auth/**", "/logout").permitAll()
+                                .requestMatchers("/auth/**", "/logout", "/sticker-pack/**").permitAll()
                                 .anyRequest().authenticated()
                 )
                 .addFilterBefore(

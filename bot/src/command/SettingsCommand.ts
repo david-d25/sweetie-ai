@@ -15,7 +15,7 @@ export default class SettingsCommand extends Command {
         return command === 'settings';
     }
 
-    requiresPrivileges(peerId: number): boolean {
+    chatAdminOnly(peerId: number): boolean {
         return true;
     }
 

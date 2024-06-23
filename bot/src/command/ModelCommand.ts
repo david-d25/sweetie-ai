@@ -10,7 +10,7 @@ export default class ModelCommand extends Command {
         return '/sweet model (...)';
     }
 
-    requiresPrivileges(peerId: number): boolean {
+    chatAdminOnly(peerId: number): boolean {
         return true;
     }
 

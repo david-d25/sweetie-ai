@@ -7,4 +7,9 @@ export default class UserPermissionsService {
         const { chatAdminsOrmService, appCeosOrmService } = this.context;
         return await chatAdminsOrmService.isUserAdmin(peerId, userId) || await appCeosOrmService.exists(userId);
     }
+
+    async isUserAppCeo(userId: number): Promise<boolean> {
+        const { appCeosOrmService } = this.context;
+        return await appCeosOrmService.exists(userId);
+    }
 }
