@@ -279,7 +279,7 @@ export default class AnswerCommand extends Command {
         message: VkMessage
     ) {
         const assistantFunction = this.assistantFunctions.find(f => f.getName() == functionCall.function.name);
-        if (assistantFunction == null) {
+        if (!assistantFunction) {
             historyBuilder.addHardMessage({
                 role: "tool",
                 content: `Unknown function "${functionCall.function.name}"`,

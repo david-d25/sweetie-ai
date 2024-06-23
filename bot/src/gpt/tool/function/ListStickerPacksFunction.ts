@@ -26,7 +26,8 @@ export default class ListStickerPacksFunction implements AssistantFunction {
 
     getDescription(): string {
         return "Shows a list of available sticker packs. " +
-            "Use 'see_sticker_pack' to see all stickers in a pack and decide which one to send.";
+            "Use 'see_sticker_pack' to see all stickers in a pack and decide which one to send. " +
+            "The sticker list is mainly for internal use and should not be shown to the user. ";
     }
 
     getName(): string {

@@ -3,7 +3,7 @@ import ConfigService from "service/ConfigService";
 import {Context} from "../Context";
 import GPT4Tokenizer from "gpt4-tokenizer";
 import {createOpenAiWrapperError} from "../util/OpenAiUtil";
-import {AssistantObject, AssistantFunctionParameter} from "../gpt/tool/function/AssistantFunction";
+import {AssistantObject} from "../gpt/tool/function/AssistantFunction";
 
 export type OpenAiModel = {
     id: string;
