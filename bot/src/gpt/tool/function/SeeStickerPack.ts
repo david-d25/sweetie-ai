@@ -43,18 +43,6 @@ export default class SeeStickerPackFunction implements AssistantFunction {
         }
         this.logger.info(`Forming an image of ${stickerImages.length} stickers`);
         const stickerPackImage = await this.createStickerPackImage(stickers, 1024, 6);
-        let stickerPackImageUrl: string;
-        if (this.context.configService.getAppConfig().mode === "development") {
-            this.logger.info(`Sticker pack image will be attached as base64`);
-            stickerPackImageUrl = "data:image/png;base64," + stickerPackImage.toString('base64');
-        } else {
-            this.logger.info(`Sticker pack image will be attached as url`);
-            stickerPackImageUrl = this.context.temporaryFilesHostService.addFile(
-                `sticker_pack_${packId}.png`,
-                stickerPackImage,
-                300
-            );
-        }
 
         this.logger.info(`Appending a message with sticker pack image`);
         invocationContext.appendMessage({
@@ -66,7 +54,7 @@ export default class SeeStickerPackFunction implements AssistantFunction {
                 }, {
                     type: "image_url",
                     image_url: {
-                        url: stickerPackImageUrl
+                        url: "data:image/png;base64," + stickerPackImage.toString('base64')
                     }
                 }
             ]

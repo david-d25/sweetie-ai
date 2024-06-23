@@ -48,7 +48,9 @@ export default class SendStickerFunction implements AssistantFunction {
     }
 
     getDescription(): string {
-        return "Sends a sticker to the chat.";
+        return "Sends a sticker to the chat. " +
+            "Try using different stickers and don't just repeat what user has sent. " +
+            "Before sending a sticker, use 'list_sticker_packs' and 'see_sticker_pack' to choose it. ";
     }
 
     getName(): string {

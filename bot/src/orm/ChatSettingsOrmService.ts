@@ -24,7 +24,7 @@ export default class ChatSettingsOrmService {
                 gpt_frequency_penalty real default 0,
                 gpt_presence_penalty real default 0,
                 bot_enabled boolean default true,
-                gpt_model varchar default 'gpt-3.5-turbo'
+                gpt_model varchar default 'gpt-4o'
             );
         `);
         await this.client.query(`
@@ -38,6 +38,9 @@ export default class ChatSettingsOrmService {
         `);
         await this.client.query(`
             alter table chat_settings drop column if exists add_transcript_to_voice;
+        `);
+        await this.client.query(`
+            alter table chat_settings alter column gpt_model set default 'gpt-4o';
         `);
     }
 
