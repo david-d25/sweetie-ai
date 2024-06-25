@@ -21,7 +21,7 @@ export default class ListStickerPacksFunction implements AssistantFunction {
             };
         });
         this.logger.info(`Listing ${result.length} sticker packs`);
-        return "Available sticker packs:\n" + JSON.stringify(result);
+        return "Available sticker packs:\n" + JSON.stringify(result) + "\n";
     }
 
     getDescription(): string {

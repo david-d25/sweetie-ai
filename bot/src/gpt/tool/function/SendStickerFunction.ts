@@ -48,13 +48,8 @@ export default class SendStickerFunction implements AssistantFunction {
 
     getDescription(): string {
         return "Sends a sticker to the chat. " +
-            "The main idea of sending a sticker is to express an emotion. Send a sticker to express all kinds of " +
-            "emotions: love, disagreement, sadness, happiness, laugh, drinking coffee, working, etc. " +
-            "Sticker is not just a picture, it's an **emotion**, so pay attention to the emotion and not" +
-            "the picture itself, and answer with an emotion too! Don't comment the sticker itself, comment the emotion. " +
-            "For example, when a user sends a love emotion, you can repeat with love emotion too, but " +
-            "try using a different sticker or sticker pack so you don't feel too repetitive. " +
-            "Use 'list_sticker_packs' and 'see_sticker_pack' to visually see and choose what sticker to use. ";
+            "Call 'list_sticker_packs' or 'see_sticker_pack' before 'send_sticker' to visually " +
+            "see and choose what sticker to use. ";
     }
 
     getName(): string {

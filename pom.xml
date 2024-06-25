@@ -3,7 +3,7 @@
 
     <groupId>space.davids_digital.vk_gpt_chatbot</groupId>
     <artifactId>vk_gpt_chatbot</artifactId>
-    <version>3.5.0</version>
+    <version>3.5.1</version>
     <packaging>pom</packaging>
 
     <modules>

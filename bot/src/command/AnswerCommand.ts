@@ -150,7 +150,7 @@ export default class AnswerCommand extends Command {
 
         let maxRuns = 8;
         let runIndex = 0;
-        let stopRequested = false;
+        let continuationMode = "auto";
         let lastResponse: CompletionResponse | null = null;
         const attachments: Attachment[] = [];
         do {
@@ -180,7 +180,7 @@ export default class AnswerCommand extends Command {
                     logger.info(`GPT response text has length ${textLength} and ${toolCallsLength} tool calls`);
                 }
 
-                stopRequested = false;
+                continuationMode = "auto";
 
                 const messagesToAppend: CompletionMessageDto[] = [];
                 const invocationContext: InvocationContext = {
@@ -188,7 +188,7 @@ export default class AnswerCommand extends Command {
                         attachments.push(value);
                     },
                     requestStop() {
-                        stopRequested = true;
+                        continuationMode = "stop";
                     },
                     appendMessage(message: CompletionMessageDto) {
                         messagesToAppend.push(message);
@@ -202,14 +202,29 @@ export default class AnswerCommand extends Command {
                     await this.handleToolCalls(builder, lastResponse.toolCalls, invocationContext, message);
                 }
                 messagesToAppend.forEach(it => builder.addHardMessage(it));
+
+                if (lastResponse.content && lastResponse.content.match(/<\|.*?\|>/g)) {
+                    logger.warn("Assistant response contains <| or |> tags, re-asking GPT");
+                    builder.addHardMessage({
+                        role: "user",
+                        content: "[SYSTEM MESSAGE] Your response contains text between `<|` and `|>`. " +
+                            "Repeat your answer without these symbols. " +
+                            "If you wanted to send an image or sticker, call functions."
+                    });
+                    continuationMode = "continue";
+                }
             } catch (e: any) {
                 console.error(e);
-                stopRequested = true;
+                continuationMode = "stop";
                 await vkMessagesService.send(message.peerId, `Сладенький не может ответить (${e.message})`);
             }
 
             runIndex++;
-        } while (runIndex < maxRuns && !stopRequested && !lastResponse?.content);
+        } while (
+            runIndex < maxRuns && (
+                continuationMode == "auto" && !lastResponse?.content || continuationMode == "continue"
+            )
+        );
 
         if (lastResponse?.content || attachments.length != 0) {
             await vkMessagesService.send(
@@ -237,6 +252,7 @@ export default class AnswerCommand extends Command {
         text = text
             .replaceAll("@all", "@???")
             .replaceAll("@online", "@??????")
+        text = text.replace(/<\|.*?\|>/g, '');
         return text;
     }
 
@@ -383,6 +399,7 @@ export default class AnswerCommand extends Command {
         return content;
     }
 
+    // todo forwarded images are not visible
     private async vkMessageToString(message: VkMessage): Promise<string> {
         const user = await this.context.vkUsersService.getUser(+message.fromId);
         const displayName = user ? (user.firstNameCached + " " + user.lastNameCached) : "(unknown)";
@@ -398,32 +415,32 @@ export default class AnswerCommand extends Command {
 
         let result = '';
 
+        result += "<|FORWARDED_MESSAGES|>\n";
+        for (const forwardedMessage of message.forwardedMessages) {
+            result += await this.vkMessageToString(forwardedMessage);
+        }
+        result += "<|FORWARDED_MESSAGES_END|>\n";
+
         if (+message.fromId != -this.context.configService.getAppConfig().vkGroupId) {
-            result += `<message-info userid="${message.fromId}" name="${displayName}" time="${time}"/>\n`;
+            result += `<|MESSAGE_METADATA user_id="${message.fromId}" user_name="${displayName}" time="${time}"|>\n`;
         }
 
         if (message.text != null)
             result += message.text + "\n";
-        for (const [i, attachment] of message.attachments.entries()) {
+        for (const attachment of message.attachments) {
             if (attachment.type == "audio_message") {
                 const audioMessage = attachment as AudioMessageAttachment
                 const transcript = this.escapeXml(audioMessage.transcript || null);
-                result += `<attachment type="audio_message" transcript="${transcript}"/>\n`;
+                result += `<|AUDIO_MESSAGE transcript="${transcript}"|>\n`;
             } else if (attachment.type == "photo") {
                 const photo = attachment as PhotoAttachment;
-                result += `<attachment type="photo" id="${photo.id}"/>\n`;
+                result += `<|PHOTO id="${photo.id}"|>\n`;
             } else if (attachment.type == "sticker") {
                 const sticker = attachment as StickerAttachment;
-                result += `<attachment type="sticker" id="${sticker.id}" pack-id=${sticker.productId}/>\n`;
+                result += `<|STICKER id="${sticker.id}" pack-id="${sticker.productId}"|>\n`;
             } else {
-                result += `<attachment type="${attachment.type}" id="${i}"/>\n`;
+                result += `<|ATTACHMENT type="${attachment.type}"|>\n`;
             }
-        }
-
-        for (const forwardedMessage of message.forwardedMessages) {
-            result += "<forwarded>\n";
-            result += await this.vkMessageToString(forwardedMessage);
-            result += "</forwarded>\n";
         }
 
         return result;

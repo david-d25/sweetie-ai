@@ -64,8 +64,8 @@ export default class SeeStickerPackFunction implements AssistantFunction {
     }
 
     getDescription(): string {
-        return "Lets you visually see all stickers in a sticker pack. " +
-            "You can then use 'send_sticker' to send a sticker. " +
+        return "See all stickers in a sticker pack and their IDs. " +
+            "Call this before 'send_sticker'. " +
             "Sticker pack will only be visible to you. ";
     }
 
