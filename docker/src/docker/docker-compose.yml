@@ -39,6 +39,7 @@ services:
       - DB_PORT
       - DB_USER
       - OPENAI_SECRET_KEY
+      - STABILITY_AI_API_KEY
       - VK_ACCESS_TOKEN
       - VK_GROUP_ID
       - METAPHOR_API_KEY
