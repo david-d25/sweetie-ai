@@ -392,6 +392,10 @@ export default class AnswerCommand extends Command {
             if (typeof value != "boolean") {
                 throw new Error(`Expected boolean, got ${typeof value} at ${propertyPathString}`);
             }
+        } else if (typeDescriptor.type == "number") {
+            if (typeof value != "number") {
+                throw new Error(`Expected number, got ${typeof value} at ${propertyPathString}`);
+            }
         } else {
             throw new Error(`Unknown type '${(typeDescriptor as any).type}' at ${propertyPathString}`);
         }
