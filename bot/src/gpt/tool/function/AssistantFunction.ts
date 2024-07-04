@@ -1,6 +1,6 @@
 import {VkMessage} from "../../../service/VkMessagesService";
 import {CompletionMessageDto} from "../../../service/ChatGptService";
-import {Attachment} from "vk-io";
+import {Attachment, ExternalAttachment} from "vk-io";
 
 export default interface AssistantFunction {
     getDescription(): string;
@@ -13,12 +13,19 @@ export interface InvocationContext {
     addAttachment(value: Attachment): void;
     requestStop(): void;
     appendMessage(message: CompletionMessageDto): void;
+    chargeCredits(credits: number): void;
+    lookupAttachment(attachmentId: number): Attachment | ExternalAttachment | null;
 }
 
-export type AssistantFunctionParameter = AssistantObject | AssistantString | AssistantInteger | AssistantBoolean;
+export type AssistantFunctionParameter = AssistantObject | AssistantString | AssistantInteger | AssistantNumber | AssistantBoolean;
 
 export type AssistantInteger = {
     type: "integer";
+    description?: string;
+}
+
+export type AssistantNumber = {
+    type: "number";
     description?: string;
 }
 

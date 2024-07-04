@@ -4,7 +4,7 @@ import {Context} from "../../../Context";
 import {Logger} from "../../../service/LoggingService";
 import {CompletionUserMessageImageUrlContentItemDto} from "../../../service/ChatGptService";
 
-export default class DrawImageFunction implements AssistantFunction {
+export default class DrawImageLegacyFunction implements AssistantFunction {
     private logger!: Logger;
     constructor(private context: Context) {
         context.onReady(() => {
@@ -17,7 +17,7 @@ export default class DrawImageFunction implements AssistantFunction {
     }
 
     getName(): string {
-        return "draw";
+        return "draw_legacy";
     }
 
     getParameters(): AssistantObject {
@@ -34,6 +34,7 @@ export default class DrawImageFunction implements AssistantFunction {
     }
 
     async call(args: any, message: VkMessage, invocationContext: InvocationContext): Promise<string> {
+        this.logger.info("Drawing image");
         const prompt = args['prompt'];
         let urls;
         try {

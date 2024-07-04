@@ -35,6 +35,7 @@ import AppCeosOrmService from "./orm/AppCeosOrmService";
 import LoggingService from "./service/LoggingService";
 import VkStickerPacksOrmService from "./orm/VkStickerPacksOrmService";
 import VkStickerPacksService from "./service/VkStickerPacksService";
+import StabilityAiService from "./service/StabilityAiService";
 
 const loggingService = new LoggingService();
 const log = loggingService.getRootLogger();
@@ -114,6 +115,7 @@ async function ready() {
     context.usagePlanService = new UsagePlanService(context);
     context.audioService = new AudioService(context);
     context.vkStickerPacksService = new VkStickerPacksService(context);
+    context.stabilityAiService = new StabilityAiService(context);
 
     context.ready();
 

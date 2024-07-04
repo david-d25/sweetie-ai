@@ -11,8 +11,9 @@ export type AppConfig = {
     dbUser: string;
     openAiSecretKey: string;
     vkAccessToken: string;
-    vkGroupId: number;
     metaphorApiKey: string;
+    stabilityAiApiKey: string;
+    vkGroupId: number;
     fileHostingPort: number;
     fileHostingUrlBase: string;
     fileHostingMaxStorageSizeBytes: number;
@@ -63,8 +64,9 @@ export default class ConfigService {
             dbUser: this.requireEnv('DB_USER'),
             openAiSecretKey: this.requireEnv('OPENAI_SECRET_KEY'),
             vkAccessToken: this.requireEnv('VK_ACCESS_TOKEN'),
-            vkGroupId: this.requireNumericEnv('VK_GROUP_ID'),
             metaphorApiKey: this.requireEnv('METAPHOR_API_KEY'),
+            stabilityAiApiKey: this.requireEnv('STABILITY_AI_API_KEY'),
+            vkGroupId: this.requireNumericEnv('VK_GROUP_ID'),
             fileHostingPort: this.requireNumericEnv('FILE_HOSTING_PORT'),
             fileHostingUrlBase: this.requireEnv('FILE_HOSTING_URL_BASE'),
             fileHostingMaxStorageSizeBytes: this.requireNumericEnv('FILE_HOSTING_MAX_STORAGE_SIZE_BYTES'),

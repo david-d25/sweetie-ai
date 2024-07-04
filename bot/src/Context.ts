@@ -23,6 +23,7 @@ import AppCeosOrmService from "./orm/AppCeosOrmService";
 import LoggingService from "./service/LoggingService";
 import VkStickerPacksOrmService from "./orm/VkStickerPacksOrmService";
 import VkStickerPacksService from "./service/VkStickerPacksService";
+import StabilityAiService from "./service/StabilityAiService";
 
 export class Context {
     configService!: ConfigService;
@@ -52,6 +53,7 @@ export class Context {
     usagePlanService!: UsagePlanService;
     audioService!: AudioService;
     vkStickerPacksService!: VkStickerPacksService;
+    stabilityAiService!: StabilityAiService;
 
     readyFlag = false;
     readyListeners: (() => void)[] = [];

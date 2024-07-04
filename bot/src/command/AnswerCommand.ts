@@ -2,7 +2,7 @@ import Command from "./Command";
 import {Context} from "../Context";
 import {VkMessage} from "../service/VkMessagesService";
 import * as AnswerCommandTemplates from "../template/AnswerCommandTemplate";
-import {Attachment, AudioMessageAttachment, PhotoAttachment, StickerAttachment} from "vk-io";
+import {Attachment, AudioMessageAttachment, ExternalAttachment, PhotoAttachment, StickerAttachment} from "vk-io";
 import GptChatHistoryBuilder from "../gpt/GptChatHistoryBuilder";
 import {
     CompletionMessageDto,
@@ -10,7 +10,6 @@ import {
     CompletionToolCallDto,
     CompletionUserMessageContentItemDto, CompletionUserMessageDto
 } from "../service/ChatGptService";
-import DrawImageFunction from "../gpt/tool/function/DrawImageFunction";
 import AssistantFunction, {AssistantFunctionParameter, InvocationContext} from "../gpt/tool/function/AssistantFunction";
 import {Logger} from "../service/LoggingService";
 import GetUsersListFunction from "../gpt/tool/function/GetUsersListFunction";
@@ -22,6 +21,11 @@ import ReadWebSearchResultFunction from "../gpt/tool/function/ReadWebSearchResul
 import SendStickerFunction from "../gpt/tool/function/SendStickerFunction";
 import ListStickerPacksFunction from "../gpt/tool/function/ListStickerPacksFunction";
 import SeeStickerPackFunction from "../gpt/tool/function/SeeStickerPack";
+import ImageDrawFunction from "../gpt/tool/function/ImageDrawFunction";
+import ImageRemoveBackgroundFunction from "../gpt/tool/function/ImageRemoveBackgroundFunction";
+import ImageSearchAndReplaceFunction from "../gpt/tool/function/ImageSearchAndReplaceFunction";
+import ImageSketchFunction from "../gpt/tool/function/ImageSketchFunction";
+import ImageStructureFunction from "../gpt/tool/function/ImageStructureFunction";
 
 export default class AnswerCommand extends Command {
     private assistantFunctions: AssistantFunction[];
@@ -31,7 +35,11 @@ export default class AnswerCommand extends Command {
         super(context);
         this.logger = context.loggingService.getRootLogger().newSublogger("AnswerCommand");
         this.assistantFunctions = [
-            new DrawImageFunction(context),
+            new ImageDrawFunction(context),
+            new ImageRemoveBackgroundFunction(context),
+            new ImageSearchAndReplaceFunction(context),
+            new ImageSketchFunction(context),
+            new ImageStructureFunction(context),
             new GetUsersListFunction(context),
             new SendLaterFunction(context),
             new StopFunction(),
@@ -150,6 +158,7 @@ export default class AnswerCommand extends Command {
 
         let maxRuns = 8;
         let runIndex = 0;
+        let creditsCost = 1;
         let continuationMode = "auto";
         let lastResponse: CompletionResponse | null = null;
         const attachments: Attachment[] = [];
@@ -192,6 +201,19 @@ export default class AnswerCommand extends Command {
                     },
                     appendMessage(message: CompletionMessageDto) {
                         messagesToAppend.push(message);
+                    },
+                    chargeCredits(credits: number) {
+                        creditsCost += credits;
+                    },
+                    lookupAttachment(id: number): Attachment | ExternalAttachment | null {
+                        for (const message of vkHistory) {
+                            for (const attachment of message.attachments) {
+                                if ((attachment as any).id == id) {
+                                    return attachment;
+                                }
+                            }
+                        }
+                        return null;
                     }
                 }
 
@@ -216,6 +238,7 @@ export default class AnswerCommand extends Command {
             } catch (e: any) {
                 console.error(e);
                 continuationMode = "stop";
+                creditsCost = 1;
                 await vkMessagesService.send(message.peerId, `Сладенький не может ответить (${e.message})`);
             }
 
@@ -234,8 +257,8 @@ export default class AnswerCommand extends Command {
             );
             logger.info(`Message sent`);
         }
-        await this.context.vkUsersOrmService.addCredits(message.fromId, -1);
-        logger.info(`Answering finished, credits deducted`);
+        await this.context.vkUsersOrmService.addCredits(message.fromId, -creditsCost);
+        logger.info(`Answering finished, ${creditsCost} credits deducted`);
     }
 
     private sanitizeAssistantResponse(text: string) {
