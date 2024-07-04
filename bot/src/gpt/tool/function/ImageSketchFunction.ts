@@ -2,8 +2,6 @@ import AssistantFunction, {AssistantObject, InvocationContext} from "./Assistant
 import {VkMessage} from "../../../service/VkMessagesService";
 import {Logger} from "../../../service/LoggingService";
 import {Context} from "../../../Context";
-import {PhotoAttachment} from "vk-io";
-import axios from "axios";
 import {downloadVkPhotoAttachment} from "./AssistantFunctionHelper";
 
 export default class ImageSketchFunction implements AssistantFunction {
