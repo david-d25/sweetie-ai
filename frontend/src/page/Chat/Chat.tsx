@@ -191,7 +191,7 @@ export default function Chat() {
                                 <ErrorMessage message="Не получилось сохранить"/>
                             </AnimateHeight>
                             <UpdatingContent isUpdating={contextUpdating}>
-                                <ContextEditor value={chat.context} maxLength={2000} onChange={onContextChange}/>
+                                <ContextEditor value={chat.context} maxLength={128000} onChange={onContextChange}/>
                             </UpdatingContent>
                         </div>
                         <div className={`${s.switchWrapper} ${processAudioMessagesUpdating ? s.updating : ''}`}>

@@ -76,9 +76,11 @@ export default class AnswerCommand extends Command {
 
         const chatSettings = await chatSettingsService.getSettingsOrCreateDefault(message.peerId);
 
-        const visionSupported = chatSettings.gptModel.includes("vision")
-            || chatSettings.gptModel == "gpt-4-turbo"
-            || chatSettings.gptModel == "gpt-4o";
+        const modelName = chatSettings.gptModel;
+        const visionSupported = modelName.includes("vision")
+            || modelName.startsWith("gpt-4-turbo")
+            || modelName.startsWith("gpt-4o")
+            || modelName.startsWith("chatgpt-4o");
 
         let systemMessage = AnswerCommandTemplates.generateSystemMessage(new Date(), chatSettings.context);
         const functions = this.assistantFunctions.map(f => {
