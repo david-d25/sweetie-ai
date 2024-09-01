@@ -67,10 +67,12 @@ public class ChatController {
             VkConversationDto vkChat,
             List<String> availableModels
     ) {
+        var pictureUrl = vkChat != null ? vkChat.chatSettings != null ? vkChat.chatSettings.photo != null ? vkChat.chatSettings.photo.photo200 : null : null : null;
+        var title = vkChat != null ? vkChat.chatSettings != null ? vkChat.chatSettings.title : null : null;
         return new ChatDto(
                 chatSettings.peerId(),
-                vkChat != null ? vkChat.chatSettings.title : null,
-                vkChat != null ? vkChat.chatSettings.photo.photo200 : null,
+                title,
+                pictureUrl,
                 chatSettings.botEnabled(),
                 chatSettings.context(),
                 chatSettings.gptMaxInputTokens(),

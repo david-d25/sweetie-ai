@@ -10,9 +10,9 @@ import java.util.Collection;
 
 @Repository
 public interface ChatSettingsRepository extends CrudRepository<ChatSettingsEntity, Long> {
-    @Query("select settings from ChatAdminEntity admin left join ChatSettingsEntity settings on admin.peerId = settings.peerId where admin.userId = :adminId")
+    @Query("select settings from ChatAdminEntity admin left join ChatSettingsEntity settings on (admin.peerId = settings.peerId or :adminId in (select appCeo.userId from AppCeoEntity appCeo)) where admin.userId = :adminId")
     Collection<ChatSettingsEntity> findHavingAdmin(@Param("adminId") long adminId);
 
-    @Query("select settings from ChatAdminEntity admin left join ChatSettingsEntity settings on admin.peerId = settings.peerId where settings.peerId = :peerId and admin.userId = :adminId")
+    @Query("select settings from ChatAdminEntity admin left join ChatSettingsEntity settings on (admin.peerId = settings.peerId or :adminId in (select appCeo.userId from AppCeoEntity appCeo)) where settings.peerId = :peerId and admin.userId = :adminId")
     ChatSettingsEntity findByIdAndHavingAdmin(@Param("peerId") long peerId, @Param("adminId") long adminId);
 }

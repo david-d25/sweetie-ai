@@ -5,6 +5,7 @@ import space.davids_digital.vk_gpt_bot.model.ChatSettingsModel;
 import space.davids_digital.vk_gpt_bot.orm.entity.ChatSettingsEntity;
 import space.davids_digital.vk_gpt_bot.orm.repository.ChatSettingsRepository;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.stream.Collectors;
