@@ -8,11 +8,11 @@
       <jdbc-url>jdbc:postgresql://localhost:5432/vk_gpt_bot_dev</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
-    <data-source source="LOCAL" name="prod" uuid="bed10cb9-621b-4c2f-9c5b-cc5778eb1ff9">
+    <data-source source="LOCAL" name="prod" uuid="9eba2861-65bf-4800-921a-cb988840a8f7">
       <driver-ref>postgresql</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.postgresql.Driver</jdbc-driver>
-      <jdbc-url>jdbc:postgresql://davids-digital.space:5432/vk_gpt_chatbot</jdbc-url>
+      <jdbc-url>jdbc:postgresql://davids-digital.space:5432/sweetie</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
   </component>

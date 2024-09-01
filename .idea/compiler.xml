@@ -13,5 +13,8 @@
         <module name="crypto" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="vk_gpt_chatbot" target="1.5" />
+    </bytecodeTargetLevel>
   </component>
 </project>

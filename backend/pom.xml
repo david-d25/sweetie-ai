@@ -2,8 +2,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>space.davids_digital.vk_gpt_chatbot</groupId>
-        <artifactId>vk_gpt_chatbot</artifactId>
+        <groupId>space.davids_digital.sweetie</groupId>
+        <artifactId>sweetie</artifactId>
         <version>3.6.1</version>
     </parent>
 
@@ -11,6 +11,8 @@
 
     <properties>
         <java.version>11</java.version>
+        <kotlin.version>2.0.20</kotlin.version>
+        <kotlin.compiler.incremental>true</kotlin.compiler.incremental>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -31,7 +33,7 @@
                 <version>3.1.2</version>
 
                 <configuration>
-                    <mainClass>space.davids_digital.vk_gpt_bot.WebApp</mainClass>
+                    <mainClass>space.davids_digital.sweetie.WebApp</mainClass>
                 </configuration>
 
                 <executions>
@@ -41,6 +43,12 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <artifactId>kotlin-maven-plugin</artifactId>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <version>2.0.20</version>
+                <extensions>true</extensions>
             </plugin>
         </plugins>
     </build>
@@ -143,6 +151,21 @@
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
             <version>3.1.8</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-stdlib</artifactId>
+            <version>${kotlin.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.vk.api</groupId>
+            <artifactId>sdk</artifactId>
+            <version>1.0.16</version>
+        </dependency>
+        <dependency>
+            <groupId>io.reactivex.rxjava3</groupId>
+            <artifactId>rxjava</artifactId>
+            <version>3.1.9</version>
         </dependency>
     </dependencies>
 </project>

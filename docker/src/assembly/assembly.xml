@@ -7,7 +7,7 @@
     <dependencySets>
         <dependencySet>
             <includes>
-                <include>space.davids_digital.vk_gpt_chatbot:bot</include>
+                <include>space.davids_digital.sweetie:bot</include>
             </includes>
             <outputFileNameMapping>bot.zip</outputFileNameMapping>
             <outputDirectory>bot</outputDirectory>
@@ -15,7 +15,7 @@
         </dependencySet>
         <dependencySet>
             <includes>
-                <include>space.davids_digital.vk_gpt_chatbot:backend</include>
+                <include>space.davids_digital.sweetie:backend</include>
             </includes>
             <outputFileNameMapping>backend.jar</outputFileNameMapping>
             <outputDirectory>backend</outputDirectory>
@@ -23,7 +23,7 @@
         </dependencySet>
         <dependencySet>
             <includes>
-                <include>space.davids_digital.vk_gpt_chatbot:frontend</include>
+                <include>space.davids_digital.sweetie:frontend</include>
             </includes>
             <outputFileNameMapping>frontend.zip</outputFileNameMapping>
             <outputDirectory>frontend</outputDirectory>
