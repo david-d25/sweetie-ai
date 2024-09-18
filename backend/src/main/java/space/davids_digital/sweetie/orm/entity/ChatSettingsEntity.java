@@ -47,4 +47,10 @@ public class ChatSettingsEntity {
 
     @Column(name = "process_audio_messages")
     public boolean processAudioMessages;
+
+    @Column(name = "tts_voice")
+    public String ttsVoice;
+
+    @Column(name = "tts_speed")
+    public double ttsSpeed;
 }

@@ -3,7 +3,7 @@ package space.davids_digital.sweetie.orm.service;
 import space.davids_digital.sweetie.model.MessagesChartModel;
 import space.davids_digital.sweetie.model.VkMessageModel;
 import space.davids_digital.sweetie.orm.entity.VkMessageEntity;
-import space.davids_digital.sweetie.orm.repository.VkMessagesRepository;
+import space.davids_digital.sweetie.orm.repository.VkMessageRepository;
 import org.springframework.stereotype.Service;
 import space.davids_digital.sweetie.orm.repository.projection.MessageCountProjection;
 
@@ -14,10 +14,10 @@ import java.util.List;
 
 @Service
 public class VkMessagesOrmService {
-    private final VkMessagesRepository vkMessagesRepository;
+    private final VkMessageRepository vkMessageRepository;
 
-    public VkMessagesOrmService(VkMessagesRepository vkMessagesRepository) {
-        this.vkMessagesRepository = vkMessagesRepository;
+    public VkMessagesOrmService(VkMessageRepository vkMessageRepository) {
+        this.vkMessageRepository = vkMessageRepository;
     }
 
     public MessagesChartModel getChart(
@@ -27,7 +27,7 @@ public class VkMessagesOrmService {
             Long fromIdFilter,
             long aggregationPeriodMinutes
     ) {
-        List<MessageCountProjection> projections = vkMessagesRepository.countMessagesGroupedByNMinutesSorted(
+        List<MessageCountProjection> projections = vkMessageRepository.countMessagesGroupedByNMinutesSorted(
                 aggregationPeriodMinutes,
                 from,
                 to,
@@ -54,7 +54,7 @@ public class VkMessagesOrmService {
     }
 
     public List<VkMessageModel> getMessagesByTime(long peerId, Instant fromTime, Instant toTime) {
-        return vkMessagesRepository
+        return vkMessageRepository
                 .findAllByPeerIdAndTimestampIsBetween(peerId, fromTime, toTime)
                 .stream()
                 .map(this::toModel)

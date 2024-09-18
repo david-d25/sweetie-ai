@@ -3,6 +3,7 @@ package space.davids_digital.sweetie;
 import com.vk.api.sdk.client.VkApiClient;
 import com.vk.api.sdk.client.actors.GroupActor;
 import com.vk.api.sdk.httpclient.HttpTransportClient;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringBootConfiguration;
@@ -20,6 +21,8 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import space.davids_digital.sweetie.command.Command;
+import space.davids_digital.sweetie.command.CommandRegistry;
 
 import javax.sql.DataSource;
 import java.util.List;
@@ -30,6 +33,8 @@ import java.util.List;
 @EnableConfigurationProperties
 @SpringBootConfiguration
 public class WebConfig {
+    @Value("${app.version}")
+    String appVersion;
     @Value("${DB_HOST:localhost}")
     String dbHost;
     @Value("${DB_PORT:5432}")
@@ -135,6 +140,18 @@ public class WebConfig {
     @Qualifier("cookiesDomain")
     public String cookiesDomain() {
         return cookiesDomain;
+    }
+
+    @Bean
+    @Qualifier("vkGroupId")
+    public long vkGroupId() {
+        return vkGroupId;
+    }
+
+    @Bean
+    @Qualifier("appVersion")
+    public String appVersion() {
+        return appVersion;
     }
 
     @Bean

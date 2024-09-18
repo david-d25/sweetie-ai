@@ -13,7 +13,7 @@ public record UserSessionModel(
 ) {
     public UserSessionModel {
         if (id == null) {
-            throw new IllegalArgumentException("vkId is null");
+            throw new IllegalArgumentException("id is null");
         }
         if (userVkId < 0) {
             throw new IllegalArgumentException("userVkId is negative");

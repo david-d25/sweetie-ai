@@ -7,9 +7,10 @@ import jakarta.persistence.Table;
 
 import java.time.ZonedDateTime;
 
+// TODO original ts file contains sql triggers
 @Entity
 @Table(name = "vk_users")
-public class UserEntity {
+public class VkUserEntity {
     @Id
     @Column(name = "id")
     public long id;

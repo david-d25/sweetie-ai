@@ -27,6 +27,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@Deprecated
 public class VkRestApiService {
     private static final Logger log = LoggerFactory.getLogger(VkRestApiService.class);
 
