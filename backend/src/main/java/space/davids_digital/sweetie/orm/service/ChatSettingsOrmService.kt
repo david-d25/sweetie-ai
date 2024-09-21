@@ -4,8 +4,6 @@ import org.springframework.stereotype.Service
 import space.davids_digital.sweetie.model.ChatSettingsModel
 import space.davids_digital.sweetie.orm.entity.ChatSettingsEntity
 import space.davids_digital.sweetie.orm.repository.ChatSettingsRepository
-import java.util.*
-import java.util.stream.Collectors
 
 @Service
 class ChatSettingsOrmService(

@@ -1,6 +1,8 @@
 package space.davids_digital.sweetie.orm.entity
 
 import jakarta.persistence.*
+import org.hibernate.annotations.JdbcTypeCode
+import org.hibernate.type.SqlTypes
 
 @Entity
 @IdClass(VkMessageAttachmentEntityId::class)
@@ -27,6 +29,7 @@ class VkMessageAttachmentEntity {
     var orderIndex: Int = 0
 
     @Column(name = "attachment_dto_json", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
     var attachmentDtoJson: String = ""
 
     @ManyToOne

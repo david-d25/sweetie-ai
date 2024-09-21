@@ -1,6 +1,5 @@
 package space.davids_digital.sweetie.service
 
-import com.vk.api.sdk.objects.messages.Message
 import com.vk.api.sdk.objects.messages.MessageAttachmentType
 import jakarta.annotation.PostConstruct
 import kotlinx.coroutines.runBlocking

@@ -33,7 +33,7 @@ class VkMessageEntity {
     @Column(name = "text", columnDefinition = "text")
     var text: String? = null
 
-    @ManyToMany(fetch = FetchType.EAGER)
+    @OneToMany(fetch = FetchType.EAGER, cascade = [CascadeType.ALL])
     @JoinTable(
         name = "vk_message_forwards",
         joinColumns = [

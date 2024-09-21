@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Service
-import reactor.core.publisher.toMono
 import space.davids_digital.sweetie.model.VkMessageModel
 import space.davids_digital.sweetie.orm.repository.VkMessageRepository
 import space.davids_digital.sweetie.orm.service.VkMessageOrmService

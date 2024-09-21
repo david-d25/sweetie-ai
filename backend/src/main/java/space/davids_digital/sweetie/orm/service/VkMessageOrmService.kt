@@ -72,7 +72,7 @@ class VkMessageOrmService(
     }
 
     private fun toEntity(model: VkMessageModel): VkMessageEntity {
-        return VkMessageEntity().also {
+        val entity = VkMessageEntity().also {
             it.conversationMessageId = model.conversationMessageId
             it.peerId = model.peerId
             it.fromId = model.fromId
@@ -87,5 +87,6 @@ class VkMessageOrmService(
                 }
             }
         }
+        return entity
     }
 }
