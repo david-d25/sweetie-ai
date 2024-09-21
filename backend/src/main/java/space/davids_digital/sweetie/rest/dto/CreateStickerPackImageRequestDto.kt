@@ -1,23 +1,32 @@
-package space.davids_digital.sweetie.rest.dto;
+package space.davids_digital.sweetie.rest.dto
 
-import java.util.List;
-
-public record CreateStickerPackImageRequestDto(
-        int imageWidth,
-        int columns,
-        List<StickerDto> stickers
+data class CreateStickerPackImageRequestDto(
+    val imageWidth: Int,
+    val columns: Int,
+    val stickers: List<StickerDto>
 ) {
-    public CreateStickerPackImageRequestDto {
-        if (imageWidth <= 0) {
-            throw new IllegalArgumentException("Image width must be positive");
+    data class StickerDto(val image: ByteArray, val caption: String) {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as StickerDto
+
+            if (!image.contentEquals(other.image)) return false
+            if (caption != other.caption) return false
+
+            return true
         }
-        if (columns <= 0) {
-            throw new IllegalArgumentException("Columns must be positive");
+
+        override fun hashCode(): Int {
+            var result = image.contentHashCode()
+            result = 31 * result + caption.hashCode()
+            return result
         }
     }
 
-    public record StickerDto(
-            byte[] image,
-            String caption
-    ) {}
+    init {
+        require(imageWidth > 0) { "Image width must be positive" }
+        require(columns > 0) { "Columns must be positive" }
+    }
 }

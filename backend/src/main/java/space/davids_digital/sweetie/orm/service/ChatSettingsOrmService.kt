@@ -11,11 +11,8 @@ import java.util.stream.Collectors
 class ChatSettingsOrmService(
     private val repository: ChatSettingsRepository
 ) {
-    fun findHavingAdmin(adminId: Long): Collection<ChatSettingsModel?> {
-        return repository.findHavingAdmin(adminId).stream()
-            .map { toModel(it) }
-            .filter { it != null }
-            .collect(Collectors.toSet())
+    fun findHavingAdmin(adminId: Long): Collection<ChatSettingsModel> {
+        return repository.findHavingAdmin(adminId).mapNotNull { toModel(it) }
     }
 
     fun findByIdAndHavingAdmin(peerId: Long, adminId: Long): ChatSettingsModel? {
@@ -55,7 +52,7 @@ class ChatSettingsOrmService(
         } else ChatSettingsModel(
             entity.peerId,
             entity.name,
-            entity.context,
+            entity.context ?: "",
             entity.gptMaxInputTokens,
             entity.gptMaxOutputTokens,
             entity.gptTemperature,

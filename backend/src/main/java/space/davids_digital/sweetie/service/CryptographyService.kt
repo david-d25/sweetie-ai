@@ -1,33 +1,46 @@
-package space.davids_digital.sweetie.service;
+package space.davids_digital.sweetie.service
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.stereotype.Service;
-
-import javax.crypto.*;
-import javax.crypto.spec.SecretKeySpec;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.util.Base64;
+import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.stereotype.Service
+import java.security.InvalidKeyException
+import java.security.NoSuchAlgorithmException
+import java.util.*
+import javax.crypto.*
+import javax.crypto.spec.SecretKeySpec
 
 @Service
-public class CryptographyService {
-    private final SecretKey secretKey;
+class CryptographyService(
+    @Qualifier("generalSecretKeyBase64") generalSecretKeyBase64: String
+) {
+    private lateinit var secretKey: SecretKey
 
-    @Autowired
-    public CryptographyService(@Qualifier("generalSecretKeyBase64") String generalSecretKeyBase64) {
-        secretKey = new SecretKeySpec(Base64.getDecoder().decode(generalSecretKeyBase64), "AES");
+    init {
+        secretKey = SecretKeySpec(Base64.getDecoder().decode(generalSecretKeyBase64), "AES")
     }
 
-    public byte[] encrypt(byte[] data) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
-        Cipher cipher = Cipher.getInstance("AES");
-        cipher.init(Cipher.ENCRYPT_MODE, secretKey);
-        return cipher.doFinal(data);
+    @Throws(
+        NoSuchPaddingException::class,
+        NoSuchAlgorithmException::class,
+        InvalidKeyException::class,
+        IllegalBlockSizeException::class,
+        BadPaddingException::class
+    )
+    fun encrypt(data: ByteArray?): ByteArray {
+        val cipher = Cipher.getInstance("AES")
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey)
+        return cipher.doFinal(data)
     }
 
-    public byte[] decrypt(byte[] data) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
-        Cipher cipher = Cipher.getInstance("AES");
-        cipher.init(Cipher.DECRYPT_MODE, secretKey);
-        return cipher.doFinal(data);
+    @Throws(
+        NoSuchPaddingException::class,
+        NoSuchAlgorithmException::class,
+        InvalidKeyException::class,
+        IllegalBlockSizeException::class,
+        BadPaddingException::class
+    )
+    fun decrypt(data: ByteArray?): ByteArray {
+        val cipher = Cipher.getInstance("AES")
+        cipher.init(Cipher.DECRYPT_MODE, secretKey)
+        return cipher.doFinal(data)
     }
 }

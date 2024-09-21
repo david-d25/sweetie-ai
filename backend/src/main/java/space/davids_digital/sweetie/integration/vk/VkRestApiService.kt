@@ -1,156 +1,143 @@
-package space.davids_digital.sweetie.integration.vk;
+package space.davids_digital.sweetie.integration.vk
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
-import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestTemplate;
-import space.davids_digital.sweetie.integration.vk.dto.VkApiResponseDto;
-import space.davids_digital.sweetie.integration.vk.dto.VkConversationDto;
-import space.davids_digital.sweetie.integration.vk.dto.VkSilentTokenExchangeResultDto;
-import space.davids_digital.sweetie.integration.vk.dto.VkUserDto;
-import space.davids_digital.sweetie.rest.exception.InvalidSessionStateException;
-import space.davids_digital.sweetie.service.SessionService;
-
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
-import java.util.stream.Collectors;
+import com.fasterxml.jackson.annotation.JsonProperty
+import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.cache.annotation.Cacheable
+import org.springframework.http.HttpEntity
+import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpMethod
+import org.springframework.http.MediaType
+import org.springframework.stereotype.Service
+import org.springframework.util.LinkedMultiValueMap
+import org.springframework.util.MultiValueMap
+import org.springframework.web.client.RestTemplate
+import space.davids_digital.sweetie.integration.vk.dto.VkApiResponseDto
+import space.davids_digital.sweetie.integration.vk.dto.VkConversationDto
+import space.davids_digital.sweetie.integration.vk.dto.VkSilentTokenExchangeResultDto
+import space.davids_digital.sweetie.integration.vk.dto.VkUserDto
+import space.davids_digital.sweetie.rest.exception.InvalidSessionStateException
+import space.davids_digital.sweetie.service.SessionService
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
+import java.util.*
+import java.util.stream.Collectors
 
 @Service
-@Deprecated
-public class VkRestApiService {
-    private static final Logger log = LoggerFactory.getLogger(VkRestApiService.class);
-
-    private final RestTemplate restTemplate;
-    private final SessionService sessionService;
-    private final String vkAccessToken;
-    private final String vkAppServiceToken;
-
-    @Autowired
-    public VkRestApiService(
-            RestTemplate restTemplate,
-            SessionService sessionService,
-            @Qualifier("vkAccessToken")
-            String vkAccessToken,
-            @Qualifier("vkAppServiceToken")
-            String vkAppServiceToken
-    ) {
-        this.restTemplate = restTemplate;
-        this.sessionService = sessionService;
-        this.vkAccessToken = vkAccessToken;
-        this.vkAppServiceToken = vkAppServiceToken;
-    }
-
-    @Cacheable(value = "VkApiService.getConversations")
-    public List<VkConversationDto> getConversations(long... peerIds) {
-        if (peerIds.length == 0) {
-            return List.of();
+@Deprecated("")
+class VkRestApiService @Autowired constructor(
+    private val restTemplate: RestTemplate,
+    private val sessionService: SessionService,
+    @param:Qualifier("vkAccessToken") private val vkAccessToken: String,
+    @param:Qualifier("vkAppServiceToken") private val vkAppServiceToken: String
+) {
+    @Cacheable(value = ["VkApiService.getConversations"])
+    fun getConversations(vararg peerIds: Long): List<VkConversationDto> {
+        if (peerIds.isEmpty()) {
+            return listOf()
         }
-        var params = new HashMap<String, String>();
-        params.put("peer_ids", Arrays.stream(peerIds).mapToObj(Long::toString).collect(Collectors.joining(",")));
-        params.put("access_token", vkAccessToken);
-        params.put("v", "5.199");
-        var result = call("messages.getConversationsById", params, GetConversationsCallApiResult.class);
-        validateApiResponse(result);
-        return result.response.items;
+        val params = HashMap<String, String>()
+        params["peer_ids"] =
+            Arrays.stream(peerIds).mapToObj { i: Long -> i.toString() }.collect(Collectors.joining(","))
+        params["access_token"] = vkAccessToken
+        params["v"] = "5.199"
+        val result = call("messages.getConversationsById", params, GetConversationsCallApiResult::class.java)
+        validateApiResponse(result)
+        return result.response?.items ?: listOf()
     }
 
-    @Cacheable(value = "VkApiService.getUser")
-    public VkUserDto getUser(long userId) {
-        var users = getUsers(userId);
-        if (users.isEmpty()) {
-            throw new RuntimeException("VK user not found by id " + userId);
+    @Cacheable(value = ["VkApiService.getUser"])
+    fun getUser(userId: Long): VkUserDto {
+        val users = getUsers(userId)
+        if (users!!.isEmpty()) {
+            throw RuntimeException("VK user not found by id $userId")
         }
-        return users.get(0);
+        return users[0]
     }
 
-    @Cacheable(value = "VkApiService.getUsers")
-    public List<VkUserDto> getUsers(long... userIds) {
-        if (userIds.length == 0) {
-            return List.of();
+    @Cacheable(value = ["VkApiService.getUsers"])
+    fun getUsers(vararg userIds: Long): List<VkUserDto>? {
+        if (userIds.size == 0) {
+            return listOf()
         }
-        var accessToken = sessionService.requireSession().vkAccessToken();
-        var params = new HashMap<String, String>();
-        params.put("user_ids", Arrays.stream(userIds).mapToObj(Long::toString).collect(Collectors.joining(",")));
-        params.put("fields", "photo_200");
-        params.put("lang", "ru");
-        params.put("v", "5.199");
-        params.put("access_token", accessToken);
-        var result = call("users.get", params, GetUsersCallApiResult.class);
-        validateApiResponse(result);
-        return result.response;
+        val accessToken = sessionService.requireSession().vkAccessToken
+        val params = HashMap<String, String>()
+        params["user_ids"] =
+            Arrays.stream(userIds).mapToObj { i: Long -> i.toString() }.collect(Collectors.joining(","))
+        params["fields"] = "photo_200"
+        params["lang"] = "ru"
+        params["v"] = "5.199"
+        params["access_token"] = accessToken
+        val result = call("users.get", params, GetUsersCallApiResult::class.java)
+        validateApiResponse(result)
+        return result.response
     }
 
-    public VkSilentTokenExchangeResultDto exchangeSilentTokenToAccessToken(String silentToken, UUID uuid) {
-        var params = new HashMap<String, String>();
-        params.put("access_token", vkAppServiceToken);
-        params.put("token", URLEncoder.encode(silentToken, StandardCharsets.UTF_8));
-        params.put("v", "5.131");
-        params.put("uuid", uuid.toString());
-        var result = call("auth.exchangeSilentAuthToken", params, VkExchangeSilentAuthTokenResponseDto.class);
-        validateApiResponse(result);
-        return result.response;
+    fun exchangeSilentTokenToAccessToken(silentToken: String?, uuid: UUID): VkSilentTokenExchangeResultDto {
+        val params = HashMap<String, String>()
+        params["access_token"] = vkAppServiceToken
+        params["token"] = URLEncoder.encode(silentToken, StandardCharsets.UTF_8)
+        params["v"] = "5.131"
+        params["uuid"] = uuid.toString()
+        val result = call("auth.exchangeSilentAuthToken", params, VkExchangeSilentAuthTokenResponseDto::class.java)
+        validateApiResponse(result)
+        return result.response!!
     }
 
-    private <T> T call(String method, Map<String, String> params, Class<T> responseType) {
-        log.info("VK API call: " + method);
-        var url = "https://api.vk.com/method/" + method;
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
-        params.forEach(map::add);
-        HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(map, headers);
+    private fun <T> call(method: String, params: Map<String, String>, responseType: Class<T>): T {
+        log.info("VK API call: $method")
+        val url = "https://api.vk.com/method/$method"
+        val headers = HttpHeaders()
+        headers.contentType = MediaType.APPLICATION_FORM_URLENCODED
+        val map: MultiValueMap<String, String> = LinkedMultiValueMap()
+        params.forEach { (key: String, value: String) -> map.add(key, value) }
+        val requestEntity = HttpEntity(map, headers)
         return restTemplate.exchange(
-                url,
-                HttpMethod.POST,
-                requestEntity,
-                responseType
-        ).getBody();
+            url,
+            HttpMethod.POST,
+            requestEntity,
+            responseType
+        ).body
     }
 
-    private void validateApiResponse(VkApiResponseDto result) {
+    private fun validateApiResponse(result: VkApiResponseDto) {
         if (result.error != null) {
-            if (List.of(1116, 5).contains(result.error.errorCode)) {
-                throw new InvalidSessionStateException(
-                        "VK token is invalid, please log in again"
-                );
+            if (listOf(1116, 5).contains(result.error!!.errorCode)) {
+                throw InvalidSessionStateException(
+                    "VK token is invalid, please log in again"
+                )
             }
-            throw new RuntimeException(
-                    "VK API error: code = " + result.error.errorCode + ", message = " + result.error.errorMsg
-            );
+            throw RuntimeException(
+                "VK API error: code = " + result.error!!.errorCode + ", message = " + result.error!!.errorMsg
+            )
         }
     }
 
-    private static class GetConversationsCallApiResult extends VkApiResponseDto  {
+    private class GetConversationsCallApiResult : VkApiResponseDto() {
         @JsonProperty("response")
-        CountAndItems response;
+        var response: CountAndItems? = null
 
-        static class CountAndItems {
+        internal class CountAndItems {
             @JsonProperty("count")
-            long count;
+            var count: Long = 0
 
             @JsonProperty("items")
-            List<VkConversationDto> items;
+            var items: List<VkConversationDto>? = null
         }
     }
 
-    private static class GetUsersCallApiResult extends VkApiResponseDto {
+    private class GetUsersCallApiResult : VkApiResponseDto() {
         @JsonProperty("response")
-        List<VkUserDto> response;
+        var response: List<VkUserDto>? = null
     }
 
-    private static class VkExchangeSilentAuthTokenResponseDto extends VkApiResponseDto {
+    private class VkExchangeSilentAuthTokenResponseDto : VkApiResponseDto() {
         @JsonProperty("response")
-        VkSilentTokenExchangeResultDto response;
+        var response: VkSilentTokenExchangeResultDto? = null
+    }
+
+    companion object {
+        private val log = LoggerFactory.getLogger(VkRestApiService::class.java)
     }
 }

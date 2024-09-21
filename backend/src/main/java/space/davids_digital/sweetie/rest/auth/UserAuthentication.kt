@@ -1,55 +1,38 @@
-package space.davids_digital.sweetie.rest.auth;
+package space.davids_digital.sweetie.rest.auth
 
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import space.davids_digital.sweetie.model.UserSessionModel;
+import org.springframework.security.core.Authentication
+import org.springframework.security.core.GrantedAuthority
+import space.davids_digital.sweetie.model.UserSessionModel
 
-import java.util.Collection;
+class UserAuthentication(val session: UserSessionModel): Authentication {
+    private var authenticated = true
 
-public class UserAuthentication implements Authentication {
-    private final UserSessionModel session;
-    private boolean authenticated = true;
-
-    public UserAuthentication(UserSessionModel session) {
-        this.session = session;
+    override fun getAuthorities(): Collection<GrantedAuthority?>? {
+        return null
     }
 
-    public UserSessionModel getSession() {
-        return session;
+    override fun getCredentials(): Any? {
+        return null
     }
 
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return null;
+    override fun getDetails(): Any? {
+        return null
     }
 
-    @Override
-    public Object getCredentials() {
-        return null;
+    override fun getPrincipal(): Long {
+        return session.userVkId
     }
 
-    @Override
-    public Object getDetails() {
-        return null;
+    override fun isAuthenticated(): Boolean {
+        return authenticated
     }
 
-    @Override
-    public Long getPrincipal() {
-        return session.userVkId();
+    @Throws(IllegalArgumentException::class)
+    override fun setAuthenticated(isAuthenticated: Boolean) {
+        authenticated = isAuthenticated
     }
 
-    @Override
-    public boolean isAuthenticated() {
-        return authenticated;
-    }
-
-    @Override
-    public void setAuthenticated(boolean isAuthenticated) throws IllegalArgumentException {
-        this.authenticated = isAuthenticated;
-    }
-
-    @Override
-    public String getName() {
-        return null;
+    override fun getName(): String? {
+        return null
     }
 }

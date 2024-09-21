@@ -7,7 +7,7 @@ data class VkUserModel(
     val firstNameCached: String,
     val lastNameCached: String,
     val credits: Long,
-    val lastCreditGain: ZonedDateTime,
-    val usagePlanId: String,
+    val lastCreditGain: ZonedDateTime?,
+    val usagePlanId: String?,
     val usagePlanExpiry: ZonedDateTime?
 )

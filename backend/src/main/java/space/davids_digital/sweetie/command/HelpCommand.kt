@@ -1,9 +1,9 @@
 package space.davids_digital.sweetie.command
 
-import com.vk.api.sdk.objects.messages.Message
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Component
 import space.davids_digital.sweetie.integration.vk.VkMessagesService
+import space.davids_digital.sweetie.model.VkMessageModel
 
 @Component
 class HelpCommand(
@@ -28,7 +28,7 @@ class HelpCommand(
         return false
     }
 
-    override suspend fun handle(commandName: String, rawArguments: String, message: Message) {
+    override suspend fun handle(commandName: String, rawArguments: String, message: VkMessageModel) {
         val builder = StringBuilder()
         builder.append("Sweetie AI v$appVersion\n")
         builder.append("Вот что можно сделать:\n")

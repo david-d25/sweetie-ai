@@ -1,34 +1,17 @@
-package space.davids_digital.sweetie.model;
+package space.davids_digital.sweetie.model
 
-import java.time.ZonedDateTime;
-import java.util.UUID;
+import java.time.ZonedDateTime
+import java.util.*
 
-public record UserSessionModel(
-        UUID id,
-        long userVkId,
-        String sessionToken,
-        String vkAccessToken,
-        String vkAccessTokenId,
-        ZonedDateTime validUntil
+data class UserSessionModel(
+    val id: UUID,
+    val userVkId: Long,
+    val sessionToken: String,
+    val vkAccessToken: String,
+    val vkAccessTokenId: String,
+    val validUntil: ZonedDateTime
 ) {
-    public UserSessionModel {
-        if (id == null) {
-            throw new IllegalArgumentException("id is null");
-        }
-        if (userVkId < 0) {
-            throw new IllegalArgumentException("userVkId is negative");
-        }
-        if (sessionToken == null) {
-            throw new IllegalArgumentException("sessionToken is null");
-        }
-        if (vkAccessToken == null) {
-            throw new IllegalArgumentException("vkAccessToken is null");
-        }
-        if (vkAccessTokenId == null) {
-            throw new IllegalArgumentException("vkAccessTokenId is null");
-        }
-        if (validUntil == null) {
-            throw new IllegalArgumentException("validUntil is null");
-        }
+    init {
+        require(userVkId >= 0) { "userVkId is negative" }
     }
 }

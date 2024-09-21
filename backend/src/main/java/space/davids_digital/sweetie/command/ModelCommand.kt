@@ -1,12 +1,12 @@
 package space.davids_digital.sweetie.command
 
-import com.vk.api.sdk.objects.messages.Message
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import space.davids_digital.sweetie.integration.openai.OpenAiService
 import space.davids_digital.sweetie.integration.vk.VkMessagesService
+import space.davids_digital.sweetie.model.VkMessageModel
 import space.davids_digital.sweetie.service.ChatSettingsService
 
 @Component
@@ -35,7 +35,7 @@ class ModelCommand(
         return false
     }
 
-    override suspend fun handle(commandName: String, rawArguments: String, message: Message) {
+    override suspend fun handle(commandName: String, rawArguments: String, message: VkMessageModel) {
         val subCommand = rawArguments.split(" ")[0]
         val subArguments = rawArguments.substring(subCommand.length).trim()
         when (subCommand) {
@@ -46,13 +46,13 @@ class ModelCommand(
         }
     }
 
-    private fun handleShow(message: Message) {
+    private fun handleShow(message: VkMessageModel) {
         val settings = chatSettingsService.getOrCreateDefault(message.peerId)
         val model = settings.gptModel
         vkMessagesService.send(message.peerId, "Использую модель '$model'")
     }
 
-    private suspend fun handleList(message: Message) {
+    private suspend fun handleList(message: VkMessageModel) {
         val models = openAiService.getAvailableGptOnlyModels()
         val builder = StringBuilder()
         builder.append("Модели:\n")
@@ -62,7 +62,7 @@ class ModelCommand(
         vkMessagesService.send(message.peerId, builder.toString())
     }
 
-    private suspend fun handleSet(message: Message, modelId: String) {
+    private suspend fun handleSet(message: VkMessageModel, modelId: String) {
         if (modelId.isBlank()) {
             handleHelp(message)
             return
@@ -79,7 +79,7 @@ class ModelCommand(
         vkMessagesService.send(message.peerId, "Ок")
     }
 
-    private fun handleHelp(message: Message) {
+    private fun handleHelp(message: VkMessageModel) {
         val text = """
             Команды:
             /sweet model

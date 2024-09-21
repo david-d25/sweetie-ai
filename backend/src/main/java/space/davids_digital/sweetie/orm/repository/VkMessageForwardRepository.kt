@@ -1,0 +1,7 @@
+package space.davids_digital.sweetie.orm.repository
+
+import org.springframework.data.repository.CrudRepository
+import space.davids_digital.sweetie.orm.entity.VkMessageForwardEntity
+import space.davids_digital.sweetie.orm.entity.VkMessageForwardEntityId
+
+interface VkMessageForwardRepository: CrudRepository<VkMessageForwardEntity, VkMessageForwardEntityId>

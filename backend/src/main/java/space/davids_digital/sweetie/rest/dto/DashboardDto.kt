@@ -1,15 +1,13 @@
-package space.davids_digital.sweetie.rest.dto;
+package space.davids_digital.sweetie.rest.dto
 
-import java.util.List;
-
-public record DashboardDto(
-        UserDto user,
-        List<Chat> chats
+data class DashboardDto(
+    val user: UserDto,
+    val chats: List<Chat>
 ) {
-    public record Chat(
-            long peerId,
-            String title,
-            String pictureUrl,
-            boolean botEnabled
-    ) {}
+    data class Chat(
+        val peerId: Long,
+        val title: String,
+        val pictureUrl: String,
+        val botEnabled: Boolean
+    )
 }

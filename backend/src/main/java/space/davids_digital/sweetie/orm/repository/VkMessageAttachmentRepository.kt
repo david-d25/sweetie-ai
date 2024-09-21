@@ -1,0 +1,7 @@
+package space.davids_digital.sweetie.orm.repository
+
+import org.springframework.data.repository.CrudRepository
+import space.davids_digital.sweetie.orm.entity.VkMessageAttachmentEntity
+import space.davids_digital.sweetie.orm.entity.VkMessageAttachmentEntityId
+
+interface VkMessageAttachmentRepository: CrudRepository<VkMessageAttachmentEntity, VkMessageAttachmentEntityId>

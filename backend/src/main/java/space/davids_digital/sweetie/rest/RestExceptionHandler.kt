@@ -1,34 +1,33 @@
-package space.davids_digital.sweetie.rest;
+package space.davids_digital.sweetie.rest
 
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.MissingServletRequestParameterException;
-import org.springframework.web.bind.annotation.ControllerAdvice;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.context.request.WebRequest;
-import space.davids_digital.sweetie.service.exception.ValidationException;
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.MissingServletRequestParameterException
+import org.springframework.web.bind.annotation.ControllerAdvice
+import org.springframework.web.bind.annotation.ExceptionHandler
+import org.springframework.web.context.request.WebRequest
+import space.davids_digital.sweetie.service.exception.ValidationException
 
 @ControllerAdvice
-public class RestExceptionHandler {
-    @ExceptionHandler(MissingServletRequestParameterException.class)
-    public ResponseEntity<String> handleMissingParameters(MissingServletRequestParameterException ex) {
-        String name = ex.getParameterName();
+class RestExceptionHandler {
+    @ExceptionHandler(MissingServletRequestParameterException::class)
+    fun handleMissingParameters(ex: MissingServletRequestParameterException): ResponseEntity<String> {
         return ResponseEntity
-                .badRequest()
-                .body(String.format("'%s' parameter is missing", name));
+            .badRequest()
+            .body("'${ex.parameterName}' parameter is missing")
     }
 
-    @ExceptionHandler(ValidationException.class)
-    public ResponseEntity<String> handleValidationException(ValidationException ex, WebRequest request) {
+    @ExceptionHandler(ValidationException::class)
+    fun handleValidationException(ex: ValidationException, request: WebRequest): ResponseEntity<String> {
         return ResponseEntity
-                .badRequest()
-                .body(String.format("Validation failed: " + ex.getMessage()));
+            .badRequest()
+            .body("Validation failed: ${ex.message}")
     }
 
-    @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<String> handleInvalidSessionStateException(ValidationException ex, WebRequest request) {
+    @ExceptionHandler(IllegalStateException::class)
+    fun handleInvalidSessionStateException(ex: ValidationException, request: WebRequest): ResponseEntity<String> {
         return ResponseEntity
-                .status(HttpStatus.FORBIDDEN)
-                .body(String.format("Invalid session state: " + ex.getMessage()));
+            .status(HttpStatus.FORBIDDEN)
+            .body("Invalid session state: ${ex.message}")
     }
 }

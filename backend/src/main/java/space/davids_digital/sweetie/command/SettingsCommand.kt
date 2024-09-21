@@ -1,10 +1,10 @@
 package space.davids_digital.sweetie.command
 
-import com.vk.api.sdk.objects.messages.Message
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.springframework.stereotype.Component
 import space.davids_digital.sweetie.integration.vk.VkMessagesService
+import space.davids_digital.sweetie.model.VkMessageModel
 import space.davids_digital.sweetie.service.ChatSettingsService
 
 @Component
@@ -28,7 +28,7 @@ class SettingsCommand(
         return false
     }
 
-    override suspend fun handle(commandName: String, rawArguments: String, message: Message) {
+    override suspend fun handle(commandName: String, rawArguments: String, message: VkMessageModel) {
         val subCommand = rawArguments.split(" ")[0]
         val rest = rawArguments.substring(subCommand.length).trim()
         when (subCommand) {
@@ -38,7 +38,7 @@ class SettingsCommand(
         }
     }
 
-    private fun handleDefault(message: Message) {
+    private fun handleDefault(message: VkMessageModel) {
         val settings = chatSettingsService.getOrCreateDefault(message.peerId)
         with(settings) {
             vkMessagesService.send(message.peerId, """
@@ -55,7 +55,7 @@ class SettingsCommand(
         }
     }
 
-    private suspend fun handleSet(message: Message, rest: String) {
+    private suspend fun handleSet(message: VkMessageModel, rest: String) {
         if (rest.isBlank()) {
             handleHelp(message)
             return
@@ -122,7 +122,7 @@ class SettingsCommand(
         vkMessagesService.send(message.peerId, "Ок")
     }
 
-    private fun handleHelp(message: Message) {
+    private fun handleHelp(message: VkMessageModel) {
         vkMessagesService.send(message.peerId, """
             Команды:
             /sweet settings

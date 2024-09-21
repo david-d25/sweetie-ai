@@ -1,10 +1,10 @@
 package space.davids_digital.sweetie.command
 
-import com.vk.api.sdk.objects.messages.Message
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.springframework.stereotype.Component
 import space.davids_digital.sweetie.integration.vk.VkMessagesService
+import space.davids_digital.sweetie.model.VkMessageModel
 import space.davids_digital.sweetie.service.ChatSettingsService
 
 @Component
@@ -28,7 +28,7 @@ class EnableCommand(
         return false
     }
 
-    override suspend fun handle(commandName: String, rawArguments: String, message: Message) {
+    override suspend fun handle(commandName: String, rawArguments: String, message: VkMessageModel) {
         withContext(Dispatchers.IO) {
             chatSettingsService.updateSettings(message.peerId) { copy(botEnabled = true) }
         }

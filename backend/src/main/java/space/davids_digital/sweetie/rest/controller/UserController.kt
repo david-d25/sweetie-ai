@@ -21,25 +21,23 @@ class UserController @Autowired constructor(
     private val usagePlanDtoMapper: UsagePlanDtoMapper,
     private val vkUserOrmService: VkUserOrmService
 ) {
-    // todo
-    @get:ResponseBody
-    @get:GetMapping
-    val currentUser: UserDto
-        get() {
-            val session = sessionService.requireSession()
-            val userVkId = session.userVkId
-            val user = vkUserOrmService.getById(userVkId)
-            val usagePlan = usagePlanOrmService.getOrDefault(user!!.usagePlanId, "default")
-            val vkUser = vkRestApiService.getUser(userVkId)
-            return UserDto(
-                userVkId,
-                vkUser.firstName,
-                vkUser.lastName,
-                user.credits,
-                vkUser.photo200,
-                user.lastCreditGain,
-                usagePlanDtoMapper.modelToDto(usagePlan!!),
-                user.usagePlanExpiry
-            )
-        }
+    @GetMapping
+    @ResponseBody
+    fun getCurrentUser(): UserDto {
+        val session = sessionService.requireSession()
+        val userVkId = session.userVkId
+        val user = vkUserOrmService.getById(userVkId)
+        val usagePlan = usagePlanOrmService.getOrDefault(user!!.usagePlanId, "default")
+        val vkUser = vkRestApiService.getUser(userVkId)
+        return UserDto(
+            userVkId,
+            vkUser.firstName,
+            vkUser.lastName,
+            user.credits,
+            vkUser.photo200,
+            user.lastCreditGain,
+            usagePlanDtoMapper.modelToDto(usagePlan!!),
+            user.usagePlanExpiry
+        )
+    }
 }

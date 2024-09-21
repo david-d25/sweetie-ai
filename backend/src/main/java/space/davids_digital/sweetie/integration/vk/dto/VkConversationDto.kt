@@ -1,206 +1,211 @@
-package space.davids_digital.sweetie.integration.vk.dto;
+package space.davids_digital.sweetie.integration.vk.dto
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty
 
-public class VkConversationDto {
+@Deprecated("Use new API")
+open class VkConversationDto {
     @JsonProperty("peer")
-    public Peer peer;
+    var peer: Peer? = null
 
     @JsonProperty("last_message_id")
-    public long lastMessageId;
+    var lastMessageId: Long = 0
 
     @JsonProperty("last_conversation_message_id")
-    public long lastConversationMessageId;
+    var lastConversationMessageId: Long = 0
 
     @JsonProperty("in_read")
-    public long inRead;
+    var inRead: Long = 0
 
     @JsonProperty("out_read")
-    public long outRead;
+    var outRead: Long = 0
 
     @JsonProperty("in_read_cmid")
-    public long inReadCmid;
+    var inReadCmid: Long = 0
 
     @JsonProperty("out_read_cmid")
-    public long outReadCmid;
+    var outReadCmid: Long = 0
 
     @JsonProperty("version")
-    public long version;
+    var version: Long = 0
 
     @JsonProperty("sort_id")
-    public SortId sortId;
+    var sortId: SortId? = null
 
     @JsonProperty("unread_count")
-    public long unreadCount;
+    var unreadCount: Long = 0
 
     @JsonProperty("is_marked_unread")
-    public boolean isMarkedUnread;
+    var isMarkedUnread = false
 
     @JsonProperty("important")
-    public boolean important;
+    var important = false
 
     @JsonProperty("unanswered")
-    public boolean unanswered;
+    var unanswered = false
 
     @JsonProperty("can_write")
-    public CanWrite canWrite;
+    var canWrite: CanWrite? = null
 
+    @JvmField
     @JsonProperty("chat_settings")
-    public ChatSettings chatSettings;
+    var chatSettings: ChatSettings? = null
 
     @JsonProperty("peer_flags")
-    public long peerFlags;
+    var peerFlags: Long = 0
 
-    public static class ChatSettings {
+    open class ChatSettings {
+        @JvmField
         @JsonProperty("title")
-        public String title;
+        var title: String? = null
 
         @JsonProperty("members_count")
-        public long membersCount;
+        var membersCount: Long = 0
 
         @JsonProperty("owner_id")
-        public long ownerId;
+        var ownerId: Long = 0
 
         @JsonProperty("description")
-        public String description;
+        var description: String? = null
 
         @JsonProperty("pinned_messages_count")
-        public long pinnedMessagesCount;
+        var pinnedMessagesCount: Long = 0
 
         @JsonProperty("state")
-        public String state;
+        var state: String? = null
 
+        @JvmField
         @JsonProperty("photo")
-        public Photo photo;
+        var photo: Photo? = null
 
         @JsonProperty("admin_ids")
-        public long[] adminIds;
+        lateinit var adminIds: LongArray
 
         @JsonProperty("active_ids")
-        public long[] activeIds;
+        lateinit var activeIds: LongArray
 
         @JsonProperty("is_group_channel")
-        public boolean isGroupChannel;
+        var isGroupChannel = false
 
         @JsonProperty("acl")
-        public Acl acl;
+        var acl: Acl? = null
 
         @JsonProperty("permissions")
-        public Permissions permissions;
+        var permissions: Permissions? = null
 
         @JsonProperty("is_disappearing")
-        public boolean isDisappearing;
+        var isDisappearing = false
 
         @JsonProperty("is_service")
-        public boolean isService;
+        var isService = false
 
-        public static class Photo {
+        open class Photo {
             @JsonProperty("photo_50")
-            public String photo50;
+            var photo50: String? = null
 
             @JsonProperty("photo_100")
-            public String photo100;
+            var photo100: String? = null
 
+            @JvmField
             @JsonProperty("photo_200")
-            public String photo200;
+            var photo200: String? = null
 
             @JsonProperty("is_default_photo")
-            public boolean isDefaultPhoto;
+            var isDefaultPhoto = false
 
             @JsonProperty("is_default_call_photo")
-            public boolean isDefaultCallPhoto;
+            var isDefaultCallPhoto = false
         }
 
-        public static class Acl {
+        open class Acl {
             @JsonProperty("can_change_info")
-            public boolean canChangeInfo;
+            var canChangeInfo = false
 
             @JsonProperty("can_change_invite_link")
-            public boolean canChangeInviteLink;
+            var canChangeInviteLink = false
 
             @JsonProperty("can_change_pin")
-            public boolean canChangePin;
+            var canChangePin = false
 
             @JsonProperty("can_invite")
-            public boolean canInvite;
+            var canInvite = false
 
             @JsonProperty("can_promote_users")
-            public boolean canPromoteUsers;
+            var canPromoteUsers = false
 
             @JsonProperty("can_see_invite_link")
-            public boolean canSeeInviteLink;
+            var canSeeInviteLink = false
 
             @JsonProperty("can_moderate")
-            public boolean canModerate;
+            var canModerate = false
 
             @JsonProperty("can_copy_chat")
-            public boolean canCopyChat;
+            var canCopyChat = false
 
             @JsonProperty("can_call")
-            public boolean canCall;
+            var canCall = false
 
             @JsonProperty("can_use_mass_mentions")
-            public boolean canUseMassMentions;
+            var canUseMassMentions = false
 
             @JsonProperty("can_change_style")
-            public boolean canChangeStyle;
+            var canChangeStyle = false
 
             @JsonProperty("can_send_reactions")
-            public boolean canSendReactions;
+            var canSendReactions = false
 
             @JsonProperty("can_change_stickers_popup_autoplay")
-            public boolean canChangeStickersPopupAutoplay;
+            var canChangeStickersPopupAutoplay = false
         }
 
-        public static class Permissions {
+        open class Permissions {
             @JsonProperty("invite")
-            public String invite;
+            var invite: String? = null
 
             @JsonProperty("change_info")
-            public String changeInfo;
+            var changeInfo: String? = null
 
             @JsonProperty("change_pin")
-            public String changePin;
+            var changePin: String? = null
 
             @JsonProperty("use_mass_mentions")
-            public String useMassMentions;
+            var useMassMentions: String? = null
 
             @JsonProperty("see_invite_link")
-            public String seeInviteLink;
+            var seeInviteLink: String? = null
 
             @JsonProperty("call")
-            public String call;
+            var call: String? = null
 
             @JsonProperty("change_admins")
-            public String changeAdmins;
+            var changeAdmins: String? = null
 
             @JsonProperty("change_style")
-            public String changeStyle;
+            var changeStyle: String? = null
         }
     }
 
-    public static class CanWrite {
+    open class CanWrite {
         @JsonProperty("allowed")
-        public boolean allowed;
+        var allowed = false
     }
 
-
-    public static class SortId {
+    open class SortId {
         @JsonProperty("major_id")
-        public long majorId;
+        var majorId: Long = 0
 
         @JsonProperty("minor_id")
-        public long minorId;
+        var minorId: Long = 0
     }
 
-    public static class Peer {
+    open class Peer {
+        @JvmField
         @JsonProperty("id")
-        public long id;
+        var id: Long = 0
 
         @JsonProperty("type")
-        public String type;
+        var type: String? = null
 
         @JsonProperty("local_id")
-        public long localId;
+        var localId: Long = 0
     }
 }

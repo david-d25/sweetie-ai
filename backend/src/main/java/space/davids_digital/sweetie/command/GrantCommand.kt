@@ -1,12 +1,12 @@
 package space.davids_digital.sweetie.command
 
-import com.vk.api.sdk.objects.messages.Message
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import space.davids_digital.sweetie.integration.vk.VkMessagesService
 import space.davids_digital.sweetie.integration.vk.VkUtils
+import space.davids_digital.sweetie.model.VkMessageModel
 import space.davids_digital.sweetie.orm.repository.UsagePlanRepository
 import space.davids_digital.sweetie.orm.repository.VkUserRepository
 import java.time.ZonedDateTime
@@ -37,7 +37,7 @@ class GrantCommand(
         return true
     }
 
-    override suspend fun handle(commandName: String, rawArguments: String, message: Message) {
+    override suspend fun handle(commandName: String, rawArguments: String, message: VkMessageModel) {
         if (rawArguments.isBlank()) {
             return handleHelp(message)
         }
@@ -48,7 +48,7 @@ class GrantCommand(
 
         var memberId = VkUtils.extractMemberId(rest)
         if (memberId == null) {
-            memberId = message.replyMessage?.fromId
+            memberId = message.forwardedMessages.firstOrNull()?.fromId
         }
         if (memberId == null) {
             return handleHelp(message)
@@ -72,7 +72,7 @@ class GrantCommand(
         vkMessagesService.send(message.peerId, "$userTag получаешь Sweetie AI $planId $expiryText") // todo use plan title
     }
 
-    private fun handleHelp(message: Message) {
+    private fun handleHelp(message: VkMessageModel) {
         val text = """
             Так пиши:
             /sweet grant (plan)[:days] [user]

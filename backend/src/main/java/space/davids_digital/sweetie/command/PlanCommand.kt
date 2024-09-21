@@ -1,8 +1,8 @@
 package space.davids_digital.sweetie.command
 
-import com.vk.api.sdk.objects.messages.Message
 import org.springframework.stereotype.Component
 import space.davids_digital.sweetie.integration.vk.VkMessagesService
+import space.davids_digital.sweetie.model.VkMessageModel
 import space.davids_digital.sweetie.orm.service.UsagePlanOrmService
 import space.davids_digital.sweetie.orm.service.VkUserOrmService
 import java.time.format.DateTimeFormatter
@@ -31,7 +31,7 @@ class PlanCommand(
         return true
     }
 
-    override suspend fun handle(commandName: String, rawArguments: String, message: Message) {
+    override suspend fun handle(commandName: String, rawArguments: String, message: VkMessageModel) {
         val subCommand = rawArguments.split(" ")[0]
         when (subCommand) {
             "" -> handleDefault(message)
@@ -41,7 +41,7 @@ class PlanCommand(
         }
     }
 
-    private fun handleDefault(message: Message) {
+    private fun handleDefault(message: VkMessageModel) {
         val user = vkUserOrmService.getById(message.fromId) ?: throw CommandException("Пользователь не найден")
         val plan = usagePlanOrmService.getOrDefault(user.usagePlanId, "default")
         val planTitle = plan?.title ?: "(no plan)"
@@ -69,7 +69,7 @@ class PlanCommand(
         vkMessagesService.send(message.peerId, builder.toString())
     }
 
-    private fun handleList(message: Message) {
+    private fun handleList(message: VkMessageModel) {
         val plans = usagePlanOrmService.findAll()
             .filter { it.visible }
             .sortedBy { it.creditGainAmount.toDouble()/it.creditGainPeriodSeconds }
@@ -82,7 +82,7 @@ class PlanCommand(
         vkMessagesService.send(message.peerId, builder.toString())
     }
 
-    private fun handleHelp(message: Message) {
+    private fun handleHelp(message: VkMessageModel) {
         val text = """
             Команды:
             /sweet plan

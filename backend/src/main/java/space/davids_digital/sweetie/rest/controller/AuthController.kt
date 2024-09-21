@@ -1,95 +1,84 @@
-package space.davids_digital.sweetie.rest.controller;
+package space.davids_digital.sweetie.rest.controller
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.json.JsonMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseCookie;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import space.davids_digital.sweetie.integration.vk.VkAuthService;
-
-import java.net.URI;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
-import java.time.ZonedDateTime;
-import java.util.UUID;
-
-import static space.davids_digital.sweetie.rest.CookieName.AUTH_TOKEN;
-import static space.davids_digital.sweetie.rest.CookieName.USER_VK_ID;
+import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.databind.json.JsonMapper
+import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseCookie
+import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.*
+import space.davids_digital.sweetie.integration.vk.VkAuthService
+import space.davids_digital.sweetie.rest.CookieName.AUTH_TOKEN
+import space.davids_digital.sweetie.rest.CookieName.USER_VK_ID
+import java.net.URI
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
+import java.time.ZonedDateTime
+import java.util.*
 
 @RestController
 @RequestMapping("/auth")
-public class AuthController {
-    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
-
-    private final VkAuthService vkAuthService;
-    private final String frontendBasePath;
-    private final String cookiesDomain;
-    private final String frontendHost;
-
-    public AuthController(
-            VkAuthService vkAuthService,
-            @Qualifier("frontendBasePath") String frontendBasePath,
-            @Qualifier("cookiesDomain") String cookiesDomain,
-            @Qualifier("frontendHost") String frontendHost
-    ) {
-        this.vkAuthService = vkAuthService;
-        this.frontendBasePath = frontendBasePath;
-        this.cookiesDomain = cookiesDomain;
-        this.frontendHost = frontendHost;
+class AuthController(
+    private val vkAuthService: VkAuthService,
+    @Qualifier("frontendBasePath")
+    private val frontendBasePath: String,
+    @Qualifier("cookiesDomain")
+    private val cookiesDomain: String,
+    @Qualifier("frontendHost")
+    private val frontendHost: String
+) {
+    companion object {
+        private val log = LoggerFactory.getLogger(AuthController::class.java)
     }
 
     @GetMapping("vk-id")
     @ResponseBody
-    public ResponseEntity<?> authVkId(
-            @RequestParam("payload") String payload,
-            @RequestParam("state") String state
-    ) {
-        try {
-            var mapper = new JsonMapper();
-            mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-            var decodedPayload = URLDecoder.decode(payload, StandardCharsets.UTF_8);
-            var dto = mapper.readValue(decodedPayload, VkAuthRedirectPayloadDto.class);
-            var userSession = vkAuthService.createSessionFromSilentToken(dto.token, dto.uuid);
-            var sessionToken = userSession.sessionToken();
-            var userVkId = userSession.userVkId();
-            var url = URI.create(frontendHost + "/").resolve(frontendBasePath + "/").resolve("login");
-
-            var maxAge = userSession.validUntil().minusSeconds(ZonedDateTime.now().toEpochSecond()).toEpochSecond();
-            var sessionTokenCookie = ResponseCookie.from(AUTH_TOKEN, sessionToken)
-                    .httpOnly(true)
-                    .secure(true)
-                    .sameSite("Strict")
-                    .domain(cookiesDomain)
-                    .maxAge(maxAge)
-                    .path("/")
-                    .build();
-            var userVkIdCookie = ResponseCookie.from(USER_VK_ID, Long.toString(userVkId))
-                    .secure(true)
-                    .sameSite("Strict")
-                    .domain(cookiesDomain)
-                    .maxAge(maxAge)
-                    .path("/")
-                    .build();
-
-            return ResponseEntity.status(HttpStatus.TEMPORARY_REDIRECT)
-                    .location(url)
-                    .header(HttpHeaders.SET_COOKIE, sessionTokenCookie.toString())
-                    .header(HttpHeaders.SET_COOKIE, userVkIdCookie.toString())
-                    .build();
-        } catch (Exception e) {
-            log.error("Failed to authenticate", e);
-            var url = URI.create(frontendHost + "/").resolve(frontendBasePath + "/").resolve("login?status=error");
-            return ResponseEntity.status(HttpStatus.TEMPORARY_REDIRECT).location(url).build();
+    fun authVkId(
+        @RequestParam("payload") payload: String,
+        @RequestParam("state") state: String
+    ): ResponseEntity<*> {
+        return try {
+            val mapper = JsonMapper()
+            mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            val decodedPayload = URLDecoder.decode(payload, StandardCharsets.UTF_8)
+            val dto = mapper.readValue(decodedPayload, VkAuthRedirectPayloadDto::class.java)
+            val (_, userVkId, sessionToken, _, _, validUntil) = vkAuthService.createSessionFromSilentToken(
+                dto.token,
+                dto.uuid
+            )
+            val url = URI.create("$frontendHost/").resolve("$frontendBasePath/").resolve("login")
+            val maxAge = validUntil.minusSeconds(ZonedDateTime.now().toEpochSecond()).toEpochSecond()
+            val sessionTokenCookie = ResponseCookie.from(AUTH_TOKEN, sessionToken)
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("Strict")
+                .domain(cookiesDomain)
+                .maxAge(maxAge)
+                .path("/")
+                .build()
+            val userVkIdCookie = ResponseCookie.from(USER_VK_ID, userVkId.toString())
+                .secure(true)
+                .sameSite("Strict")
+                .domain(cookiesDomain)
+                .maxAge(maxAge)
+                .path("/")
+                .build()
+            ResponseEntity.status(HttpStatus.TEMPORARY_REDIRECT)
+                .location(url)
+                .header(HttpHeaders.SET_COOKIE, sessionTokenCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, userVkIdCookie.toString())
+                .build<Any>()
+        } catch (e: Exception) {
+            log.error("Failed to authenticate", e)
+            val url = URI.create("$frontendHost/").resolve("$frontendBasePath/").resolve("login?status=error")
+            ResponseEntity.status(HttpStatus.TEMPORARY_REDIRECT).location(url).build<Any>()
         }
     }
 
-    private static class VkAuthRedirectPayloadDto {
-        public String token;
-        public UUID uuid;
-    }
+    private data class VkAuthRedirectPayloadDto (
+        var token: String = "",
+        var uuid: UUID = UUID.fromString("00000000-0000-0000-0000-000000000000")
+    )
 }

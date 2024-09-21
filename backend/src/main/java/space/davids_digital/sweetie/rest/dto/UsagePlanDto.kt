@@ -1,10 +1,10 @@
-package space.davids_digital.sweetie.rest.dto;
+package space.davids_digital.sweetie.rest.dto
 
-public record UsagePlanDto(
-        String id,
-        String title,
-        long maxCredits,
-        long creditGainAmount,
-        long creditGainPeriodSeconds,
-        boolean visible
-) {}
+data class UsagePlanDto(
+    val id: String,
+    val title: String,
+    val maxCredits: Long,
+    val creditGainAmount: Long,
+    val creditGainPeriodSeconds: Long,
+    val visible: Boolean
+)

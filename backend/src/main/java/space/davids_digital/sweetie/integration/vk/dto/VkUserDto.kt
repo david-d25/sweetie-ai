@@ -1,23 +1,24 @@
-package space.davids_digital.sweetie.integration.vk.dto;
+package space.davids_digital.sweetie.integration.vk.dto
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty
 
-public class VkUserDto {
+@Deprecated("Use new API")
+open class VkUserDto {
     @JsonProperty("id")
-    public long id;
+    var id: Long = 0
 
     @JsonProperty("first_name")
-    public String firstName;
+    var firstName: String? = null
 
     @JsonProperty("last_name")
-    public String lastName;
+    var lastName: String? = null
 
     @JsonProperty("is_closed")
-    public boolean isClosed;
+    var isClosed = false
 
     @JsonProperty("can_access_closed")
-    public boolean canAccessClosed;
+    var canAccessClosed = false
 
     @JsonProperty("photo_200")
-    public String photo200;
+    var photo200: String? = null
 }

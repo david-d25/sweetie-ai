@@ -1,56 +1,56 @@
-package space.davids_digital.sweetie.orm.entity;
+package space.davids_digital.sweetie.orm.entity
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.Column
+import jakarta.persistence.Entity
+import jakarta.persistence.Id
+import jakarta.persistence.Table
 
 @Entity
 @Table(name = "chat_settings")
-public class ChatSettingsEntity {
+class ChatSettingsEntity {
     @Id
     @Column(name = "peer_id")
-    public long peerId;
+    var peerId: Long = 0
 
-    @Column(name = "name")
-    public String name;
+    @Column(name = "name", columnDefinition = "text")
+    var name: String? = null
 
-    @Column(name = "context")
-    public String context;
+    @Column(name = "context", columnDefinition = "text")
+    var context: String? = null
 
-    @Column(name = "memory")
-    public String memory;
+    @Column(name = "memory", columnDefinition = "text")
+    var memory: String? = null
 
     @Column(name = "gpt_max_input_tokens")
-    public int gptMaxInputTokens;
+    var gptMaxInputTokens = 0
 
     @Column(name = "gpt_max_output_tokens")
-    public int gptMaxOutputTokens;
+    var gptMaxOutputTokens = 0
 
     @Column(name = "gpt_temperature")
-    public double gptTemperature;
+    var gptTemperature = 0.0
 
     @Column(name = "gpt_top_p")
-    public double gptTopP;
+    var gptTopP = 0.0
 
     @Column(name = "gpt_frequency_penalty")
-    public double gptFrequencyPenalty;
+    var gptFrequencyPenalty = 0.0
 
     @Column(name = "gpt_presence_penalty")
-    public double gptPresencePenalty;
+    var gptPresencePenalty = 0.0
 
     @Column(name = "bot_enabled")
-    public boolean botEnabled;
+    var botEnabled = false
 
-    @Column(name = "gpt_model")
-    public String gptModel;
+    @Column(name = "gpt_model", columnDefinition = "text")
+    var gptModel: String = ""
 
     @Column(name = "process_audio_messages")
-    public boolean processAudioMessages;
+    var processAudioMessages = false
 
-    @Column(name = "tts_voice")
-    public String ttsVoice;
+    @Column(name = "tts_voice", columnDefinition = "text")
+    var ttsVoice: String = ""
 
     @Column(name = "tts_speed")
-    public double ttsSpeed;
+    var ttsSpeed = 0.0
 }

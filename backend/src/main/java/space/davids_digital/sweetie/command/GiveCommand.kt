@@ -1,12 +1,12 @@
 package space.davids_digital.sweetie.command
 
-import com.vk.api.sdk.objects.messages.Message
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import space.davids_digital.sweetie.integration.vk.VkMessagesService
 import space.davids_digital.sweetie.integration.vk.VkUtils
+import space.davids_digital.sweetie.model.VkMessageModel
 import space.davids_digital.sweetie.orm.repository.VkUserRepository
 
 @Component
@@ -34,7 +34,7 @@ class GiveCommand(
         return true
     }
 
-    override suspend fun handle(commandName: String, rawArguments: String, message: Message) {
+    override suspend fun handle(commandName: String, rawArguments: String, message: VkMessageModel) {
         if (rawArguments.isBlank()) {
             return handleHelp(message)
         }
@@ -48,8 +48,8 @@ class GiveCommand(
             if (memberId == null) {
                 return vkMessagesService.send(message.peerId, "Не могу найти участника")
             }
-        } else if (message.replyMessage != null) {
-            memberId = message.replyMessage.fromId!!
+        } else if (message.forwardedMessages.size == 1) {
+            memberId = message.forwardedMessages.first().fromId
         } else {
             return handleHelp(message)
         }
@@ -61,7 +61,7 @@ class GiveCommand(
         vkMessagesService.send(message.peerId, "✨ Выдаю $creditsAmount кредитов")
     }
 
-    private fun handleHelp(message: Message) {
+    private fun handleHelp(message: VkMessageModel) {
         vkMessagesService.send(message.peerId, """
             Так пиши:
             /sweet give (credits_amount) (user)

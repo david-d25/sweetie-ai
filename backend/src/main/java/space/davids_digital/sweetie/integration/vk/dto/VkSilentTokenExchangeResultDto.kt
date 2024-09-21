@@ -1,32 +1,33 @@
-package space.davids_digital.sweetie.integration.vk.dto;
+package space.davids_digital.sweetie.integration.vk.dto
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty
 
-public class VkSilentTokenExchangeResultDto {
+@Deprecated("Use new API")
+open class VkSilentTokenExchangeResultDto {
     @JsonProperty("access_token")
-    public String accessToken;
+    var accessToken: String? = null
 
     @JsonProperty("access_token_id")
-    public String accessTokenId;
+    var accessTokenId: String? = null
 
     @JsonProperty("user_id")
-    public long userId;
+    var userId: Long = 0
 
     @JsonProperty("additional_signup_required")
-    public boolean additionalSignupRequired;
+    var additionalSignupRequired = false
 
     @JsonProperty("is_partial")
-    public boolean isPartial;
+    var isPartial = false
 
     @JsonProperty("is_service")
-    public boolean isService;
+    var isService = false
 
     @JsonProperty("source")
-    public long source;
+    var source: Long = 0
 
     @JsonProperty("source_description")
-    public String sourceDescription;
+    var sourceDescription: String? = null
 
     @JsonProperty("expires_in")
-    public long expiresIn;
+    var expiresIn: Long = 0
 }

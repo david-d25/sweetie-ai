@@ -13,6 +13,7 @@ import space.davids_digital.sweetie.command.CommandException
 import space.davids_digital.sweetie.command.CommandRegistry
 import space.davids_digital.sweetie.command.EnableCommand
 import space.davids_digital.sweetie.integration.vk.VkMessagesService
+import space.davids_digital.sweetie.model.VkMessageModel
 import space.davids_digital.sweetie.orm.repository.AppCeoRepository
 import space.davids_digital.sweetie.orm.repository.ChatAdminRepository
 
@@ -52,9 +53,9 @@ class BotService @Autowired constructor(
         })
     }
 
-    private fun onNewMessage(message: Message) {
+    private fun onNewMessage(message: VkMessageModel) {
         log.debug("Received a message")
-        if (message.text.trim().startsWith(COMMAND_TRIGGER_WORD)) {
+        if (message.text?.trim()?.startsWith(COMMAND_TRIGGER_WORD) == true) {
             processCommandMessage(message)
         } else if (isPrivateMessagePeerId(message.peerId)) {
             processPrivateMessage(message)
@@ -65,7 +66,7 @@ class BotService @Autowired constructor(
         }
     }
 
-    private fun processCommandMessage(message: Message) {
+    private fun processCommandMessage(message: VkMessageModel) {
         try {
             processCommandMessageUnsafe(message)
         } catch (e: Exception) {
@@ -74,12 +75,12 @@ class BotService @Autowired constructor(
         }
     }
 
-    fun processCommandMessageUnsafe(message: Message) {
+    fun processCommandMessageUnsafe(message: VkMessageModel) {
         log.info("Received a command message from peerId=${message.peerId}")
         val peerId = message.peerId
         val fromId = message.fromId
         val chatSettings = chatSettingsService.getOrCreateDefault(peerId)
-        val text = message.text.trim().removePrefix(COMMAND_TRIGGER_WORD).trim()
+        val text = message.text?.trim()?.removePrefix(COMMAND_TRIGGER_WORD)?.trim() ?: ""
         val commandName = text.split(" ").firstOrNull() ?: ""
         val argumentsRaw = text.removePrefix(commandName).trim()
         val commands = commandRegistry.getCommands()
@@ -110,31 +111,31 @@ class BotService @Autowired constructor(
         }
     }
 
-    private fun processPrivateMessage(message: Message) {
+    private fun processPrivateMessage(message: VkMessageModel) {
         log.info("Received a private message from peerId=${message.peerId}")
         return TODO()
     }
 
-    private fun processTaggingMessage(message: Message) {
+    private fun processTaggingMessage(message: VkMessageModel) {
         log.info("Received a tagging message from peerId=${message.peerId}")
         return TODO()
     }
 
-    private fun processAudioMessage(message: Message) {
+    private fun processAudioMessage(message: VkMessageModel) {
         log.info("Received an audio message from peerId=${message.peerId}")
         return TODO()
     }
 
-    private fun handleUnknownCommand(message: Message) {
-        // Maybe try funding similar?
+    private fun handleUnknownCommand(message: VkMessageModel) {
+        // Maybe try finding similar?
         vkMessagesService.send(message.peerId, "Не знаю эту команду.\nПиши /sweet help")
     }
 
-    private fun hasAudioMessage(message: Message): Boolean {
-        return message.attachments.any { it.type == MessageAttachmentType.AUDIO_MESSAGE }
+    private fun hasAudioMessage(message: VkMessageModel): Boolean {
+        return message.attachmentDtos.any { it.type == MessageAttachmentType.AUDIO_MESSAGE }
     }
 
-    private fun isSweetieTagged(message: Message): Boolean {
-        return message.text.contains(Regex("\\[club${vkGroupId}|.*]"))
+    private fun isSweetieTagged(message: VkMessageModel): Boolean {
+        return message.text?.contains(Regex("\\[club${vkGroupId}|.*]")) == true
     }
 }

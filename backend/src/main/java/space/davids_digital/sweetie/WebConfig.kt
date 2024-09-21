@@ -1,166 +1,173 @@
-package space.davids_digital.sweetie;
+package space.davids_digital.sweetie
 
-import com.vk.api.sdk.client.VkApiClient;
-import com.vk.api.sdk.client.actors.GroupActor;
-import com.vk.api.sdk.httpclient.HttpTransportClient;
-import jakarta.annotation.PostConstruct;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.SpringBootConfiguration;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
-import org.springframework.boot.web.servlet.server.ServletWebServerFactory;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.springframework.lang.NonNull;
-import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.EnableWebMvc;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import space.davids_digital.sweetie.command.Command;
-import space.davids_digital.sweetie.command.CommandRegistry;
-
-import javax.sql.DataSource;
-import java.util.List;
+import com.vk.api.sdk.client.VkApiClient
+import com.vk.api.sdk.client.actors.GroupActor
+import com.vk.api.sdk.httpclient.HttpTransportClient
+import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.boot.SpringBootConfiguration
+import org.springframework.boot.context.properties.EnableConfigurationProperties
+import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory
+import org.springframework.boot.web.servlet.server.ServletWebServerFactory
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.ComponentScan
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter
+import org.springframework.jdbc.datasource.DriverManagerDataSource
+import org.springframework.lang.NonNull
+import org.springframework.scheduling.annotation.EnableScheduling
+import org.springframework.web.client.RestTemplate
+import org.springframework.web.servlet.config.annotation.CorsRegistry
+import org.springframework.web.servlet.config.annotation.EnableWebMvc
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
+import javax.sql.DataSource
 
 @EnableWebMvc
 @EnableScheduling
 @ComponentScan("space.davids_digital.sweetie")
 @EnableConfigurationProperties
 @SpringBootConfiguration
-public class WebConfig {
-    @Value("${app.version}")
-    String appVersion;
-    @Value("${DB_HOST:localhost}")
-    String dbHost;
-    @Value("${DB_PORT:5432}")
-    int dbPort;
-    @Value("${DB_NAME}")
-    String dbName;
-    @Value("${DB_USER}")
-    String dbUsername;
-    @Value("${DB_PASSWORD}")
-    String dbPassword;
-    @Value("${VK_APP_SERVICE_TOKEN}")
-    String vkAppServiceToken;
-    @Value("${VK_APP_ID}")
-    long vkAppId;
-    @Value("${VK_ACCESS_TOKEN}")
-    String vkAccessToken;
-    @Value("${VK_GROUP_ID}")
-    long vkGroupId;
-    @Value("${GENERAL_SECRET_KEY_BASE64}")
-    String generalSecretKeyBase64;
-    @Value("${FRONTEND_BASE_PATH}")
-    String frontendBasePath;
-    @Value("${FRONTEND_HOST}")
-    String frontendHost;
-    @Value("${OPENAI_SECRET_KEY}")
-    String openaiSecretKey;
-    @Value("${COOKIES_DOMAIN}")
-    String cookiesDomain;
+class WebConfig {
+    @Value("\${app.version}")
+    var appVersion = ""
+
+    @Value("\${DB_HOST:localhost}")
+    var dbHost = ""
+
+    @Value("\${DB_PORT:5432}")
+    var dbPort = 0
+
+    @Value("\${DB_NAME}")
+    var dbName = ""
+
+    @Value("\${DB_USER}")
+    var dbUsername = ""
+
+    @Value("\${DB_PASSWORD}")
+    var dbPassword = ""
+
+    @Value("\${VK_APP_SERVICE_TOKEN}")
+    var vkAppServiceToken = ""
+
+    @Value("\${VK_APP_ID}")
+    var vkAppId = 0L
+
+    @Value("\${VK_ACCESS_TOKEN}")
+    var vkAccessToken = ""
+
+    @Value("\${VK_GROUP_ID}")
+    var vkGroupId = 0L
+
+    @Value("\${GENERAL_SECRET_KEY_BASE64}")
+    var generalSecretKeyBase64 = ""
+
+    @Value("\${FRONTEND_BASE_PATH}")
+    var frontendBasePath = ""
+
+    @Value("\${FRONTEND_HOST}")
+    var frontendHost = ""
+
+    @Value("\${OPENAI_SECRET_KEY}")
+    var openaiSecretKey = ""
+
+    @Value("\${COOKIES_DOMAIN}")
+    var cookiesDomain = ""
 
     @Bean
-    public ServletWebServerFactory servletWebServerFactory() {
-        return new TomcatServletWebServerFactory();
+    fun servletWebServerFactory(): ServletWebServerFactory {
+        return TomcatServletWebServerFactory()
     }
 
     @Bean
-    public DataSource dataSource() {
-        DriverManagerDataSource dataSource = new DriverManagerDataSource();
-        dataSource.setDriverClassName("org.postgresql.Driver");
-        dataSource.setUrl(String.format("jdbc:postgresql://%s:%d/%s", dbHost, dbPort, dbName));
-        dataSource.setUsername(dbUsername);
-        dataSource.setPassword(dbPassword);
-        return dataSource;
+    fun dataSource(): DataSource {
+        val dataSource = DriverManagerDataSource()
+        dataSource.setDriverClassName("org.postgresql.Driver")
+        dataSource.url = "jdbc:postgresql://$dbHost:$dbPort/$dbName"
+        dataSource.username = dbUsername
+        dataSource.password = dbPassword
+        return dataSource
     }
 
     @Bean
-    public RestTemplate restTemplate() {
-        RestTemplate restTemplate = new RestTemplate();
-        List<HttpMessageConverter<?>> messageConverters = restTemplate.getMessageConverters();
-        messageConverters.add(new MappingJackson2HttpMessageConverter());
-        restTemplate.setMessageConverters(messageConverters);
-        return restTemplate;
+    fun restTemplate(): RestTemplate {
+        val restTemplate = RestTemplate()
+        val messageConverters = restTemplate.messageConverters
+        messageConverters.add(MappingJackson2HttpMessageConverter())
+        restTemplate.setMessageConverters(messageConverters)
+        return restTemplate
     }
 
     @Bean
-    public WebMvcConfigurer corsConfigurer() {
-        return new WebMvcConfigurer() {
-            @Override
-            public void addCorsMappings(@NonNull CorsRegistry registry) {
+    fun corsConfigurer(): WebMvcConfigurer {
+        return object : WebMvcConfigurer {
+            override fun addCorsMappings(@NonNull registry: CorsRegistry) {
                 registry.addMapping("/**")
-                        .allowedOrigins(frontendHost)
-                        .allowCredentials(true);
+                    .allowedOrigins(frontendHost)
+                    .allowCredentials(true)
             }
-        };
+        }
     }
 
     @Bean
     @Qualifier("vkAppServiceToken")
-    public String vkAppServiceToken() {
-        return vkAppServiceToken;
+    fun vkAppServiceToken(): String {
+        return vkAppServiceToken
     }
 
     @Bean
     @Qualifier("generalSecretKeyBase64")
-    public String generalSecretKeyBase64() {
-        return generalSecretKeyBase64;
+    fun generalSecretKeyBase64(): String {
+        return generalSecretKeyBase64
     }
 
     @Bean
     @Qualifier("frontendBasePath")
-    public String frontendBasePath() {
-        return frontendBasePath;
+    fun frontendBasePath(): String {
+        return frontendBasePath
     }
 
     @Bean
     @Qualifier("frontendHost")
-    public String frontendHost() {
-        return frontendHost;
+    fun frontendHost(): String {
+        return frontendHost
     }
 
     @Bean
     @Qualifier("vkAccessToken")
-    public String vkAccessToken() {
-        return vkAccessToken;
+    fun vkAccessToken(): String {
+        return vkAccessToken
     }
 
     @Bean
     @Qualifier("openaiSecretKey")
-    public String openaiSecretKey() {
-        return openaiSecretKey;
+    fun openaiSecretKey(): String {
+        return openaiSecretKey
     }
 
     @Bean
     @Qualifier("cookiesDomain")
-    public String cookiesDomain() {
-        return cookiesDomain;
+    fun cookiesDomain(): String {
+        return cookiesDomain
     }
 
     @Bean
     @Qualifier("vkGroupId")
-    public long vkGroupId() {
-        return vkGroupId;
+    fun vkGroupId(): Long {
+        return vkGroupId
     }
 
     @Bean
     @Qualifier("appVersion")
-    public String appVersion() {
-        return appVersion;
+    fun appVersion(): String {
+        return appVersion
     }
 
     @Bean
-    public VkApiClient vkApiClient() {
-        return new VkApiClient(HttpTransportClient.getInstance());
+    fun vkApiClient(): VkApiClient {
+        return VkApiClient(HttpTransportClient.getInstance())
     }
 
     @Bean
-    public GroupActor vkGroupActor() {
-        return new GroupActor(vkGroupId, vkAccessToken);
+    fun vkGroupActor(): GroupActor {
+        return GroupActor(vkGroupId, vkAccessToken)
     }
 }

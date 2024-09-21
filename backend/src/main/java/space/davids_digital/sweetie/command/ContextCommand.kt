@@ -1,10 +1,10 @@
 package space.davids_digital.sweetie.command
 
-import com.vk.api.sdk.objects.messages.Message
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import space.davids_digital.sweetie.integration.openai.OpenAiService
 import space.davids_digital.sweetie.integration.vk.VkMessagesService
+import space.davids_digital.sweetie.model.VkMessageModel
 import space.davids_digital.sweetie.service.ChatSettingsService
 
 @Component
@@ -33,7 +33,7 @@ class ContextCommand(
         return false
     }
 
-    override suspend fun handle(commandName: String, rawArguments: String, message: Message) {
+    override suspend fun handle(commandName: String, rawArguments: String, message: VkMessageModel) {
         val subCommand = rawArguments.split(" ").firstOrNull() ?: ""
         val subArguments = rawArguments.split(" ").drop(1).joinToString(" ")
         when (subCommand) {
@@ -47,7 +47,7 @@ class ContextCommand(
         }
     }
 
-    private fun handleDefault(message: Message) {
+    private fun handleDefault(message: VkMessageModel) {
         val settings = chatSettingsService.getOrCreateDefault(message.peerId)
         if (settings.context.isEmpty()) {
             vkMessagesService.send(message.peerId, "Нет инструкций")
@@ -57,7 +57,7 @@ class ContextCommand(
         }
     }
 
-    private fun handleSet(message: Message, rawArguments: String) {
+    private fun handleSet(message: VkMessageModel, rawArguments: String) {
         if (rawArguments.isBlank()) {
             handleHelp(message)
             return
@@ -69,14 +69,14 @@ class ContextCommand(
         vkMessagesService.send(message.peerId, "Ок ($tokensCount токенов)")
     }
 
-    private fun handleForget(message: Message) {
+    private fun handleForget(message: VkMessageModel) {
         val settings = chatSettingsService.getOrCreateDefault(message.peerId)
         chatSettingsService.updateSettings(message.peerId) { settings.copy(context = "") }
         log.info("User ${message.fromId} removed context in chat ${message.peerId}")
         vkMessagesService.send(message.peerId, "Ок")
     }
 
-    private fun handleAdd(message: Message, rawArguments: String) {
+    private fun handleAdd(message: VkMessageModel, rawArguments: String) {
         if (rawArguments.isBlank()) {
             handleHelp(message)
             return
@@ -89,7 +89,7 @@ class ContextCommand(
         vkMessagesService.send(message.peerId, "Ок ($tokensCount токенов)")
     }
 
-    private fun handleReplace(message: Message, rawArguments: String) {
+    private fun handleReplace(message: VkMessageModel, rawArguments: String) {
         val parts = rawArguments.split(" ")
         if (parts.size < 2) {
             handleHelp(message)
@@ -117,7 +117,7 @@ class ContextCommand(
         vkMessagesService.send(message.peerId, "Ок ($tokensCount токенов)")
     }
 
-    private fun handleRemove(message: Message, rawArguments: String) {
+    private fun handleRemove(message: VkMessageModel, rawArguments: String) {
         val index = rawArguments.toIntOrNull()
         if (index == null) {
             handleHelp(message)
@@ -139,7 +139,7 @@ class ContextCommand(
         vkMessagesService.send(message.peerId, "Ок ($tokensCount токенов)")
     }
 
-    private fun handleHelp(message: Message) {
+    private fun handleHelp(message: VkMessageModel) {
         vkMessagesService.send(message.peerId, """
             Команды:
             /sweet context

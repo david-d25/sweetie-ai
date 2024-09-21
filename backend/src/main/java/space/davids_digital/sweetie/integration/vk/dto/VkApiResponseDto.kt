@@ -1,16 +1,17 @@
-package space.davids_digital.sweetie.integration.vk.dto;
+package space.davids_digital.sweetie.integration.vk.dto
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty
 
-public class VkApiResponseDto {
+@Deprecated("Use new API")
+open class VkApiResponseDto {
     @JsonProperty("error")
-    public Error error;
+    var error: Error? = null
 
-    public static class Error {
+    open class Error {
         @JsonProperty("error_code")
-        public int errorCode;
+        var errorCode = 0
 
         @JsonProperty("error_msg")
-        public String errorMsg;
+        var errorMsg: String? = null
     }
 }

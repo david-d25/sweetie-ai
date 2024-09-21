@@ -1,29 +1,29 @@
-package space.davids_digital.sweetie.orm.entity;
+package space.davids_digital.sweetie.orm.entity
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.Column
+import jakarta.persistence.Entity
+import jakarta.persistence.Id
+import jakarta.persistence.Table
 
 @Entity
 @Table(name = "usage_plans")
-public class UsagePlanEntity {
+class UsagePlanEntity {
     @Id
-    @Column(name = "id")
-    public String id;
+    @Column(name = "id", columnDefinition = "text")
+    var id: String = ""
 
-    @Column(name = "title")
-    public String title;
+    @Column(name = "title", columnDefinition = "text")
+    var title: String = ""
 
     @Column(name = "max_credits")
-    public long maxCredits;
+    var maxCredits: Long = 0
 
     @Column(name = "credit_gain_amount")
-    public long creditGainAmount;
+    var creditGainAmount: Long = 0
 
     @Column(name = "credit_gain_period_seconds")
-    public long creditGainPeriodSeconds;
+    var creditGainPeriodSeconds: Long = 0
 
     @Column(name = "visible")
-    public boolean visible;
+    var visible = false
 }

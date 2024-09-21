@@ -1,77 +1,61 @@
-package space.davids_digital.sweetie.rest.controller;
+package space.davids_digital.sweetie.rest.controller
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import space.davids_digital.sweetie.integration.vk.VkRestApiService;
-import space.davids_digital.sweetie.model.ChatSettingsModel;
-import space.davids_digital.sweetie.orm.service.ChatSettingsOrmService;
-import space.davids_digital.sweetie.orm.service.UsagePlanOrmService;
-import space.davids_digital.sweetie.orm.service.VkUserOrmService;
-import space.davids_digital.sweetie.rest.dto.DashboardDto;
-import space.davids_digital.sweetie.rest.dto.UserDto;
-import space.davids_digital.sweetie.rest.mapper.UsagePlanDtoMapper;
-import space.davids_digital.sweetie.service.SessionService;
-
-import java.util.stream.Collectors;
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RestController
+import space.davids_digital.sweetie.integration.vk.VkRestApiService
+import space.davids_digital.sweetie.integration.vk.dto.VkConversationDto
+import space.davids_digital.sweetie.model.ChatSettingsModel
+import space.davids_digital.sweetie.orm.service.ChatSettingsOrmService
+import space.davids_digital.sweetie.orm.service.UsagePlanOrmService
+import space.davids_digital.sweetie.orm.service.VkUserOrmService
+import space.davids_digital.sweetie.rest.dto.DashboardDto
+import space.davids_digital.sweetie.rest.dto.UserDto
+import space.davids_digital.sweetie.rest.mapper.UsagePlanDtoMapper
+import space.davids_digital.sweetie.service.SessionService
+import java.util.function.Function
+import java.util.stream.Collectors
 
 @RestController
 @RequestMapping("/dashboard")
-public class DashboardController {
-    private final VkRestApiService vkRestApiService;
-    private final SessionService sessionService;
-    private final VkUserOrmService vkUserOrmService;
-    private final UsagePlanOrmService usagePlanOrmService;
-    private final UsagePlanDtoMapper usagePlanDtoMapper;
-    private final ChatSettingsOrmService chatSettingsOrmService;
-
-    public DashboardController(
-            VkRestApiService vkRestApiService,
-            SessionService sessionService,
-            VkUserOrmService vkUserOrmService,
-            UsagePlanOrmService usagePlanOrmService,
-            UsagePlanDtoMapper usagePlanDtoMapper,
-            ChatSettingsOrmService chatSettingsOrmService
-    ) {
-        this.vkRestApiService = vkRestApiService;
-        this.sessionService = sessionService;
-        this.vkUserOrmService = vkUserOrmService;
-        this.usagePlanOrmService = usagePlanOrmService;
-        this.usagePlanDtoMapper = usagePlanDtoMapper;
-        this.chatSettingsOrmService = chatSettingsOrmService;
-    }
-
+class DashboardController(
+    private val vkRestApiService: VkRestApiService,
+    private val sessionService: SessionService,
+    private val vkUserOrmService: VkUserOrmService,
+    private val usagePlanOrmService: UsagePlanOrmService,
+    private val usagePlanDtoMapper: UsagePlanDtoMapper,
+    private val chatSettingsOrmService: ChatSettingsOrmService
+) {
     @GetMapping
-    public DashboardDto getDashboard() {
-        var session = sessionService.requireSession();
-        var userVkId = session.userVkId();
-        var user = vkUserOrmService.getOrCreateDefault(userVkId);
-        var usagePlan = usagePlanOrmService.getOrDefault(user.getUsagePlanId(), "default");
-        var vkUser = vkRestApiService.getUser(userVkId);
-        var chatSettings = chatSettingsOrmService.findHavingAdmin(userVkId);
-        var vkChats = vkRestApiService.getConversations(
-                chatSettings.stream().mapToLong(ChatSettingsModel::getPeerId).toArray()
-        );
-        var peerIdToChat = vkChats.stream().collect(Collectors.toMap(v -> v.peer.id, v -> v));
-        var chats = chatSettings.stream().map(c -> {
-            var photo = peerIdToChat.containsKey(c.getPeerId())
-                    ? peerIdToChat.get(c.getPeerId()).chatSettings != null ? peerIdToChat.get(c.getPeerId()).chatSettings.photo != null ? peerIdToChat.get(c.getPeerId()).chatSettings.photo.photo200 : null : null : null;
-            var title = peerIdToChat.containsKey(c.getPeerId())
-                    ? peerIdToChat.get(c.getPeerId()).chatSettings != null ? peerIdToChat.get(c.getPeerId()).chatSettings.title : null : null;
-            return new DashboardDto.Chat(c.getPeerId(), title, photo, c.getBotEnabled()
-            );
-        }).toList();
-        var userDto = new UserDto(
-                userVkId,
-                vkUser.firstName,
-                vkUser.lastName,
-                user.getCredits(),
-                vkUser.photo200,
-                user.getLastCreditGain(),
-                usagePlanDtoMapper.modelToDto(usagePlan),
-                user.getUsagePlanExpiry()
-        );
-
-        return new DashboardDto(userDto, chats);
+    fun getDashboard(): DashboardDto {
+        val (_, userVkId) = sessionService.requireSession()
+        val user = vkUserOrmService.getOrCreateDefault(userVkId)
+        val usagePlan = usagePlanOrmService.getOrDefault(user!!.usagePlanId, "default")
+        val vkUser = vkRestApiService.getUser(userVkId)
+        val chatSettings = chatSettingsOrmService.findHavingAdmin(userVkId)
+        val vkChats = vkRestApiService.getConversations(*chatSettings.map { it.peerId }.toLongArray())
+        val peerIdToChat = vkChats.stream().collect(Collectors.toMap(
+            { v: VkConversationDto -> v.peer!!.id }, { v: VkConversationDto -> v })
+        )
+        val chats = chatSettings.stream().map { c: ChatSettingsModel? ->
+            val photo =
+                if (peerIdToChat.containsKey(c!!.peerId)) if (peerIdToChat[c.peerId]!!.chatSettings != null) if (peerIdToChat[c.peerId]!!.chatSettings!!.photo != null) peerIdToChat[c.peerId]!!.chatSettings!!.photo!!.photo200 else null else null else null
+            val title =
+                if (peerIdToChat.containsKey(c.peerId)) if (peerIdToChat[c.peerId]!!.chatSettings != null) peerIdToChat[c.peerId]!!.chatSettings!!.title else null else null
+            DashboardDto.Chat(
+                c.peerId, title!!, photo!!, c.botEnabled
+            )
+        }.toList()
+        val userDto = UserDto(
+            userVkId,
+            vkUser.firstName ?: "",
+            vkUser.lastName ?: "",
+            user.credits,
+            vkUser.photo200,
+            user.lastCreditGain,
+            usagePlanDtoMapper.modelToDto(usagePlan!!),
+            user.usagePlanExpiry!!
+        )
+        return DashboardDto(userDto, chats)
     }
 }

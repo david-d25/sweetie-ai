@@ -30,4 +30,7 @@ interface VkMessageRepository: CrudRepository<VkMessageEntity, VkMessageEntityId
         @Param("peerIdFilter") peerIdFilter: Long?,
         @Param("fromIdFilter") fromIdFilter: Long?
     ): List<MessageCountProjection>
+
+    @Query("select coalesce(max(conversationMessageId), 0) from VkMessageEntity where peerId = ?1")
+    fun getMaxConversationMessageIdByPeerId(peerId: Long): Long
 }

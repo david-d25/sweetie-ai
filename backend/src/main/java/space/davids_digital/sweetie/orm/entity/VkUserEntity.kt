@@ -1,35 +1,38 @@
-package space.davids_digital.sweetie.orm.entity;
+package space.davids_digital.sweetie.orm.entity
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*
+import java.time.ZonedDateTime
 
-import java.time.ZonedDateTime;
-
-// TODO original ts file contains sql triggers
 @Entity
-@Table(name = "vk_users")
-public class VkUserEntity {
+@Table(
+    name = "vk_users",
+    indexes = [
+        Index(
+            name = "vk_users__credits_index",
+            columnList = "credits"
+        )
+    ]
+)
+class VkUserEntity {
     @Id
     @Column(name = "id")
-    public long id;
+    var id: Long = 0
 
-    @Column(name = "first_name")
-    public String firstName;
+    @Column(name = "first_name", columnDefinition = "text")
+    var firstName: String = ""
 
-    @Column(name = "last_name")
-    public String lastName;
+    @Column(name = "last_name", columnDefinition = "text")
+    var lastName: String = ""
 
     @Column(name = "credits")
-    public long credits;
+    var credits: Long = 0
 
     @Column(name = "last_credit_gain")
-    public ZonedDateTime lastCreditGain;
+    var lastCreditGain: ZonedDateTime? = null
 
-    @Column(name = "usage_plan_id")
-    public String usagePlanId;
+    @Column(name = "usage_plan_id", columnDefinition = "text")
+    var usagePlanId: String? = null
 
     @Column(name = "usage_plan_expiry")
-    public ZonedDateTime usagePlanExpiry;
+    var usagePlanExpiry: ZonedDateTime? = null
 }

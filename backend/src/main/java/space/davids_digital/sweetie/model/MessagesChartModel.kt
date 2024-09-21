@@ -1,13 +1,13 @@
-package space.davids_digital.sweetie.rest.dto
+package space.davids_digital.sweetie.model
 
 import java.time.ZonedDateTime
 
-data class MessagesChartDto(
+data class MessagesChartModel(
     val from: ZonedDateTime,
-    val to: ZonedDateTime?,
+    val to: ZonedDateTime,
     val aggregationPeriodMinutes: Long,
-    val peerIdFilter: Long?,
-    val fromIdFilter: Long?,
+    val peerIdFilter: Long,
+    val fromIdFilter: Long,
     val labels: Array<ZonedDateTime>,
     val counts: LongArray
 ) {
@@ -15,7 +15,7 @@ data class MessagesChartDto(
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        other as MessagesChartDto
+        other as MessagesChartModel
 
         if (from != other.from) return false
         if (to != other.to) return false

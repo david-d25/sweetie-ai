@@ -1,11 +1,11 @@
 package space.davids_digital.sweetie.command
 
-import com.vk.api.sdk.objects.messages.Message
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import space.davids_digital.sweetie.integration.vk.VkMessagesService
 import space.davids_digital.sweetie.integration.vk.VkUtils
+import space.davids_digital.sweetie.model.VkMessageModel
 import space.davids_digital.sweetie.orm.service.ChatAdminOrmService
 
 @Component
@@ -34,7 +34,7 @@ class AdminsCommand(
     }
 
     @Transactional
-    override suspend fun handle(commandName: String, rawArguments: String, message: Message) {
+    override suspend fun handle(commandName: String, rawArguments: String, message: VkMessageModel) {
         val subCommand = rawArguments.split(" ").firstOrNull() ?: ""
         val rest = rawArguments.substringAfter(subCommand)
         when (subCommand) {
@@ -45,7 +45,7 @@ class AdminsCommand(
         }
     }
 
-    private fun handleList(message: Message) {
+    private fun handleList(message: VkMessageModel) {
         val adminIds = chatAdminOrmService.getAdminUserIds(message.peerId)
         val chatMembers = vkMessagesService.getChatMembers(message.peerId)
         val result = StringBuilder()
@@ -67,7 +67,7 @@ class AdminsCommand(
         vkMessagesService.send(message.peerId, result.toString())
     }
 
-    private fun handleAdd(message: Message, rest: String) {
+    private fun handleAdd(message: VkMessageModel, rest: String) {
         if (rest.isBlank()) {
             return handleHelp(message)
         }
@@ -82,7 +82,7 @@ class AdminsCommand(
         vkMessagesService.send(message.peerId, "Ок")
     }
 
-    private fun handleRemove(message: Message, rest: String) {
+    private fun handleRemove(message: VkMessageModel, rest: String) {
         if (rest.isBlank()) {
             return handleHelp(message)
         }
@@ -93,7 +93,7 @@ class AdminsCommand(
         vkMessagesService.send(message.peerId, "Ок")
     }
 
-    private fun handleHelp(message: Message) {
+    private fun handleHelp(message: VkMessageModel) {
         vkMessagesService.send(message.peerId, """
             Команды:
             /sweet admins
