@@ -10,9 +10,9 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 
 @Service
-class VkUserOrmService(private val repository: VkUserRepository) {
+class VkUserOrmService(private val userRepository: VkUserRepository) {
     fun save(user: VkUserModel): VkUserModel {
-        return toModel(repository.save(toEntity(user)))
+        return toModel(userRepository.save(toEntity(user)))
     }
 
     fun getOrCreateDefault(id: Long): VkUserModel {
@@ -34,33 +34,33 @@ class VkUserOrmService(private val repository: VkUserRepository) {
     }
 
     fun getById(id: Long): VkUserModel? {
-        val userEntity = repository.findById(id).orElse(null) ?: return null
+        val userEntity = userRepository.findById(id).orElse(null) ?: return null
         return toModel(userEntity)
     }
 
     fun findAllByCreditsLessThanMax(): List<VkUserModel> {
-        return repository.findAllByCreditsLessThanMax().map { toModel(it) }
+        return userRepository.findAllByCreditsLessThanMax().map { toModel(it) }
     }
 
     @Transactional
     fun setCredits(id: Long, credits: Long) {
-        val user = repository.findById(id).orElse(null) ?: return
+        val user = userRepository.findById(id).orElse(null) ?: return
         user.credits = credits
-        repository.save(user)
+        userRepository.save(user)
     }
 
     @Transactional
     fun setLastCreditGain(id: Long, lastCreditGain: ZonedDateTime) {
-        val user = repository.findById(id).orElse(null) ?: return
+        val user = userRepository.findById(id).orElse(null) ?: return
         user.lastCreditGain = lastCreditGain
-        repository.save(user)
+        userRepository.save(user)
     }
 
     @Transactional
     fun addCredits(fromId: Long, credits: Long) {
-        val user = repository.findById(fromId).orElse(null) ?: return
+        val user = userRepository.findById(fromId).orElse(null) ?: return
         user.credits += credits
-        repository.save(user)
+        userRepository.save(user)
     }
 
     private fun toModel(entity: VkUserEntity): VkUserModel {
