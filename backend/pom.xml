@@ -39,7 +39,7 @@
                 <version>3.1.2</version>
 
                 <configuration>
-                    <mainClass>space.davids_digital.sweetie.WebApp</mainClass>
+                    <mainClass>space.davids_digital.sweetie.WebAppKt</mainClass>
                 </configuration>
 
                 <executions>
