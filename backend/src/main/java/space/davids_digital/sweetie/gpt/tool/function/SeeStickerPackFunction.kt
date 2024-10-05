@@ -3,7 +3,6 @@ package space.davids_digital.sweetie.gpt.tool.function
 import com.aallam.openai.api.chat.ChatMessage
 import com.aallam.openai.api.chat.ImagePart
 import com.aallam.openai.api.chat.TextPart
-import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import space.davids_digital.sweetie.gpt.InvocationContext
 import space.davids_digital.sweetie.gpt.tool.function.parameter.Description

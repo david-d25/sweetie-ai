@@ -51,6 +51,6 @@ class DrawImageDalleFunction(
             TextPart("[INTERNAL] This is the image you have drawn."),
             ImagePart(image.toBase64PngDataUrl())
         )))
-        return "Image is attached to message.";
+        return "Image is attached to message."
     }
 }

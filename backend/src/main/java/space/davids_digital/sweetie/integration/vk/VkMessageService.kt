@@ -39,7 +39,7 @@ class VkMessageService @Autowired constructor(
     @PostConstruct
     private fun initLongPolling() {
         log.info("Init long polling")
-        vkApiClient.groups().setLongPollSettings(vkGroupActor).enabled(true).messageEvent(true).execute();
+        vkApiClient.groups().setLongPollSettings(vkGroupActor).enabled(true).messageEvent(true).execute()
         val handler = LongPollHandler(vkApiClient, vkGroupActor, 25) {
             val message = toModel(it.`object`.message)
             vkMessageOrmService.save(message)

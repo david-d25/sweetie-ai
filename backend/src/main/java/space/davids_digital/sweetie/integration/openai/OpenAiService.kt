@@ -15,8 +15,6 @@ import com.aallam.openai.api.model.ModelId
 import com.aallam.openai.client.LoggingConfig
 import com.aallam.openai.client.OpenAI
 import com.knuddels.jtokkit.Encodings
-import okio.Buffer
-import okio.ByteString
 import okio.source
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier

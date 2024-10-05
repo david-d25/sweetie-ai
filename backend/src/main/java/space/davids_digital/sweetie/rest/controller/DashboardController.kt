@@ -4,7 +4,6 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import space.davids_digital.sweetie.integration.vk.VkRestApiService
-import space.davids_digital.sweetie.model.ChatSettingsModel
 import space.davids_digital.sweetie.orm.service.ChatSettingsOrmService
 import space.davids_digital.sweetie.orm.service.UsagePlanOrmService
 import space.davids_digital.sweetie.orm.service.VkUserOrmService

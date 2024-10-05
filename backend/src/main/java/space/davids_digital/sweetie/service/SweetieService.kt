@@ -3,7 +3,6 @@ package space.davids_digital.sweetie.service
 import com.aallam.openai.api.chat.*
 import com.aallam.openai.api.core.Parameters
 import com.aallam.openai.api.core.Role
-import com.google.gson.Gson
 import com.vk.api.sdk.objects.messages.MessageAttachment
 import com.vk.api.sdk.objects.messages.MessageAttachmentType
 import com.vk.api.sdk.objects.messages.SetActivityType
