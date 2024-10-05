@@ -4,9 +4,9 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>space.davids_digital.vk_gpt_chatbot</groupId>
-        <artifactId>vk_gpt_chatbot</artifactId>
-        <version>3.6.1</version>
+        <groupId>space.davids_digital.sweetie</groupId>
+        <artifactId>sweetie</artifactId>
+        <version>4.0.0</version>
     </parent>
 
     <artifactId>docker</artifactId>
@@ -41,20 +41,14 @@
 
     <dependencies>
         <dependency>
-            <groupId>space.davids_digital.vk_gpt_chatbot</groupId>
-            <artifactId>bot</artifactId>
-            <version>3.6.1</version>
-        </dependency>
-        <dependency>
-            <groupId>space.davids_digital.vk_gpt_chatbot</groupId>
+            <groupId>space.davids_digital.sweetie</groupId>
             <artifactId>backend</artifactId>
-            <version>3.6.1</version>
+            <version>4.0.0</version>
         </dependency>
         <dependency>
-            <groupId>space.davids_digital.vk_gpt_chatbot</groupId>
+            <groupId>space.davids_digital.sweetie</groupId>
             <artifactId>frontend</artifactId>
-            <version>3.6.1</version>
+            <version>4.0.0</version>
         </dependency>
     </dependencies>
-
 </project>

@@ -2,19 +2,27 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>space.davids_digital.vk_gpt_chatbot</groupId>
-        <artifactId>vk_gpt_chatbot</artifactId>
-        <version>3.6.1</version>
+        <groupId>space.davids_digital.sweetie</groupId>
+        <artifactId>sweetie</artifactId>
+        <version>4.0.0</version>
     </parent>
 
     <artifactId>backend</artifactId>
 
     <properties>
         <java.version>11</java.version>
+        <kotlin.version>2.0.20</kotlin.version>
+        <kotlin.compiler.incremental>true</kotlin.compiler.incremental>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
     <build>
+        <resources>
+            <resource>
+                <filtering>true</filtering>
+                <directory>src/main/resources</directory>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -31,7 +39,7 @@
                 <version>3.1.2</version>
 
                 <configuration>
-                    <mainClass>space.davids_digital.vk_gpt_bot.WebApp</mainClass>
+                    <mainClass>space.davids_digital.sweetie.WebApp</mainClass>
                 </configuration>
 
                 <executions>
@@ -41,6 +49,21 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <artifactId>kotlin-maven-plugin</artifactId>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <version>2.0.20</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <compilerPlugins>
+                        <plugin>spring</plugin>
+                    </compilerPlugins>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-maven-plugin</artifactId>
             </plugin>
         </plugins>
     </build>
@@ -110,7 +133,7 @@
         <dependency>
             <groupId>jakarta.servlet</groupId>
             <artifactId>jakarta.servlet-api</artifactId>
-            <version>6.0.0</version>
+            <version>6.1.0</version>
         </dependency>
         <dependency>
             <groupId>org.postgresql</groupId>
@@ -120,7 +143,7 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.16.1</version>
+            <version>2.17.0</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -131,18 +154,85 @@
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
-            <version>2.16.1</version>
+            <version>2.17.2</version>
         </dependency>
         <!-- To support Optional -->
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jdk8</artifactId>
-            <version>2.16.2</version>
+            <version>2.17.2</version>
         </dependency>
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
             <version>3.1.8</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-stdlib</artifactId>
+            <version>${kotlin.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.kotlinx</groupId>
+            <artifactId>kotlinx-coroutines-core</artifactId>
+            <version>1.8.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.kotlinx</groupId>
+            <artifactId>kotlinx-coroutines-reactor</artifactId>
+            <version>1.8.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-reflect</artifactId>
+            <version>${kotlin.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.vk.api</groupId>
+            <artifactId>sdk</artifactId>
+            <version>1.0.16</version>
+        </dependency>
+        <dependency>
+            <groupId>io.reactivex.rxjava3</groupId>
+            <artifactId>rxjava</artifactId>
+            <version>3.1.9</version>
+        </dependency>
+        <dependency>
+            <groupId>com.aallam.openai</groupId>
+            <artifactId>openai-client-jvm</artifactId>
+            <version>3.8.2</version>
+        </dependency>
+        <!-- This is for openai-client-jvm -->
+        <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-client-okhttp-jvm</artifactId>
+            <version>2.3.4</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.knuddels</groupId>
+            <artifactId>jtokkit</artifactId>
+            <version>1.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.11.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-maven-plugin</artifactId>
+            <version>10.18.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+            <version>10.18.2</version>
+        </dependency>
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>4.12.0</version>
         </dependency>
     </dependencies>
 </project>

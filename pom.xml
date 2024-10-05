@@ -1,14 +1,13 @@
 <project>
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>space.davids_digital.vk_gpt_chatbot</groupId>
-    <artifactId>vk_gpt_chatbot</artifactId>
-    <version>3.6.1</version>
+    <groupId>space.davids_digital.sweetie</groupId>
+    <artifactId>sweetie</artifactId>
+    <version>4.0.0</version>
     <packaging>pom</packaging>
 
     <modules>
         <module>backend</module>
-        <module>bot</module>
         <module>docker</module>
         <module>frontend</module>
         <module>crypto</module>
