@@ -97,14 +97,15 @@ class BotService(
         if (candidate == null) {
             return handleUnknownCommand(message)
         }
-        if (candidate.requiresAppCeo() && !withContext(Dispatchers.IO) {
-                appCeoRepository.existsByUserId(fromId)
-            }) {
-            return vkMessageService.send(peerId, "Только CEO Сладенького может это")
+        val userIsCeo = withContext(Dispatchers.IO) {
+            appCeoRepository.existsByUserId(fromId)
         }
-        if (candidate.requiresChatAdmin() && !withContext(Dispatchers.IO) {
-                chatAdminRepository.existsByUserIdAndPeerId(fromId, peerId)
-            }) {
+        val userIsAdmin = withContext(Dispatchers.IO) {
+            chatAdminRepository.existsByUserIdAndPeerId(fromId, peerId)
+        }
+        if (candidate.requiresAppCeo() && !userIsCeo) {
+            return vkMessageService.send(peerId, "Только CEO Сладенького может это")
+        } else if (candidate.requiresChatAdmin() && !(userIsAdmin || userIsCeo)) {
             return vkMessageService.send(peerId, "Только админ может это")
         }
         try {
