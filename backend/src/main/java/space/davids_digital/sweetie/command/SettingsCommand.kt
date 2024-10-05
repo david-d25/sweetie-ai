@@ -3,13 +3,13 @@ package space.davids_digital.sweetie.command
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.springframework.stereotype.Component
-import space.davids_digital.sweetie.integration.vk.VkMessagesService
+import space.davids_digital.sweetie.integration.vk.VkMessageService
 import space.davids_digital.sweetie.model.VkMessageModel
 import space.davids_digital.sweetie.service.ChatSettingsService
 
 @Component
 class SettingsCommand(
-    private val vkMessagesService: VkMessagesService,
+    private val vkMessageService: VkMessageService,
     private val chatSettingsService: ChatSettingsService
 ): Command {
     override fun getNames(): Array<String> {
@@ -41,7 +41,7 @@ class SettingsCommand(
     private fun handleDefault(message: VkMessageModel) {
         val settings = chatSettingsService.getOrCreateDefault(message.peerId)
         with(settings) {
-            vkMessagesService.send(message.peerId, """
+            vkMessageService.send(message.peerId, """
                 max_output_tokens=$gptMaxOutputTokens
                 max_input_tokens=$gptMaxInputTokens
                 temperature=$gptTemperature
@@ -85,45 +85,45 @@ class SettingsCommand(
                 "tts_voice" -> settings.copy(ttsVoice = settingValue)
                 "tts_speed" -> settings.copy(ttsSpeed = settingValue.toDouble())
                 else -> {
-                    vkMessagesService.send(message.peerId, "Нет такой настройки")
+                    vkMessageService.send(message.peerId, "Нет такой настройки")
                     return
                 }
             }
         } catch (e: NumberFormatException) {
-            vkMessagesService.send(message.peerId, "Надо число")
+            vkMessageService.send(message.peerId, "Надо число")
             return
         }
         if (settings.gptMaxInputTokens < 0 || settings.gptMaxInputTokens > 16384) {
-            return vkMessagesService.send(message.peerId, "Надо число от 0 до 16384")
+            return vkMessageService.send(message.peerId, "Надо число от 0 до 16384")
         }
         if (settings.gptMaxOutputTokens < 1 || settings.gptMaxOutputTokens > 2048) {
-            return vkMessagesService.send(message.peerId, "Надо число от 1 до 2048")
+            return vkMessageService.send(message.peerId, "Надо число от 1 до 2048")
         }
         if (settings.gptTemperature < 0 || settings.gptTemperature > 2) {
-            return vkMessagesService.send(message.peerId, "Надо число от 0 до 2")
+            return vkMessageService.send(message.peerId, "Надо число от 0 до 2")
         }
         if (settings.gptTopP < 0 || settings.gptTopP > 1) {
-            return vkMessagesService.send(message.peerId, "Надо число от 0 до 1")
+            return vkMessageService.send(message.peerId, "Надо число от 0 до 1")
         }
         if (settings.gptFrequencyPenalty < 0 || settings.gptFrequencyPenalty > 2) {
-            return vkMessagesService.send(message.peerId, "Надо число от 0 до 2")
+            return vkMessageService.send(message.peerId, "Надо число от 0 до 2")
         }
         if (settings.gptPresencePenalty < 0 || settings.gptPresencePenalty > 2) {
-            return vkMessagesService.send(message.peerId, "Надо число от 0 до 2")
+            return vkMessageService.send(message.peerId, "Надо число от 0 до 2")
         }
         if (settings.ttsSpeed < 0.25 || settings.ttsSpeed > 4) {
-            return vkMessagesService.send(message.peerId, "Надо число от 0.25 до 4")
+            return vkMessageService.send(message.peerId, "Надо число от 0.25 до 4")
         }
         withContext(Dispatchers.IO) {
             chatSettingsService.updateSettings(message.peerId) {
                 settings
             }
         }
-        vkMessagesService.send(message.peerId, "Ок")
+        vkMessageService.send(message.peerId, "Ок")
     }
 
     private fun handleHelp(message: VkMessageModel) {
-        vkMessagesService.send(message.peerId, """
+        vkMessageService.send(message.peerId, """
             Команды:
             /sweet settings
             /sweet settings help

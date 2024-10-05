@@ -1,7 +1,7 @@
 package space.davids_digital.sweetie.command
 
 import org.springframework.stereotype.Component
-import space.davids_digital.sweetie.integration.vk.VkMessagesService
+import space.davids_digital.sweetie.integration.vk.VkMessageService
 import space.davids_digital.sweetie.model.VkMessageModel
 import space.davids_digital.sweetie.orm.service.UsagePlanOrmService
 import space.davids_digital.sweetie.orm.service.VkUserOrmService
@@ -10,7 +10,7 @@ import kotlin.math.round
 
 @Component
 class PlanCommand(
-    private val vkMessagesService: VkMessagesService,
+    private val vkMessageService: VkMessageService,
     private val usagePlanOrmService: UsagePlanOrmService,
     private val vkUserOrmService: VkUserOrmService
 
@@ -66,7 +66,7 @@ class PlanCommand(
                 builder.append("♾\uFE0F Действует вечно\n")
             }
         }
-        vkMessagesService.send(message.peerId, builder.toString())
+        vkMessageService.send(message.peerId, builder.toString())
     }
 
     private fun handleList(message: VkMessageModel) {
@@ -79,7 +79,7 @@ class PlanCommand(
             val creditsGainPerHour = round(it.creditGainAmount.toDouble()/it.creditGainPeriodSeconds * 3600 * 10) / 10
             builder.append("- ${it.title} ($creditsGainPerHour к/ч, макс. ${it.maxCredits})\n")
         }
-        vkMessagesService.send(message.peerId, builder.toString())
+        vkMessageService.send(message.peerId, builder.toString())
     }
 
     private fun handleHelp(message: VkMessageModel) {
@@ -89,6 +89,6 @@ class PlanCommand(
             /sweet plan list
             /sweet plan help
         """.trimIndent()
-        vkMessagesService.send(message.peerId, text)
+        vkMessageService.send(message.peerId, text)
     }
 }

@@ -7,14 +7,6 @@
     <dependencySets>
         <dependencySet>
             <includes>
-                <include>space.davids_digital.sweetie:bot</include>
-            </includes>
-            <outputFileNameMapping>bot.zip</outputFileNameMapping>
-            <outputDirectory>bot</outputDirectory>
-            <unpack>false</unpack>
-        </dependencySet>
-        <dependencySet>
-            <includes>
                 <include>space.davids_digital.sweetie:backend</include>
             </includes>
             <outputFileNameMapping>backend.jar</outputFileNameMapping>
@@ -34,11 +26,6 @@
         <file>
             <source>src/docker/docker-compose.yml</source>
             <outputDirectory>/</outputDirectory>
-        </file>
-        <file>
-            <source>src/docker/bot.Dockerfile</source>
-            <outputDirectory>/bot</outputDirectory>
-            <destName>Dockerfile</destName>
         </file>
         <file>
             <source>src/docker/backend.Dockerfile</source>

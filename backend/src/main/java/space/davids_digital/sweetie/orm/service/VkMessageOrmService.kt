@@ -2,6 +2,7 @@ package space.davids_digital.sweetie.orm.service
 
 import com.vk.api.sdk.deserializers.GsonDeserializer
 import com.vk.api.sdk.objects.messages.MessageAttachment
+import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import space.davids_digital.sweetie.model.MessagesChartModel
 import space.davids_digital.sweetie.model.VkMessageModel
@@ -40,11 +41,19 @@ class VkMessageOrmService(
             from!!,
             to!!,
             aggregationPeriodMinutes,
-            peerIdFilter!!,
-            fromIdFilter!!,
+            peerIdFilter,
+            fromIdFilter,
             labels.toArray(arrayOfNulls<ZonedDateTime>(0)),
             counts
         )
+    }
+
+    fun getMessagesByPeerIdOrderByTimestamp(peerId: Long, pageable: Pageable): List<VkMessageModel> {
+        return vkMessageRepository
+            .getMessagesByPeerIdOrderByTimestamp(peerId, pageable)
+            .stream()
+            .map { toModel(it) }
+            .toList()
     }
 
     fun getMessagesByTime(peerId: Long, fromTime: Instant, toTime: Instant): List<VkMessageModel> {

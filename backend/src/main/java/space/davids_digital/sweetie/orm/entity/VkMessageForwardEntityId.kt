@@ -7,6 +7,4 @@ data class VkMessageForwardEntityId(
     var peerId: Long,
     var forwardedConversationMessageId: Long,
     var forwardedPeerId: Long
-): Serializable {
-    constructor(): this(0, 0, 0, 0)
-}
+): Serializable

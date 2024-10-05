@@ -6,7 +6,7 @@
     <parent>
         <groupId>space.davids_digital.sweetie</groupId>
         <artifactId>sweetie</artifactId>
-        <version>3.6.1</version>
+        <version>4.0.0</version>
     </parent>
 
     <artifactId>docker</artifactId>
@@ -42,19 +42,13 @@
     <dependencies>
         <dependency>
             <groupId>space.davids_digital.sweetie</groupId>
-            <artifactId>bot</artifactId>
-            <version>3.6.1</version>
-        </dependency>
-        <dependency>
-            <groupId>space.davids_digital.sweetie</groupId>
             <artifactId>backend</artifactId>
-            <version>3.6.1</version>
+            <version>4.0.0</version>
         </dependency>
         <dependency>
             <groupId>space.davids_digital.sweetie</groupId>
             <artifactId>frontend</artifactId>
-            <version>3.6.1</version>
+            <version>4.0.0</version>
         </dependency>
     </dependencies>
-
 </project>

@@ -1,7 +1,8 @@
 package space.davids_digital.sweetie.orm.repository
 
+import org.springframework.data.domain.Pageable
+import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
-import org.springframework.data.repository.CrudRepository
 import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
 import space.davids_digital.sweetie.orm.entity.VkMessageEntity
@@ -11,7 +12,7 @@ import java.time.Instant
 import java.time.ZonedDateTime
 
 @Repository
-interface VkMessageRepository: CrudRepository<VkMessageEntity, VkMessageEntityId> {
+interface VkMessageRepository: JpaRepository<VkMessageEntity, VkMessageEntityId> {
     fun findAllByPeerIdAndTimestampIsBetween(peerId: Long, from: Instant, to: Instant): List<VkMessageEntity>
 
     @Query(
@@ -33,4 +34,6 @@ interface VkMessageRepository: CrudRepository<VkMessageEntity, VkMessageEntityId
 
     @Query("select coalesce(max(conversationMessageId), 0) from VkMessageEntity where peerId = ?1")
     fun getMaxConversationMessageIdByPeerId(peerId: Long): Long
+
+    fun getMessagesByPeerIdOrderByTimestamp(peerId: Long, pageable: Pageable): List<VkMessageEntity>
 }

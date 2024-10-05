@@ -2,7 +2,7 @@ package space.davids_digital.sweetie.command
 
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Component
-import space.davids_digital.sweetie.integration.vk.VkMessagesService
+import space.davids_digital.sweetie.integration.vk.VkMessageService
 import space.davids_digital.sweetie.model.VkMessageModel
 
 @Component
@@ -10,7 +10,7 @@ class HelpCommand(
     @Qualifier("appVersion")
     private val appVersion: String,
     private val commandRegistry: CommandRegistry,
-    private val vkMessagesService: VkMessagesService
+    private val vkMessageService: VkMessageService
 ): Command {
     override fun getNames(): Array<String> {
         return arrayOf("help", "")
@@ -53,6 +53,6 @@ class HelpCommand(
             }
         }
 
-        vkMessagesService.send(message.peerId, builder.toString())
+        vkMessageService.send(message.peerId, builder.toString())
     }
 }

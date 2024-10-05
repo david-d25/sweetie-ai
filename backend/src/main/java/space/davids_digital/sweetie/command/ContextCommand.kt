@@ -3,13 +3,13 @@ package space.davids_digital.sweetie.command
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import space.davids_digital.sweetie.integration.openai.OpenAiService
-import space.davids_digital.sweetie.integration.vk.VkMessagesService
+import space.davids_digital.sweetie.integration.vk.VkMessageService
 import space.davids_digital.sweetie.model.VkMessageModel
 import space.davids_digital.sweetie.service.ChatSettingsService
 
 @Component
 class ContextCommand(
-    private val vkMessagesService: VkMessagesService,
+    private val vkMessageService: VkMessageService,
     private val chatSettingsService: ChatSettingsService,
     private val openAiService: OpenAiService
 ): Command {
@@ -50,10 +50,10 @@ class ContextCommand(
     private fun handleDefault(message: VkMessageModel) {
         val settings = chatSettingsService.getOrCreateDefault(message.peerId)
         if (settings.context.isEmpty()) {
-            vkMessagesService.send(message.peerId, "Нет инструкций")
+            vkMessageService.send(message.peerId, "Нет инструкций")
         } else {
             val contextLines = settings.context.lines().mapIndexed { index, line -> "${index + 1}. $line" }
-            vkMessagesService.send(message.peerId, "Инструкции:\n" + contextLines.joinToString("\n"))
+            vkMessageService.send(message.peerId, "Инструкции:\n" + contextLines.joinToString("\n"))
         }
     }
 
@@ -66,14 +66,14 @@ class ContextCommand(
         chatSettingsService.updateSettings(message.peerId) { settings.copy(context = rawArguments) }
         val tokensCount = openAiService.estimateTokenCount(rawArguments, settings.gptModel)
         log.info("User ${message.fromId} set context in chat ${message.peerId}, $tokensCount tokens")
-        vkMessagesService.send(message.peerId, "Ок ($tokensCount токенов)")
+        vkMessageService.send(message.peerId, "Ок ($tokensCount токенов)")
     }
 
     private fun handleForget(message: VkMessageModel) {
         val settings = chatSettingsService.getOrCreateDefault(message.peerId)
         chatSettingsService.updateSettings(message.peerId) { settings.copy(context = "") }
         log.info("User ${message.fromId} removed context in chat ${message.peerId}")
-        vkMessagesService.send(message.peerId, "Ок")
+        vkMessageService.send(message.peerId, "Ок")
     }
 
     private fun handleAdd(message: VkMessageModel, rawArguments: String) {
@@ -86,7 +86,7 @@ class ContextCommand(
         chatSettingsService.updateSettings(message.peerId) { settings.copy(context = newContext) }
         val tokensCount = openAiService.estimateTokenCount(newContext, settings.gptModel)
         log.info("User ${message.fromId} added context in chat ${message.peerId}, overall $tokensCount tokens")
-        vkMessagesService.send(message.peerId, "Ок ($tokensCount токенов)")
+        vkMessageService.send(message.peerId, "Ок ($tokensCount токенов)")
     }
 
     private fun handleReplace(message: VkMessageModel, rawArguments: String) {
@@ -103,7 +103,7 @@ class ContextCommand(
         val text = parts.drop(1).joinToString(" ")
         val settings = chatSettingsService.getOrCreateDefault(message.peerId)
         if (index - 1 !in settings.context.lines().indices) {
-            vkMessagesService.send(message.peerId, "Нет инструкции с таким номером")
+            vkMessageService.send(message.peerId, "Нет инструкции с таким номером")
             return
         }
         val newContext = settings.context
@@ -114,7 +114,7 @@ class ContextCommand(
         chatSettingsService.updateSettings(message.peerId) { settings.copy(context = newContext) }
         val tokensCount = openAiService.estimateTokenCount(newContext, settings.gptModel)
         log.info("User ${message.fromId} replaced context line in chat ${message.peerId}, overall $tokensCount tokens")
-        vkMessagesService.send(message.peerId, "Ок ($tokensCount токенов)")
+        vkMessageService.send(message.peerId, "Ок ($tokensCount токенов)")
     }
 
     private fun handleRemove(message: VkMessageModel, rawArguments: String) {
@@ -125,7 +125,7 @@ class ContextCommand(
         }
         val settings = chatSettingsService.getOrCreateDefault(message.peerId)
         if (index - 1 !in settings.context.lines().indices) {
-            vkMessagesService.send(message.peerId, "Нет инструкции с таким номером")
+            vkMessageService.send(message.peerId, "Нет инструкции с таким номером")
             return
         }
         val newContext = settings.context
@@ -136,11 +136,11 @@ class ContextCommand(
         chatSettingsService.updateSettings(message.peerId) { settings.copy(context = newContext) }
         val tokensCount = openAiService.estimateTokenCount(newContext, settings.gptModel)
         log.info("User ${message.fromId} removed context line in chat ${message.peerId}, overall $tokensCount tokens")
-        vkMessagesService.send(message.peerId, "Ок ($tokensCount токенов)")
+        vkMessageService.send(message.peerId, "Ок ($tokensCount токенов)")
     }
 
     private fun handleHelp(message: VkMessageModel) {
-        vkMessagesService.send(message.peerId, """
+        vkMessageService.send(message.peerId, """
             Команды:
             /sweet context
             /sweet context help

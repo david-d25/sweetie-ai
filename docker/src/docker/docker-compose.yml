@@ -4,6 +4,7 @@ services:
     build: backend
     ports:
       - "9988:8080"
+    restart: unless-stopped
     environment:
       - VK_APP_ID
       - DB_NAME
@@ -19,33 +20,13 @@ services:
       - GENERAL_SECRET_KEY_BASE64
       - FRONTEND_HOST
       - FRONTEND_BASE_PATH
+      - STABILITY_AI_API_KEY
   frontend:
     build: frontend
     ports:
       - "9080:3000"
+    restart: unless-stopped
     environment:
       - API_URL
       - VK_APP_ID
       - FRONTEND_BASE_PATH
-  bot:
-    build: bot
-    ports:
-      - "9005:9005"
-    environment:
-      - BACKEND_URL=http://backend:8080
-      - DB_NAME
-      - DB_HOST
-      - DB_PASSWORD
-      - DB_PORT
-      - DB_USER
-      - OPENAI_SECRET_KEY
-      - STABILITY_AI_API_KEY
-      - VK_ACCESS_TOKEN
-      - VK_GROUP_ID
-      - METAPHOR_API_KEY
-      - FILE_HOSTING_PORT=9005
-      - FILE_HOSTING_URL_BASE
-      - FILE_HOSTING_MAX_STORAGE_SIZE_BYTES=67108864 # 64 MB
-      - BOT_MODE=production
-    depends_on:
-      - backend

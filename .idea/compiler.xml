@@ -7,13 +7,13 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="backend" />
-        <module name="bot" />
         <module name="frontend" />
         <module name="docker" />
         <module name="crypto" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
+      <module name="bot" target="1.7" />
       <module name="vk_gpt_chatbot" target="1.5" />
     </bytecodeTargetLevel>
   </component>

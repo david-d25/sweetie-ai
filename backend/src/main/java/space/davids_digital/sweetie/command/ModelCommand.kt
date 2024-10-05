@@ -5,13 +5,13 @@ import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import space.davids_digital.sweetie.integration.openai.OpenAiService
-import space.davids_digital.sweetie.integration.vk.VkMessagesService
+import space.davids_digital.sweetie.integration.vk.VkMessageService
 import space.davids_digital.sweetie.model.VkMessageModel
 import space.davids_digital.sweetie.service.ChatSettingsService
 
 @Component
 class ModelCommand(
-    private val vkMessagesService: VkMessagesService,
+    private val vkMessageService: VkMessageService,
     private val chatSettingsService: ChatSettingsService,
     private val openAiService: OpenAiService
 ): Command {
@@ -49,7 +49,7 @@ class ModelCommand(
     private fun handleShow(message: VkMessageModel) {
         val settings = chatSettingsService.getOrCreateDefault(message.peerId)
         val model = settings.gptModel
-        vkMessagesService.send(message.peerId, "Использую модель '$model'")
+        vkMessageService.send(message.peerId, "Использую модель '$model'")
     }
 
     private suspend fun handleList(message: VkMessageModel) {
@@ -59,7 +59,7 @@ class ModelCommand(
         models.forEach {
             builder.append("- ").append(it).append("\n")
         }
-        vkMessagesService.send(message.peerId, builder.toString())
+        vkMessageService.send(message.peerId, builder.toString())
     }
 
     private suspend fun handleSet(message: VkMessageModel, modelId: String) {
@@ -69,14 +69,14 @@ class ModelCommand(
         }
         val availableModels = openAiService.getAvailableGptOnlyModels()
         if (!availableModels.contains(modelId)) {
-            vkMessagesService.send(message.peerId, "Нет такой модели")
+            vkMessageService.send(message.peerId, "Нет такой модели")
             return
         }
         withContext(Dispatchers.IO) {
             chatSettingsService.updateSettings(message.peerId) { copy(gptModel = modelId) }
         }
         log.info("User ${message.fromId} set GPT model in chat ${message.peerId} to '$modelId'")
-        vkMessagesService.send(message.peerId, "Ок")
+        vkMessageService.send(message.peerId, "Ок")
     }
 
     private fun handleHelp(message: VkMessageModel) {
@@ -87,6 +87,6 @@ class ModelCommand(
             /sweet model list
             /sweet model set (имя)
         """.trimIndent()
-        vkMessagesService.send(message.peerId, text)
+        vkMessageService.send(message.peerId, text)
     }
 }

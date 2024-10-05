@@ -3,12 +3,11 @@
 
     <groupId>space.davids_digital.sweetie</groupId>
     <artifactId>sweetie</artifactId>
-    <version>3.6.1</version>
+    <version>4.0.0</version>
     <packaging>pom</packaging>
 
     <modules>
         <module>backend</module>
-        <module>bot</module>
         <module>docker</module>
         <module>frontend</module>
         <module>crypto</module>

@@ -4,14 +4,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
-import space.davids_digital.sweetie.integration.vk.VkMessagesService
+import space.davids_digital.sweetie.integration.vk.VkMessageService
 import space.davids_digital.sweetie.integration.vk.VkUtils
 import space.davids_digital.sweetie.model.VkMessageModel
 import space.davids_digital.sweetie.orm.repository.VkUserRepository
 
 @Component
 class GiveCommand(
-    private val vkMessagesService: VkMessagesService,
+    private val vkMessageService: VkMessageService,
     private val vkUserRepository: VkUserRepository
 ): Command {
     companion object {
@@ -46,7 +46,7 @@ class GiveCommand(
         if (arguments.size >= 2) {
             memberId = VkUtils.extractMemberId(rest)
             if (memberId == null) {
-                return vkMessagesService.send(message.peerId, "Не могу найти участника")
+                return vkMessageService.send(message.peerId, "Не могу найти участника")
             }
         } else if (message.forwardedMessages.size == 1) {
             memberId = message.forwardedMessages.first().fromId
@@ -58,11 +58,11 @@ class GiveCommand(
             vkUserRepository.addCredits(memberId, creditsAmount)
         }
         log.info("User ${message.fromId} gave $creditsAmount credits to $memberId")
-        vkMessagesService.send(message.peerId, "✨ Выдаю $creditsAmount кредитов")
+        vkMessageService.send(message.peerId, "✨ Выдаю $creditsAmount кредитов")
     }
 
     private fun handleHelp(message: VkMessageModel) {
-        vkMessagesService.send(message.peerId, """
+        vkMessageService.send(message.peerId, """
             Так пиши:
             /sweet give (credits_amount) (user)
             """.trimMargin()

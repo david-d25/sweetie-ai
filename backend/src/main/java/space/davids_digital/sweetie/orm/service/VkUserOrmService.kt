@@ -1,5 +1,6 @@
 package space.davids_digital.sweetie.orm.service
 
+import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
 import space.davids_digital.sweetie.model.VkUserModel
 import space.davids_digital.sweetie.orm.entity.VkUserEntity
@@ -14,7 +15,7 @@ class VkUserOrmService(private val repository: VkUserRepository) {
         return toModel(repository.save(toEntity(user)))
     }
 
-    fun getOrCreateDefault(id: Long): VkUserModel? {
+    fun getOrCreateDefault(id: Long): VkUserModel {
         var user = getById(id)
         if (user == null) {
             user = save(
@@ -35,6 +36,31 @@ class VkUserOrmService(private val repository: VkUserRepository) {
     fun getById(id: Long): VkUserModel? {
         val userEntity = repository.findById(id).orElse(null) ?: return null
         return toModel(userEntity)
+    }
+
+    fun findAllByCreditsLessThanMax(): List<VkUserModel> {
+        return repository.findAllByCreditsLessThanMax().map { toModel(it) }
+    }
+
+    @Transactional
+    fun setCredits(id: Long, credits: Long) {
+        val user = repository.findById(id).orElse(null) ?: return
+        user.credits = credits
+        repository.save(user)
+    }
+
+    @Transactional
+    fun setLastCreditGain(id: Long, lastCreditGain: ZonedDateTime) {
+        val user = repository.findById(id).orElse(null) ?: return
+        user.lastCreditGain = lastCreditGain
+        repository.save(user)
+    }
+
+    @Transactional
+    fun addCredits(fromId: Long, credits: Long) {
+        val user = repository.findById(fromId).orElse(null) ?: return
+        user.credits += credits
+        repository.save(user)
     }
 
     private fun toModel(entity: VkUserEntity): VkUserModel {

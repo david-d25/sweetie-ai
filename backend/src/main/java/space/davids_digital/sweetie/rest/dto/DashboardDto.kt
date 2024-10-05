@@ -6,8 +6,8 @@ data class DashboardDto(
 ) {
     data class Chat(
         val peerId: Long,
-        val title: String,
-        val pictureUrl: String,
+        val title: String?,
+        val pictureUrl: String?,
         val botEnabled: Boolean
     )
 }

@@ -6,8 +6,8 @@ data class MessagesChartModel(
     val from: ZonedDateTime,
     val to: ZonedDateTime,
     val aggregationPeriodMinutes: Long,
-    val peerIdFilter: Long,
-    val fromIdFilter: Long,
+    val peerIdFilter: Long?,
+    val fromIdFilter: Long?,
     val labels: Array<ZonedDateTime>,
     val counts: LongArray
 ) {

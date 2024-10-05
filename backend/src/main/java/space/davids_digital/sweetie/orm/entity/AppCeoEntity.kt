@@ -10,5 +10,5 @@ import jakarta.persistence.Table
 class AppCeoEntity {
     @Id
     @Column(name = "user_id")
-    var userId: Long? = null
+    var userId: Long = 0
 }

@@ -3,6 +3,7 @@ package space.davids_digital.sweetie
 import com.vk.api.sdk.client.VkApiClient
 import com.vk.api.sdk.client.actors.GroupActor
 import com.vk.api.sdk.httpclient.HttpTransportClient
+import org.flywaydb.core.Flyway
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.SpringBootConfiguration
@@ -72,6 +73,9 @@ class WebConfig {
     @Value("\${COOKIES_DOMAIN}")
     var cookiesDomain = ""
 
+    @Value("\${STABILITY_AI_API_KEY}")
+    var stabilityAiApiKey = ""
+
     @Bean
     fun servletWebServerFactory(): ServletWebServerFactory {
         return TomcatServletWebServerFactory()
@@ -105,6 +109,16 @@ class WebConfig {
                     .allowCredentials(true)
             }
         }
+    }
+
+    @Bean
+    fun flyway(): Flyway {
+        return Flyway.configure()
+            .dataSource(dataSource())
+            .baselineOnMigrate(true)
+            .load().also {
+                it.migrate()
+            }
     }
 
     @Bean
@@ -159,6 +173,12 @@ class WebConfig {
     @Qualifier("appVersion")
     fun appVersion(): String {
         return appVersion
+    }
+
+    @Bean
+    @Qualifier("stabilityAiApiKey")
+    fun stabilityAiApiKey(): String {
+        return stabilityAiApiKey
     }
 
     @Bean
