@@ -48,9 +48,10 @@ class VkMessageOrmService(
         )
     }
 
-    fun getMessagesByPeerIdOrderByTimestamp(peerId: Long, pageable: Pageable): List<VkMessageModel> {
+    fun getMessagesByPeerIdOrderByTimestampDesc(peerId: Long, pageable: Pageable): List<VkMessageModel> {
         return vkMessageRepository
-            .getMessagesByPeerIdOrderByTimestamp(peerId, pageable)
+            .getMessagesByPeerIdOrderByTimestampDesc(peerId, pageable)
+            .reversed()
             .map { toModel(it) }
             .toList()
     }

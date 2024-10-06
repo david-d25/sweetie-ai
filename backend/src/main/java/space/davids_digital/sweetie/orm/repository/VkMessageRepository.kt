@@ -35,5 +35,5 @@ interface VkMessageRepository: JpaRepository<VkMessageEntity, VkMessageEntityId>
     @Query("select coalesce(max(conversationMessageId), 0) from VkMessageEntity where peerId = ?1")
     fun getMaxConversationMessageIdByPeerId(peerId: Long): Long
 
-    fun getMessagesByPeerIdOrderByTimestamp(peerId: Long, pageable: Pageable): List<VkMessageEntity>
+    fun getMessagesByPeerIdOrderByTimestampDesc(peerId: Long, pageable: Pageable): List<VkMessageEntity>
 }

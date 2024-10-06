@@ -115,7 +115,7 @@ class SweetieService(
         builder.setSystemMessage(systemMessage)
         builder.setTools(tools)
 
-        val latestVkMessages = vkMessagesOrmService.getMessagesByPeerIdOrderByTimestamp(
+        val latestVkMessages = vkMessagesOrmService.getMessagesByPeerIdOrderByTimestampDesc(
             vkMessage.peerId,
             PageRequest.of(0, 128)
         )
