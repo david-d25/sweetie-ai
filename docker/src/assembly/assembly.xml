@@ -37,5 +37,10 @@
             <outputDirectory>/frontend</outputDirectory>
             <destName>Dockerfile</destName>
         </file>
+        <file>
+            <source>src/backend/nginx.conf</source>
+            <outputDirectory>/frontend</outputDirectory>
+            <destName>nginx.conf</destName>
+        </file>
     </files>
 </assembly>
