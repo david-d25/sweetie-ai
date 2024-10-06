@@ -58,14 +58,11 @@ class BotService(
     private fun onNewMessage(message: VkMessageModel) {
         log.debug("Received a message")
         runBlocking {
-            if (message.text?.trim()?.startsWith(COMMAND_TRIGGER_WORD) == true) {
-                processCommandMessage(message)
-            } else if (isPrivateMessagePeerId(message.peerId)) {
-                processPrivateMessage(message)
-            } else if (isSweetieTagged(message)) {
-                processTaggingMessage(message)
-            } else if (hasAudioMessage(message)) {
-                processAudioMessage(message)
+            when {
+                isCommandMessage(message)                               -> processCommandMessage(message)
+                isPrivateMessagePeerId(message.peerId)                  -> processPrivateMessage(message)
+                isSweetieTagged(message) || isReplyToSweetie(message)   -> processTaggingMessage(message)
+                hasAudioMessage(message)                                -> processAudioMessage(message)
             }
         }
     }
@@ -165,6 +162,14 @@ class BotService(
             log.error("Error while processing audio message", e)
             vkMessageService.send(message.peerId, "(В Сладеньком сломалось что-то важное и он не может ответить)")
         }
+    }
+
+    private fun isCommandMessage(message: VkMessageModel): Boolean {
+        return message.text?.trim()?.startsWith(COMMAND_TRIGGER_WORD) == true
+    }
+
+    private fun isReplyToSweetie(message: VkMessageModel): Boolean {
+        return message.forwardedMessages.size == 1 && message.forwardedMessages.first().fromId == -vkGroupId
     }
 
     private fun handleUnknownCommand(message: VkMessageModel) {

@@ -31,7 +31,7 @@ class VkMessageOrmService(
             peerIdFilter,
             fromIdFilter
         )
-        val labels = ArrayList<ZonedDateTime>(projections.size)
+        val labels = Array<ZonedDateTime>(projections.size) { ZonedDateTime.now() }
         val counts = LongArray(projections.size)
         for ((i, p) in projections.withIndex()) {
             labels[i] = p.time.toInstant().atZone(ZoneId.systemDefault())
@@ -43,7 +43,7 @@ class VkMessageOrmService(
             aggregationPeriodMinutes,
             peerIdFilter,
             fromIdFilter,
-            labels.toArray(arrayOfNulls<ZonedDateTime>(0)),
+            labels,
             counts
         )
     }

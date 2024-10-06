@@ -30,3 +30,4 @@ services:
       - API_URL
       - VK_APP_ID
       - FRONTEND_BASE_PATH
+      - COOKIES_DOMAIN

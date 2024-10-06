@@ -10,7 +10,7 @@ api.interceptors.response.use(
     error => {
         if (error.response && (error.response.status === 401 || error.response.status === 403)) {
             api.post("/logout").then(() => {});
-            document.cookie = "Sweetie-User-Vk-Id=; max-age=0; path=/";
+            document.cookie = "Sweetie-User-Vk-Id=; max-age=0; path=/; domain=" + process.env['COOKIES_DOMAIN'];
             location.assign(process.env['FRONTEND_BASE_PATH'] + '/login');
         }
         return Promise.reject(error);

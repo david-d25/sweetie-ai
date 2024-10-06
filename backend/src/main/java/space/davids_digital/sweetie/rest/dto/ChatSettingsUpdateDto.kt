@@ -3,16 +3,16 @@ package space.davids_digital.sweetie.rest.dto
 import java.util.*
 
 data class ChatSettingsUpdateDto(
-    val botEnabled: Optional<Boolean>,
-    val context: Optional<String>,
-    val gptMaxInputTokens: Optional<Int>,
-    val gptMaxOutputTokens: Optional<Int>,
-    val gptTemperature: Optional<Double>,
-    val gptTopP: Optional<Double>,
-    val gptFrequencyPenalty: Optional<Double>,
-    val gptPresencePenalty: Optional<Double>,
-    val gptModel: Optional<String>,
-    val processAudioMessages: Optional<Boolean>,
-    val ttsVoice: Optional<String>,
-    val ttsSpeed: Optional<Double>
+    val botEnabled: Optional<Boolean> = Optional.empty(),
+    val context: Optional<String> = Optional.empty(),
+    val gptMaxInputTokens: Optional<Int> = Optional.empty(),
+    val gptMaxOutputTokens: Optional<Int> = Optional.empty(),
+    val gptTemperature: Optional<Double> = Optional.empty(),
+    val gptTopP: Optional<Double> = Optional.empty(),
+    val gptFrequencyPenalty: Optional<Double> = Optional.empty(),
+    val gptPresencePenalty: Optional<Double> = Optional.empty(),
+    val gptModel: Optional<String> = Optional.empty(),
+    val processAudioMessages: Optional<Boolean> = Optional.empty(),
+    val ttsVoice: Optional<String> = Optional.empty(),
+    val ttsSpeed: Optional<Double> = Optional.empty()
 )

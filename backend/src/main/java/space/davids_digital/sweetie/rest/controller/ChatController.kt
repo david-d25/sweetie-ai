@@ -34,11 +34,12 @@ class ChatController @Autowired constructor(
 
     @PostMapping("/{id}")
     @ResponseBody
-    suspend fun updateChatSettings(@PathVariable("id") id: Long, @RequestBody dto: ChatSettingsUpdateDto?): ChatDto {
+    suspend fun updateChatSettings(@PathVariable("id") id: Long, @RequestBody dto: ChatSettingsUpdateDto): ChatDto {
         val session = sessionService.requireSession()
         val chatSettings = chatSettingsOrmService.findByIdAndHavingAdmin(id, session.userVkId)
-        val vkChat = vkRestApiService.getConversations(chatSettings!!.peerId).stream().findFirst().orElse(null)
-        return createChatDto(chatService.update(id, dto!!), vkChat, openAiService.getAvailableGptOnlyModels())
+            ?: throw ResourceNotFoundException()
+        val vkChat = vkRestApiService.getConversations(chatSettings.peerId).stream().findFirst().orElse(null)
+        return createChatDto(chatService.update(id, dto), vkChat, openAiService.getAvailableGptOnlyModels())
     }
 
     private fun createChatDto(
