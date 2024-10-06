@@ -21,7 +21,12 @@ services:
       - FRONTEND_BASE_PATH
       - STABILITY_AI_API_KEY
   frontend:
-    build: frontend
+    build:
+      context: frontend
+      args:
+        API_URL: ${API_URL}
+        VK_APP_ID: ${VK_APP_ID}
+        FRONTEND_BASE_PATH: ${FRONTEND_BASE_PATH}
     ports:
       - "9080:80"
     restart: unless-stopped
