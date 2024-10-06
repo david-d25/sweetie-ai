@@ -24,10 +24,9 @@ services:
   frontend:
     build: frontend
     ports:
-      - "9080:3000"
+      - "9080:80"
     restart: unless-stopped
     environment:
       - API_URL
       - VK_APP_ID
       - FRONTEND_BASE_PATH
-      - COOKIES_DOMAIN

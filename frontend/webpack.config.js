@@ -51,7 +51,10 @@ module.exports = {
     },
     plugins: [
         new HtmlWebpackPlugin({
-            template: './src/index.html'
+            template: './src/index.html',
+            templateParameters: {
+                basePath: process.env['FRONTEND_BASE_PATH'] || '/'
+            }
         }),
         new CopyWebpackPlugin({
             patterns: [

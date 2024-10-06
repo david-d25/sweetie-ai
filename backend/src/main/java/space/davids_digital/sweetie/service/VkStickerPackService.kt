@@ -31,7 +31,7 @@ class VkStickerPackService(
             ?: throw IllegalArgumentException("Sticker pack not found")
         log.info("Creating image for sticker pack ${pack.id} (${pack.name})")
         val stickerIds = (pack.firstStickerId ..< pack.firstStickerId + pack.stickerCount).toList()
-        val stickerImages = stickerIds.parallelStream().map { vkStickerService.getStickerImage(it) }.toList()
+        val stickerImages = stickerIds.map { vkStickerService.getStickerImage(it) }.toList()
         val stickerSize = (IMAGE_WIDTH - (COLUMNS + 1) * STICKER_SPACING) / COLUMNS
         val rows = ceil(stickerImages.size.toDouble() / COLUMNS).toInt()
         val stickerWithCaptionHeight = stickerSize + TEXT_LINE_HEIGHT

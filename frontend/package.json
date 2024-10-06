@@ -5,19 +5,17 @@
   "private": true,
   "scripts": {
     "dev": "webpack serve --mode development",
-    "build": "webpack --mode production",
-    "production": "webpack serve --mode production"
+    "build": "webpack --mode production"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/david-d25/vk-gpt-chatbot.git"
+    "url": "git+https://github.com/david-d25/sweetie-ai.git"
   },
   "author": "David <david-d25@protonmail.com>",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/david-d25/vk-gpt-chatbot/issues"
   },
-  "homepage": "https://github.com/david-d25/vk-gpt-chatbot#readme",
   "eslintConfig": {
     "extends": [
       "react-app"

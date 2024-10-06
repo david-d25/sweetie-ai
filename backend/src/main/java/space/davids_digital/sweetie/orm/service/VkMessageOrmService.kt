@@ -51,7 +51,6 @@ class VkMessageOrmService(
     fun getMessagesByPeerIdOrderByTimestamp(peerId: Long, pageable: Pageable): List<VkMessageModel> {
         return vkMessageRepository
             .getMessagesByPeerIdOrderByTimestamp(peerId, pageable)
-            .stream()
             .map { toModel(it) }
             .toList()
     }
@@ -59,7 +58,6 @@ class VkMessageOrmService(
     fun getMessagesByTime(peerId: Long, fromTime: Instant, toTime: Instant): List<VkMessageModel> {
         return vkMessageRepository
             .findAllByPeerIdAndTimestampIsBetween(peerId, fromTime, toTime)
-            .stream()
             .map { toModel(it) }
             .toList()
     }
