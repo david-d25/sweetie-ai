@@ -1,6 +1,7 @@
 package space.davids_digital.sweetie.rest
 
 import jakarta.servlet.http.HttpServletResponse
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseCookie
@@ -13,7 +14,10 @@ import space.davids_digital.sweetie.rest.exception.InvalidSessionStateException
 import space.davids_digital.sweetie.service.exception.ValidationException
 
 @ControllerAdvice
-class RestExceptionHandler {
+class RestExceptionHandler(
+    @Qualifier("cookiesDomain")
+    private val cookiesDomain: String
+) {
     @ExceptionHandler(MissingServletRequestParameterException::class)
     fun handleMissingParameters(ex: MissingServletRequestParameterException): ResponseEntity<String> {
         return ResponseEntity
@@ -36,7 +40,7 @@ class RestExceptionHandler {
     ): ResponseEntity<String> {
         return ResponseEntity
             .status(HttpStatus.FORBIDDEN)
-            .removeAuthCookies()
+            .removeAuthCookies(cookiesDomain)
             .body("Invalid session state: ${ex.message}")
     }
 }

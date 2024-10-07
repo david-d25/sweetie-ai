@@ -1,6 +1,7 @@
 package space.davids_digital.sweetie
 
 import jakarta.servlet.http.HttpServletResponse
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpHeaders
@@ -16,6 +17,9 @@ import space.davids_digital.sweetie.rest.exception.InvalidSessionStateException
 
 @Configuration
 class SecurityConfig {
+    @Value("\${COOKIES_DOMAIN}")
+    var cookiesDomain = ""
+
     @Bean
     @Throws(Exception::class)
     fun filterChain(
@@ -49,12 +53,14 @@ class SecurityConfig {
             .secure(true)
             .path("/")
             .sameSite("Strict")
+            .domain(cookiesDomain)
             .build()
         val userVkIdCookie = ResponseCookie.from(CookieName.USER_VK_ID, "")
             .maxAge(0)
             .secure(true)
             .path("/")
             .sameSite("Strict")
+            .domain(cookiesDomain)
             .build()
         response.status = HttpStatus.FORBIDDEN.value()
         response.addHeader(HttpHeaders.SET_COOKIE, sessionTokenCookie.toString())

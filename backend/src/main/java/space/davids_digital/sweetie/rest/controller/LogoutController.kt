@@ -1,5 +1,6 @@
 package space.davids_digital.sweetie.rest.controller
 
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -13,7 +14,9 @@ import space.davids_digital.sweetie.service.SessionService
 @RequestMapping("/logout")
 class LogoutController(
     private val userSessionOrmService: UserSessionOrmService,
-    private val sessionService: SessionService
+    private val sessionService: SessionService,
+    @Qualifier("cookiesDomain")
+    private val cookiesDomain: String
 ) {
     @PostMapping
     @ResponseBody
@@ -21,6 +24,6 @@ class LogoutController(
         try {
             userSessionOrmService.deleteUserSession(sessionService.requireSession().id)
         } catch (ignored: SecurityException) {}
-        return ResponseEntity.ok().removeAuthCookies().build<Any>()
+        return ResponseEntity.ok().removeAuthCookies(cookiesDomain).build<Any>()
     }
 }
