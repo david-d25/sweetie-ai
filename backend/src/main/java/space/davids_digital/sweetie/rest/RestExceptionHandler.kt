@@ -34,23 +34,9 @@ class RestExceptionHandler {
         request: WebRequest,
         response: HttpServletResponse
     ): ResponseEntity<String> {
-        val sessionTokenCookie = ResponseCookie.from(CookieName.AUTH_TOKEN, "")
-            .maxAge(0)
-            .httpOnly(true)
-            .secure(true)
-            .path("/")
-            .sameSite("Strict")
-            .build()
-        val userVkIdCookie = ResponseCookie.from(CookieName.USER_VK_ID, "")
-            .maxAge(0)
-            .secure(true)
-            .path("/")
-            .sameSite("Strict")
-            .build()
         return ResponseEntity
             .status(HttpStatus.FORBIDDEN)
-            .header(HttpHeaders.SET_COOKIE, sessionTokenCookie.toString())
-            .header(HttpHeaders.SET_COOKIE, userVkIdCookie.toString())
+            .removeAuthCookies()
             .body("Invalid session state: ${ex.message}")
     }
 }

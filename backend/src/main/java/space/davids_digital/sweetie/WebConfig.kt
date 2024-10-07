@@ -17,6 +17,9 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource
 import org.springframework.lang.NonNull
 import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.web.client.RestTemplate
+import org.springframework.web.cors.CorsConfiguration
+import org.springframework.web.cors.CorsConfigurationSource
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 import org.springframework.web.servlet.config.annotation.CorsRegistry
 import org.springframework.web.servlet.config.annotation.EnableWebMvc
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
@@ -106,9 +109,6 @@ class WebConfig {
             override fun addCorsMappings(@NonNull registry: CorsRegistry) {
                 registry.addMapping("/**")
                     .allowedOrigins(frontendHost)
-                    .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                    .allowedHeaders("*")
-                    .exposedHeaders("Authorization")
                     .allowCredentials(true)
             }
         }
