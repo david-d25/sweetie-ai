@@ -109,6 +109,7 @@ class WebConfig {
             override fun addCorsMappings(@NonNull registry: CorsRegistry) {
                 registry.addMapping("/**")
                     .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                    .allowedHeaders("*")
                     .allowedOrigins(frontendHost)
                     .allowCredentials(true)
             }
