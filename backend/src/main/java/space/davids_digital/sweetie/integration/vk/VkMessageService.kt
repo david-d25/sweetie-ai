@@ -41,9 +41,13 @@ class VkMessageService @Autowired constructor(
         log.info("Init long polling")
         vkApiClient.groups().setLongPollSettings(vkGroupActor).enabled(true).messageEvent(true).execute()
         val handler = LongPollHandler(vkApiClient, vkGroupActor, 25) {
-            val message = toModel(it.`object`.message)
-            vkMessageOrmService.save(message)
-            messageStream.onNext(message)
+            try {
+                val message = toModel(it.`object`.message)
+                vkMessageOrmService.save(message)
+                messageStream.onNext(message)
+            } catch (e: Exception) {
+                log.error("Failed to process an incoming message", e)
+            }
         }
         handler.run()
     }
