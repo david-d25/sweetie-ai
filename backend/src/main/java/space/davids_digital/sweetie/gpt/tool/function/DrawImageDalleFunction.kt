@@ -1,8 +1,5 @@
 package space.davids_digital.sweetie.gpt.tool.function
 
-import com.aallam.openai.api.chat.ChatMessage
-import com.aallam.openai.api.chat.ImagePart
-import com.aallam.openai.api.chat.TextPart
 import com.vk.api.sdk.objects.messages.SetActivityType
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -11,6 +8,9 @@ import space.davids_digital.sweetie.gpt.tool.function.parameter.Description
 import space.davids_digital.sweetie.gpt.tool.function.parameter.Enum
 import space.davids_digital.sweetie.integration.openai.OpenAiService
 import space.davids_digital.sweetie.integration.openai.OpenAiUtils.toBase64PngDataUrl
+import space.davids_digital.sweetie.integration.openai.dto.ChatMessage
+import space.davids_digital.sweetie.integration.openai.dto.ImagePart
+import space.davids_digital.sweetie.integration.openai.dto.TextPart
 import space.davids_digital.sweetie.integration.vk.VkMessageService
 import space.davids_digital.sweetie.model.VkMessageModel
 import space.davids_digital.sweetie.util.DownloadUtils.download
@@ -47,10 +47,11 @@ class DrawImageDalleFunction(
         val image = download(url)
         val attachment = vkMessageService.uploadPhotoAttachment(message.peerId, image)
         invocationContext.addAttachment(attachment)
-        invocationContext.appendMessage(ChatMessage.Companion.User(listOf(
+        invocationContext.appendMessage(ChatMessage.user(listOf(
             TextPart("[INTERNAL] This is the image you have drawn."),
             ImagePart(image.toBase64PngDataUrl())
         )))
+        invocationContext.chargeCredits(2)
         return "Image is attached to message."
     }
 }

@@ -47,6 +47,19 @@ create table user_sessions (
 );
 create index user_sessions__user_vk_id_index on user_sessions (user_vk_id);
 
+create table vk_messages (
+                             conversation_message_id bigint,
+                             peer_id                 bigint,
+                             from_id                 bigint,
+                             timestamp               timestamp,
+                             text                    text,
+                             primary key (conversation_message_id, peer_id)
+);
+create index timestamp_index on vk_messages (timestamp);
+create index peer_id_index on vk_messages (peer_id);
+create index vk_messages__from_id_index on vk_messages (from_id);
+create index peer_id_timestamp_index on vk_messages (peer_id asc, timestamp desc);
+
 create table vk_message_attachments (
     conversation_message_id bigint  not null,
     peer_id                 bigint  not null,
@@ -70,19 +83,6 @@ create table vk_message_forwards (
             on update cascade on delete cascade
 );
 create index conversation_message_id_peer_id_index on vk_message_forwards (conversation_message_id, peer_id);
-
-create table vk_messages (
-    conversation_message_id bigint,
-    peer_id                 bigint,
-    from_id                 bigint,
-    timestamp               timestamp,
-    text                    text,
-    primary key (conversation_message_id, peer_id)
-);
-create index timestamp_index on vk_messages (timestamp);
-create index peer_id_index on vk_messages (peer_id);
-create index vk_messages__from_id_index on vk_messages (from_id);
-create index peer_id_timestamp_index on vk_messages (peer_id asc, timestamp desc);
 
 create table vk_sticker_images (
     sticker_id      bigint,

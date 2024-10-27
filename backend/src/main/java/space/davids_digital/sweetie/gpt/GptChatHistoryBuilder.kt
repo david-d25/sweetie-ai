@@ -1,8 +1,15 @@
 package space.davids_digital.sweetie.gpt
 
-import com.aallam.openai.api.chat.*
 import com.google.gson.Gson
 import space.davids_digital.sweetie.integration.openai.OpenAiService
+import space.davids_digital.sweetie.integration.openai.dto.ChatMessage
+import space.davids_digital.sweetie.integration.openai.dto.ChatRole
+import space.davids_digital.sweetie.integration.openai.dto.ImagePart
+import space.davids_digital.sweetie.integration.openai.dto.InputAudioPart
+import space.davids_digital.sweetie.integration.openai.dto.ListContent
+import space.davids_digital.sweetie.integration.openai.dto.TextContent
+import space.davids_digital.sweetie.integration.openai.dto.TextPart
+import space.davids_digital.sweetie.integration.openai.dto.Tool
 
 class GptChatHistoryBuilder(private val model: String, private val openAiService: OpenAiService) {
     private data class WrappedMessage(
@@ -46,54 +53,69 @@ class GptChatHistoryBuilder(private val model: String, private val openAiService
         return this
     }
 
-    fun build(): List<ChatMessage> {
+    fun build(visionSupported: Boolean, audioSupported: Boolean): List<ChatMessage> {
         val resultWrapped = mutableListOf<WrappedMessage>()
 
         if (systemMessage != null) {
             val systemChatMessage = ChatMessage(
                 role = ChatRole.System,
-                content = systemMessage
+                content = TextContent(systemMessage!!)
             )
             resultWrapped.add(WrappedMessage(systemChatMessage, true))
         }
 
-        resultWrapped.addAll(wrappedMessages)
+        wrappedMessages.forEach {
+            if (!visionSupported && it.message.content is ListContent) {
+                val userMessageContent = it.message.content as ListContent
+                val filteredContent = userMessageContent.content.filter { it !is ImagePart }
+                resultWrapped.add(WrappedMessage(ChatMessage.user(filteredContent), it.hard))
+            } else if (!audioSupported && it.message.content is ListContent) {
+                val userMessageContent = it.message.content as ListContent
+                val filteredContent = userMessageContent.content.filter { it !is InputAudioPart }
+                resultWrapped.add(WrappedMessage(ChatMessage.user(filteredContent), it.hard))
+            } else {
+                resultWrapped.add(it)
+            }
+        }
 
         val toolsJsonString = gson.toJson(tools)
         val toolsTokenCount = openAiService.estimateTokenCount(toolsJsonString, model)
 
         fun countTokens(): Int {
-            val resultWrappedNoImages = mutableListOf<WrappedMessage>()
+            val resultWrappedTextOnly = mutableListOf<WrappedMessage>()
             for (wrapped in resultWrapped) {
                 if (wrapped.message.role == ChatRole.User) {
-                    val userMessageContent = wrapped.message.messageContent
+                    val userMessageContent = wrapped.message.content
                     if (userMessageContent is ListContent) {
-                        val userMessageNoImages = userMessageContent.content.filter { it !is ImagePart }
-                        resultWrappedNoImages.add(
+                        val userMessageTextOnly = userMessageContent.content.filterIsInstance<TextPart>()
+                        resultWrappedTextOnly.add(
                             WrappedMessage(
-                            ChatMessage(
-                                role = ChatRole.User,
-                                messageContent = ListContent(userMessageNoImages)
-                            ),
-                            wrapped.hard
-                        )
+                                ChatMessage(
+                                    role = ChatRole.User,
+                                    content = ListContent(userMessageTextOnly)
+                                ),
+                                wrapped.hard
+                            )
                         )
                     } else {
-                        resultWrappedNoImages.add(wrapped)
+                        resultWrappedTextOnly.add(wrapped)
                     }
                 } else {
-                    resultWrappedNoImages.add(wrapped)
+                    resultWrappedTextOnly.add(wrapped)
                 }
             }
-            var result = openAiService.estimateTokenCount(gson.toJson(resultWrappedNoImages), model) + toolsTokenCount
+            var result = openAiService.estimateTokenCount(gson.toJson(resultWrappedTextOnly), model) + toolsTokenCount
             for (wrapped in resultWrapped) {
                 // Count images
                 if (wrapped.message.role == ChatRole.User) {
-                    val userMessageContent = wrapped.message.messageContent
+                    val userMessageContent = wrapped.message.content
                     if (userMessageContent is ListContent) {
                         for (part in userMessageContent.content) {
                             if (part is ImagePart) {
                                 result += 765 // assuming 765 tokens per image
+                            }
+                            if (part is InputAudioPart) {
+                                result += 1000 // assuming 1000 tokens per audio
                             }
                         }
                     }

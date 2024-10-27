@@ -1,12 +1,12 @@
 package space.davids_digital.sweetie.gpt.tool.function
 
-import com.aallam.openai.api.chat.ChatMessage
-import com.aallam.openai.api.chat.ImagePart
-import com.aallam.openai.api.chat.TextPart
 import org.springframework.stereotype.Component
 import space.davids_digital.sweetie.gpt.InvocationContext
 import space.davids_digital.sweetie.gpt.tool.function.parameter.Description
 import space.davids_digital.sweetie.integration.openai.OpenAiUtils.toBase64PngDataUrl
+import space.davids_digital.sweetie.integration.openai.dto.ChatMessage
+import space.davids_digital.sweetie.integration.openai.dto.ImagePart
+import space.davids_digital.sweetie.integration.openai.dto.TextPart
 import space.davids_digital.sweetie.model.VkMessageModel
 import space.davids_digital.sweetie.orm.service.VkStickerPackOrmService
 import space.davids_digital.sweetie.service.VkStickerPackService
@@ -37,7 +37,7 @@ class SeeStickerPackFunction(
         val pack = vkStickerPackOrmService.getByProductId(parameters.packId)
             ?: return "Sticker pack not found, use 'list_sticker_packs' to see available packs"
         val image = vkStickerPackService.createStickerPackImage(pack.productId)
-        invocationContext.appendMessage(ChatMessage.Companion.User(listOf(
+        invocationContext.appendMessage(ChatMessage.user(listOf(
             TextPart("[INTERNAL] This is the sticker pack you requested."),
             ImagePart(image.toBase64PngDataUrl())
         )))

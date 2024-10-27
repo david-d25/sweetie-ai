@@ -94,25 +94,32 @@ class SettingsCommand(
             return
         }
         if (settings.gptMaxInputTokens < 0 || settings.gptMaxInputTokens > 16384) {
-            return vkMessageService.send(message.peerId, "Надо число от 0 до 16384")
+            vkMessageService.send(message.peerId, "Надо число от 0 до 16384")
+            return
         }
         if (settings.gptMaxOutputTokens < 1 || settings.gptMaxOutputTokens > 2048) {
-            return vkMessageService.send(message.peerId, "Надо число от 1 до 2048")
+            vkMessageService.send(message.peerId, "Надо число от 1 до 2048")
+            return
         }
         if (settings.gptTemperature < 0 || settings.gptTemperature > 2) {
-            return vkMessageService.send(message.peerId, "Надо число от 0 до 2")
+            vkMessageService.send(message.peerId, "Надо число от 0 до 2")
+            return
         }
         if (settings.gptTopP < 0 || settings.gptTopP > 1) {
-            return vkMessageService.send(message.peerId, "Надо число от 0 до 1")
+            vkMessageService.send(message.peerId, "Надо число от 0 до 1")
+            return
         }
         if (settings.gptFrequencyPenalty < 0 || settings.gptFrequencyPenalty > 2) {
-            return vkMessageService.send(message.peerId, "Надо число от 0 до 2")
+            vkMessageService.send(message.peerId, "Надо число от 0 до 2")
+            return
         }
         if (settings.gptPresencePenalty < 0 || settings.gptPresencePenalty > 2) {
-            return vkMessageService.send(message.peerId, "Надо число от 0 до 2")
+            vkMessageService.send(message.peerId, "Надо число от 0 до 2")
+            return
         }
         if (settings.ttsSpeed < 0.25 || settings.ttsSpeed > 4) {
-            return vkMessageService.send(message.peerId, "Надо число от 0.25 до 4")
+            vkMessageService.send(message.peerId, "Надо число от 0.25 до 4")
+            return
         }
         withContext(Dispatchers.IO) {
             chatSettingsService.updateSettings(message.peerId) {

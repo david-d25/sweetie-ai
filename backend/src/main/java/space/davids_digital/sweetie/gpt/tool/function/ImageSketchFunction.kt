@@ -1,8 +1,5 @@
 package space.davids_digital.sweetie.gpt.tool.function
 
-import com.aallam.openai.api.chat.ChatMessage
-import com.aallam.openai.api.chat.ImagePart
-import com.aallam.openai.api.chat.TextPart
 import com.vk.api.sdk.objects.messages.SetActivityType
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -10,6 +7,9 @@ import space.davids_digital.sweetie.gpt.InvocationContext
 import space.davids_digital.sweetie.gpt.tool.function.AssistantFunctionUtils.downloadPhotoAttachment
 import space.davids_digital.sweetie.gpt.tool.function.parameter.Description
 import space.davids_digital.sweetie.integration.openai.OpenAiUtils.toBase64PngDataUrl
+import space.davids_digital.sweetie.integration.openai.dto.ChatMessage
+import space.davids_digital.sweetie.integration.openai.dto.ImagePart
+import space.davids_digital.sweetie.integration.openai.dto.TextPart
 import space.davids_digital.sweetie.integration.stabilityai.StabilityAiService
 import space.davids_digital.sweetie.integration.vk.VkMessageService
 import space.davids_digital.sweetie.model.VkMessageModel
@@ -57,7 +57,7 @@ class ImageSketchFunction(
         )
         val attachments = vkMessagesService.uploadPhotoAttachment(message.peerId, resultImage)
         invocationContext.addAttachment(attachments)
-        invocationContext.appendMessage(ChatMessage.Companion.User(listOf(
+        invocationContext.appendMessage(ChatMessage.user(listOf(
             TextPart("[INTERNAL] This is the result image:"),
             ImagePart(resultImage.toBase64PngDataUrl())
         )))

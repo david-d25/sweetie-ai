@@ -1,11 +1,13 @@
 package space.davids_digital.sweetie.gpt.tool.function
 
-import com.aallam.openai.api.chat.*
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import space.davids_digital.sweetie.gpt.InvocationContext
 import space.davids_digital.sweetie.gpt.tool.function.parameter.Description
 import space.davids_digital.sweetie.integration.openai.OpenAiUtils.toBase64PngDataUrl
+import space.davids_digital.sweetie.integration.openai.dto.ChatMessage
+import space.davids_digital.sweetie.integration.openai.dto.ImagePart
+import space.davids_digital.sweetie.integration.openai.dto.TextPart
 import space.davids_digital.sweetie.integration.vk.VkMessageService
 import space.davids_digital.sweetie.integration.vk.VkStickerService
 import space.davids_digital.sweetie.model.VkMessageModel
@@ -45,7 +47,7 @@ class SendStickerFunction(
             invocationContext.requestStop()
         } else {
             val pseudoMessageText = "[INTERNAL] This is the sticker you have sent."
-            invocationContext.appendMessage(ChatMessage.Companion.User(listOf(
+            invocationContext.appendMessage(ChatMessage.user(listOf(
                 TextPart(pseudoMessageText),
                 ImagePart(vkStickerService.getStickerImage(parameters.stickerId).toBase64PngDataUrl())
             )))

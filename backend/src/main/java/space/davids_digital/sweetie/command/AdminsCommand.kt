@@ -72,10 +72,14 @@ class AdminsCommand(
             return handleHelp(message)
         }
         val memberId = VkUtils.extractMemberId(rest)
-            ?: return vkMessageService.send(message.peerId, "Не могу найти участника")
+        if (memberId == null) {
+            vkMessageService.send(message.peerId, "Не могу найти участника")
+            return
+        }
         val sweetAdmins = chatAdminOrmService.getAdminUserIds(message.peerId)
         if (sweetAdmins.contains(memberId)) {
-            return vkMessageService.send(message.peerId, "Уже админ")
+            vkMessageService.send(message.peerId, "Уже админ")
+            return
         }
         log.info("Adding admin $memberId to chat ${message.peerId}")
         chatAdminOrmService.addAdmin(message.peerId, memberId)
@@ -87,7 +91,10 @@ class AdminsCommand(
             return handleHelp(message)
         }
         val memberId = VkUtils.extractMemberId(rest)
-            ?: return vkMessageService.send(message.peerId, "Не могу найти участника")
+        if (memberId == null) {
+            vkMessageService.send(message.peerId, "Не могу найти участника")
+            return
+        }
         log.info("Removing admin $memberId from chat ${message.peerId}")
         chatAdminOrmService.removeAdmin(message.peerId, memberId)
         vkMessageService.send(message.peerId, "Ок")

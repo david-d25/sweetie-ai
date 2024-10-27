@@ -10,7 +10,8 @@ interface SwitchProps {
 
 export default function Switch(props: SwitchProps) {
     return (
-        <div className={`${s.switchWrapper} ${props.checked ? s.checked : ''}`} onClick={() => props.onChange(!props.checked)}>
+        <div className={`${s.switchWrapper} ${props.checked ? s.checked : ''}`}
+             onClick={() => props.onChange(!props.checked)}>
             <div className={s.switch}>
                 <div className={s.handle}></div>
             </div>

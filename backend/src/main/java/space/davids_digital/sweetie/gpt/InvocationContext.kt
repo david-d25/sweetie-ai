@@ -1,7 +1,7 @@
 package space.davids_digital.sweetie.gpt
 
-import com.aallam.openai.api.chat.ChatMessage
 import com.vk.api.sdk.objects.messages.MessageAttachment
+import space.davids_digital.sweetie.integration.openai.dto.ChatMessage
 
 interface InvocationContext {
     fun addAttachment(attachment: MessageAttachment)
@@ -9,4 +9,5 @@ interface InvocationContext {
     fun appendMessage(message: ChatMessage)
     fun chargeCredits(credits: Long)
     fun lookupAttachment(attachmentId: Int): MessageAttachment?
+    fun requestVoiceMode()
 }

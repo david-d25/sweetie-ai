@@ -101,9 +101,11 @@ class BotService(
             chatAdminRepository.existsByUserIdAndPeerId(fromId, peerId)
         }
         if (candidate.requiresAppCeo() && !userIsCeo) {
-            return vkMessageService.send(peerId, "Только CEO Сладенького может это")
+            vkMessageService.send(peerId, "Только CEO Сладенького может это")
+            return
         } else if (candidate.requiresChatAdmin() && !(userIsAdmin || userIsCeo)) {
-            return vkMessageService.send(peerId, "Только админ может это")
+            vkMessageService.send(peerId, "Только админ может это")
+            return
         }
         try {
             candidate.handle(commandName, argumentsRaw, message)

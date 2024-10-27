@@ -1,8 +1,5 @@
 package space.davids_digital.sweetie.service
 
-import com.aallam.openai.api.chat.*
-import com.aallam.openai.api.core.Parameters
-import com.aallam.openai.api.core.Role
 import com.vk.api.sdk.objects.messages.MessageAttachment
 import com.vk.api.sdk.objects.messages.MessageAttachmentType
 import com.vk.api.sdk.objects.messages.SetActivityType
@@ -19,15 +16,32 @@ import space.davids_digital.sweetie.gpt.InvocationContext
 import space.davids_digital.sweetie.gpt.tool.function.AssistantFunction
 import space.davids_digital.sweetie.gpt.tool.function.parameter.ParameterSchemaGenerator
 import space.davids_digital.sweetie.integration.openai.OpenAiService
+import space.davids_digital.sweetie.integration.openai.dto.ChatMessage
+import space.davids_digital.sweetie.integration.openai.dto.ChatRole
+import space.davids_digital.sweetie.integration.openai.dto.Content
+import space.davids_digital.sweetie.integration.openai.dto.ContentPart
+import space.davids_digital.sweetie.integration.openai.dto.FunctionTool
+import space.davids_digital.sweetie.integration.openai.dto.ImagePart
+import space.davids_digital.sweetie.integration.openai.dto.InputAudioPart
+import space.davids_digital.sweetie.integration.openai.dto.InputAudioPart.InputAudio
+import space.davids_digital.sweetie.integration.openai.dto.ListContent
+import space.davids_digital.sweetie.integration.openai.dto.Parameters
+import space.davids_digital.sweetie.integration.openai.dto.TextContent
+import space.davids_digital.sweetie.integration.openai.dto.TextPart
+import space.davids_digital.sweetie.integration.openai.dto.Tool
+import space.davids_digital.sweetie.integration.openai.dto.ToolCall
 import space.davids_digital.sweetie.integration.vk.VkMessageService
 import space.davids_digital.sweetie.integration.vk.VkUserService
 import space.davids_digital.sweetie.model.VkMessageModel
+import space.davids_digital.sweetie.orm.service.VkAudioTranscriptOrmService
 import space.davids_digital.sweetie.orm.service.VkMessageOrmService
 import space.davids_digital.sweetie.orm.service.VkUserOrmService
+import space.davids_digital.sweetie.util.DownloadUtils.download
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Base64
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.reflect.KClass
@@ -41,6 +55,7 @@ class SweetieService(
     private val vkMessageService: VkMessageService,
     private val vkMessagesOrmService: VkMessageOrmService,
     private val vkAudioTranscriptService: VkAudioTranscriptService,
+    private val vkAudioTranscriptOrmService: VkAudioTranscriptOrmService,
     private val chatSettingsService: ChatSettingsService,
     private val usagePlanService: UsagePlanService,
     private val openAiService: OpenAiService,
@@ -63,10 +78,7 @@ class SweetieService(
                 null
             }
         }
-        Tool(
-            ToolType.Function,
-            FunctionTool(it.getName(), parameters, it.getDescription())
-        )
+        Tool(function = FunctionTool(it.getName(), parameters, it.getDescription()))
     }
 
     @PostConstruct
@@ -90,11 +102,7 @@ class SweetieService(
             return
         }
 
-        val user = vkUserOrmService.getById(vkMessage.fromId)
-        if (user == null) {
-            vkMessageService.send(vkMessage.fromId, "Сладенький не может ответить (user not found)")
-            return
-        }
+        val user = vkUserOrmService.getOrCreateDefault(vkMessage.fromId)
         if (user.credits <= 0) {
             handleNotEnoughCredits(vkMessage)
             return
@@ -122,14 +130,13 @@ class SweetieService(
 
         for ((index, historyItem) in latestVkMessages.withIndex()) {
             if (historyItem.fromId == -vkGroupId) {
-                builder.addSoftMessage(ChatMessage(
-                    role = ChatRole.Assistant,
-                    content = vkMessageToString(historyItem, chatSettings.processAudioMessages)
+                builder.addSoftMessage(ChatMessage.assistant(
+                    vkMessageToString(historyItem, chatSettings.processAudioMessages)
                 ))
                 // Adding images and sticker as user so assistant can see them
                 val imageAttachments = historyItem.attachmentDtos.filter { it.type == MessageAttachmentType.PHOTO }
                 val stickerAttachments = historyItem.attachmentDtos.filter { it.type == MessageAttachmentType.STICKER }
-                if (!visionSupported || (imageAttachments.isEmpty() && stickerAttachments.isEmpty())) {
+                if (imageAttachments.isEmpty() && stickerAttachments.isEmpty()) {
                     continue
                 }
                 val imageContentList: MutableList<ContentPart> = mutableListOf()
@@ -137,27 +144,17 @@ class SweetieService(
                 imageAttachments.forEach { attachment ->
                     imageContentList.add(ImagePart(attachment.photo.sizes.maxBy { it.width }.url.toString()))
                 }
-                builder.addSoftMessage(
-                    ChatMessage(
-                        role = ChatRole.User,
-                        messageContent = ListContent(imageContentList)
-                    )
-                )
+                builder.addSoftMessage(ChatMessage.user(imageContentList))
                 val stickerContentList: MutableList<ContentPart> = mutableListOf()
                 stickerContentList.add(TextPart("[INTERNAL] This is the sticker you sent in the previous message:"))
                 stickerAttachments.forEach { attachment ->
                     stickerContentList.add(ImagePart(attachment.sticker.images.maxBy { it.width }.url.toString()))
                 }
-                builder.addSoftMessage(
-                    ChatMessage(
-                        role = ChatRole.User,
-                        messageContent = ListContent(stickerContentList)
-                    )
-                )
+                builder.addSoftMessage(ChatMessage(role = ChatRole.User, content = ListContent(stickerContentList)))
             } else {
                 val chatMessage = ChatMessage(
                     role = ChatRole.User,
-                    messageContent = createUserContent(historyItem, visionSupported, chatSettings.processAudioMessages)
+                    content = createUserContent(historyItem, chatSettings.processAudioMessages)
                 )
                 if (index != latestVkMessages.size - 1) {
                     builder.addSoftMessage(chatMessage)
@@ -171,27 +168,36 @@ class SweetieService(
         var currentRun = 0
         var creditsCost = 1L
         var continuationMode: String
+        var voiceModeRequested = false
         var lastResponse: ChatMessage? = null
         val attachments = mutableListOf<MessageAttachment>()
         do {
-            val history = builder.build()
+            val history = builder.build(visionSupported && !voiceModeRequested, voiceModeRequested)
             try {
-                vkMessageService.indicateActivity(vkMessage.peerId, SetActivityType.TYPING)
-                log.info("Requesting GPT, run ${currentRun+1}" +
+                if (voiceModeRequested) {
+                    vkMessageService.indicateActivity(vkMessage.peerId, SetActivityType.AUDIOMESSAGE)
+                } else {
+                    vkMessageService.indicateActivity(vkMessage.peerId, SetActivityType.TYPING)
+                }
+                log.info("Requesting GPT in ${if (voiceModeRequested) "voice mode" else "normal mode"}" +
+                        ", run ${currentRun+1}" +
                         ", passing ${history.size} messages and ${builder.getTools().size} tools")
+                val modelOverride = if (voiceModeRequested) "gpt-4o-audio-preview" else chatSettings.gptModel
                 lastResponse = openAiService.completion(
                     messages = history,
                     tools = builder.getTools(),
-                    model = chatSettings.gptModel,
+                    model = modelOverride,
                     maxTokens = chatSettings.gptMaxOutputTokens,
                     temperature = chatSettings.gptTemperature,
                     topP = chatSettings.gptTopP,
                     frequencyPenalty = chatSettings.gptFrequencyPenalty,
-                    presencePenalty = chatSettings.gptPresencePenalty
+                    presencePenalty = chatSettings.gptPresencePenalty,
+                    modalities = listOf("text") + if (voiceModeRequested) listOf("audio") else emptyList(),
+                    audioVoice = chatSettings.ttsVoice,
                 )
                 builder.addHardMessage(lastResponse)
-                val textLength = if (lastResponse.messageContent is TextContent) {
-                    (lastResponse.messageContent as TextContent).content.length
+                val textLength = if (lastResponse.content is TextContent) {
+                    (lastResponse.content as TextContent).content.length
                 } else {
                     0
                 }
@@ -207,6 +213,9 @@ class SweetieService(
                     }
                     override fun requestStop() {
                         continuationMode = "stop"
+                    }
+                    override fun requestVoiceMode() {
+                        voiceModeRequested = true
                     }
                     override fun appendMessage(message: ChatMessage) {
                         messagesToAppend.add(message)
@@ -227,29 +236,26 @@ class SweetieService(
                 }
 
                 if (lastResponse.toolCalls?.isNotEmpty() == true) {
-                    val toolCallsString = lastResponse.toolCalls?.joinToString(", ") {
+                    val toolCallsString = lastResponse.toolCalls.joinToString(", ") {
                         if (it is ToolCall.Function)
                             it.function.nameOrNull ?: "(null)"
                         else
                             "(unknown)"
                     }
                     log.info("Handling tool calls: $toolCallsString")
-                    handleToolCalls(builder, lastResponse.toolCalls!!, invocationContext, vkMessage)
+                    handleToolCalls(builder, lastResponse.toolCalls, invocationContext, vkMessage)
                 }
                 messagesToAppend.forEach(builder::addHardMessage)
-                if (lastResponse.messageContent != null
-                    && lastResponse.messageContent is TextContent
-                    && (lastResponse.messageContent as TextContent).content.contains(Regex("<\\|.*?\\|>"))) {
+                if (lastResponse.content != null
+                    && lastResponse.content is TextContent
+                    && (lastResponse.content as TextContent).content.contains(Regex("<\\|.*?\\|>"))) {
                     log.warn("Assistant response contains <| or |> tags, re-asking GPT")
                     builder.addHardMessage(
-                        ChatMessage(
-                            role = Role.User,
-                            content = """
+                        ChatMessage.user("""
                                 [SYSTEM MESSAGE] Your response contains text between `<|` and `|>`. 
                                 Repeat your answer without these symbols. 
                                 If you wanted to send an image or sticker, call functions.
-                            """.trimIndent()
-                        )
+                        """.trimIndent())
                     )
                     continuationMode = "continue"
                 }
@@ -263,18 +269,44 @@ class SweetieService(
             currentRun++
         } while (
             currentRun < maxRuns && (
-                continuationMode == "auto" && lastResponse?.messageContent == null || continuationMode == "continue"
+                continuationMode == "auto" && (lastResponse?.content == null && lastResponse?.audio == null)
+                        || continuationMode == "continue"
             )
         )
 
-        if (lastResponse?.messageContent is TextContent
-            && ((lastResponse.messageContent as TextContent).content.isNotBlank() || attachments.isNotEmpty())) {
-            vkMessageService.send(
+        var audioMessageTranscript: String? = null
+        var audioMessageAttachmentId: Int? = null
+        if (lastResponse?.audio != null) {
+            val data = Base64.getDecoder().decode(lastResponse.audio.dataBase64)
+            audioMessageTranscript = lastResponse.audio.transcript
+            val attachment = vkMessageService.uploadVoiceMessageAttachment(vkMessage.peerId, data)
+            audioMessageAttachmentId = attachment.audioMessage.id
+            attachments.add(attachment)
+        }
+
+        if (lastResponse?.content is TextContent
+            && (lastResponse.content as TextContent).content.isNotBlank() || attachments.isNotEmpty()) {
+
+            val text = if (lastResponse?.content is TextContent) {
+                (lastResponse.content as TextContent).content
+            } else {
+                ""
+            }
+            val newMessageConvId = vkMessageService.send(
                 vkMessage.peerId,
-                sanitizeAssistantResponse((lastResponse.messageContent as TextContent).content),
+                sanitizeAssistantResponse(text),
                 attachments
             )
             log.info("Message sent to peerId = ${vkMessage.peerId}")
+            if (audioMessageTranscript != null && audioMessageAttachmentId != null) {
+                vkAudioTranscriptOrmService.saveTranscriptForAudioMessage(
+                    audioMessageAttachmentId,
+                    audioMessageTranscript,
+                    newMessageConvId,
+                    vkMessage.peerId,
+                    0
+                )
+            }
         }
         withContext(Dispatchers.IO) {
             vkUserOrmService.addCredits(vkMessage.fromId, -creditsCost)
@@ -384,17 +416,11 @@ class SweetieService(
         return builder.toString()
     }
 
-    private suspend fun createUserContent(
-        message: VkMessageModel,
-        visionSupported: Boolean,
-        transcriptionEnabled: Boolean,
-    ): Content {
+    private suspend fun createUserContent(message: VkMessageModel, transcriptionEnabled: Boolean): Content {
         val text = vkMessageToString(message, transcriptionEnabled)
         val imageAttachments = message.attachmentDtos.filter { it.type == MessageAttachmentType.PHOTO }
         val stickerAttachments = message.attachmentDtos.filter { it.type == MessageAttachmentType.STICKER }
-        if (!visionSupported || (imageAttachments.isEmpty() && stickerAttachments.isEmpty())) {
-            return TextContent(text)
-        }
+        val audioMessageAttachments = message.attachmentDtos.filter { it.type == MessageAttachmentType.AUDIO_MESSAGE }
         val content = mutableListOf<ContentPart>()
         content.add(TextPart(text))
         imageAttachments.forEach { attachment ->
@@ -402,6 +428,11 @@ class SweetieService(
         }
         stickerAttachments.forEach { attachment ->
             content.add(ImagePart(attachment.sticker.images.maxBy { it.width }.url.toString()))
+        }
+        audioMessageAttachments.forEach { attachment ->
+            val data = download(attachment.audioMessage.linkMp3)
+            val base64 = Base64.getEncoder().encodeToString(data)
+            content.add(InputAudioPart(InputAudio(base64, "mp3")))
         }
         return ListContent(content)
     }
@@ -421,10 +452,9 @@ class SweetieService(
                 }
             } catch (e: Exception) {
                 builder.addHardMessage(
-                    ChatMessage(
-                        role = ChatRole.Tool,
+                    ChatMessage.tool(
                         content = "Tool call failed: ${e.message}",
-                        toolCallId = (toolCall as? ToolCall.Function)?.id
+                        toolCallId = (toolCall as? ToolCall.Function)?.id!!
                     )
                 )
                 log.error("Tool call failed", e)
@@ -441,8 +471,7 @@ class SweetieService(
         val function = assistantFunctions.find { it.getName() == toolCall.function.nameOrNull }
         if (function == null) {
             builder.addHardMessage(
-                ChatMessage(
-                    role = ChatRole.Tool,
+                ChatMessage.tool(
                     content = "Function not found: ${toolCall.function.nameOrNull}",
                     toolCallId = toolCall.id
                 )
@@ -453,13 +482,7 @@ class SweetieService(
         val parametersClass = function.getParametersClass()
         val parameters = createParametersObject(parametersClass, argumentsJson)
         val response = function.call(parameters, message, invocationContext)
-        builder.addHardMessage(
-            ChatMessage(
-                role = ChatRole.Tool,
-                content = response,
-                toolCallId = toolCall.id
-            )
-        )
+        builder.addHardMessage(ChatMessage.tool(content = response, toolCallId = toolCall.id))
     }
 
     private fun createParametersObject(parametersClass: KClass<*>, jsonString: String): Any {

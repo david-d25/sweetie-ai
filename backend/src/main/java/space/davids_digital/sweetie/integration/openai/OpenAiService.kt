@@ -4,9 +4,6 @@ import com.aallam.openai.api.audio.SpeechRequest
 import com.aallam.openai.api.audio.SpeechResponseFormat
 import com.aallam.openai.api.audio.TranscriptionRequest
 import com.aallam.openai.api.audio.Voice
-import com.aallam.openai.api.chat.ChatCompletionRequest
-import com.aallam.openai.api.chat.ChatMessage
-import com.aallam.openai.api.chat.Tool
 import com.aallam.openai.api.file.FileSource
 import com.aallam.openai.api.image.ImageCreation
 import com.aallam.openai.api.image.ImageSize
@@ -15,16 +12,29 @@ import com.aallam.openai.api.model.ModelId
 import com.aallam.openai.client.LoggingConfig
 import com.aallam.openai.client.OpenAI
 import com.knuddels.jtokkit.Encodings
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.HttpHeaders
+import io.ktor.http.contentType
+import io.ktor.http.isSuccess
 import okio.source
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
+import space.davids_digital.sweetie.integration.openai.dto.ChatCompletion
+import space.davids_digital.sweetie.integration.openai.dto.ChatCompletionRequest
+import space.davids_digital.sweetie.integration.openai.dto.ChatMessage
+import space.davids_digital.sweetie.integration.openai.dto.ErrorResponse
+import space.davids_digital.sweetie.integration.openai.dto.Tool
 
 @Service
 class OpenAiService(
     @Qualifier("openaiSecretKey")
-    private val openaiSecretKey: String
+    private val openaiSecretKey: String,
+    private val httpClient: HttpClient
 ) {
     companion object {
         private val log = LoggerFactory.getLogger(OpenAiService::class.java)
@@ -57,19 +67,35 @@ class OpenAiService(
         temperature: Double,
         topP: Double,
         frequencyPenalty: Double,
-        presencePenalty: Double
+        presencePenalty: Double,
+        modalities: List<String>,
+        audioVoice: String,
     ): ChatMessage {
-        val response = client.chatCompletion(ChatCompletionRequest(
-            model = ModelId(model),
+        val request = ChatCompletionRequest(
+            model = model,
             messages = messages,
             tools = tools.ifEmpty { null },
             temperature = temperature,
             maxTokens = maxTokens,
             topP = topP,
+            modalities = modalities,
             frequencyPenalty = frequencyPenalty,
             presencePenalty = presencePenalty,
-        ))
-        return response.choices.first().message
+            audio = ChatCompletionRequest.Audio(
+                voice = audioVoice,
+                format = "mp3"
+            )
+        )
+        val response = httpClient.post("https://api.openai.com/v1/chat/completions") {
+            headers.append(HttpHeaders.Authorization, "Bearer $openaiSecretKey")
+            contentType(io.ktor.http.ContentType.Application.Json)
+            setBody(request)
+        }
+        if (!response.status.isSuccess()) {
+            log.error("Failed to get completion: ${response.body<ErrorResponse>().error.message}")
+            throw IllegalStateException("OpenAI API Error: ${response.status}")
+        }
+        return response.body<ChatCompletion>().choices.first().message
     }
 
     suspend fun speech(text: String, model: String, voice: String, speed: Double): ByteArray {

@@ -1,0 +1,1 @@
+A bot for VK that uses GPT to respond to messages.

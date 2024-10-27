@@ -10,7 +10,10 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 
 @Service
-class VkUserOrmService(private val userRepository: VkUserRepository) {
+class VkUserOrmService(
+    private val userRepository: VkUserRepository,
+    private val usagePlanOrmService: UsagePlanOrmService
+) {
     fun save(user: VkUserModel): VkUserModel {
         return toModel(userRepository.save(toEntity(user)))
     }
@@ -18,12 +21,13 @@ class VkUserOrmService(private val userRepository: VkUserRepository) {
     fun getOrCreateDefault(id: Long): VkUserModel {
         var user = getById(id)
         if (user == null) {
+            val credits = usagePlanOrmService.getById("default")?.maxCredits ?: 0
             user = save(
                 VkUserModel(
                     id,
                     "",
                     "",
-                    0,
+                    credits,
                     ZonedDateTime.from(Instant.EPOCH.atZone(ZoneId.systemDefault())),
                     "default",
                     null

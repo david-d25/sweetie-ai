@@ -11,7 +11,7 @@
 
     <properties>
         <java.version>20</java.version>
-        <kotlin.version>1.9.25</kotlin.version>
+        <kotlin.version>2.0.21</kotlin.version>
         <spring-boot.version>3.3.4</spring-boot.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
@@ -59,6 +59,7 @@
                     <compilerPlugins>
                         <plugin>jpa</plugin>
                         <plugin>spring</plugin>
+                        <plugin>kotlinx-serialization</plugin>
                     </compilerPlugins>
                 </configuration>
                 <dependencies>
@@ -70,6 +71,11 @@
                     <dependency>
                         <groupId>org.jetbrains.kotlin</groupId>
                         <artifactId>kotlin-maven-allopen</artifactId>
+                        <version>${kotlin.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.jetbrains.kotlin</groupId>
+                        <artifactId>kotlin-maven-serialization</artifactId>
                         <version>${kotlin.version}</version>
                     </dependency>
                 </dependencies>
@@ -197,6 +203,13 @@
             <version>1.8.1</version>
         </dependency>
         <dependency>
+            <groupId>org.jetbrains.kotlinx</groupId>
+            <artifactId>kotlinx-serialization-json</artifactId>
+            <version>1.7.3</version>
+            <type>pom</type>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-reflect</artifactId>
             <version>${kotlin.version}</version>
@@ -211,17 +224,33 @@
             <artifactId>rxjava</artifactId>
             <version>3.1.9</version>
         </dependency>
+<!--        TODO remove-->
         <dependency>
             <groupId>com.aallam.openai</groupId>
             <artifactId>openai-client-jvm</artifactId>
             <version>3.8.2</version>
         </dependency>
-        <!-- This is for openai-client-jvm -->
         <dependency>
             <groupId>io.ktor</groupId>
             <artifactId>ktor-client-okhttp-jvm</artifactId>
             <version>2.3.4</version>
             <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-client-cio-jvm</artifactId>
+            <version>2.3.4</version>
+        </dependency>
+        <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-client-content-negotiation-jvm</artifactId>
+            <version>2.3.4</version>
+        </dependency>
+        <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-serialization-kotlinx-json-jvm</artifactId>
+            <version>2.3.4</version>
         </dependency>
         <dependency>
             <groupId>com.knuddels</groupId>

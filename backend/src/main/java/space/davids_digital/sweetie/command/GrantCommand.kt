@@ -60,7 +60,8 @@ class GrantCommand(
             usagePlanRepository.existsById(planId)
         }
         if (!planExists) {
-            return vkMessageService.send(message.peerId, "Нет такого плана")
+            vkMessageService.send(message.peerId, "Нет такого плана")
+            return
         }
 
         val expiry = days?.let { ZonedDateTime.now().plusDays(it.toLong()) }

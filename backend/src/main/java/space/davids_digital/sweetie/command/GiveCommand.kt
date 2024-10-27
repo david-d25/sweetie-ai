@@ -46,7 +46,8 @@ class GiveCommand(
         if (arguments.size >= 2) {
             memberId = VkUtils.extractMemberId(rest)
             if (memberId == null) {
-                return vkMessageService.send(message.peerId, "Не могу найти участника")
+                vkMessageService.send(message.peerId, "Не могу найти участника")
+                return
             }
         } else if (message.forwardedMessages.size == 1) {
             memberId = message.forwardedMessages.first().fromId

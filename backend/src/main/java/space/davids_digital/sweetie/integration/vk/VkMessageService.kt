@@ -132,7 +132,7 @@ class VkMessageService @Autowired constructor(
         text: String,
         attachmentsUnsafe: List<MessageAttachment> = emptyList(),
         saveToHistory: Boolean = true
-    ) {
+    ): Long {
         if (attachmentsUnsafe.size > MAX_ATTACHMENTS_PER_MESSAGE) {
             log.warn(
                 "Too many attachments (${attachmentsUnsafe.size}) only first $MAX_ATTACHMENTS_PER_MESSAGE will be sent"
@@ -141,7 +141,7 @@ class VkMessageService @Autowired constructor(
         val attachments = attachmentsUnsafe.take(MAX_ATTACHMENTS_PER_MESSAGE)
         if (text.isBlank() && attachments.isEmpty()) {
             log.error("Empty message without attachments cannot be sent")
-            return
+            return -1
         }
         val attachmentString = attachments.joinToString(",") { attachmentToString(it) }
         var response = vkApiClient.messages()
@@ -166,6 +166,7 @@ class VkMessageService @Autowired constructor(
                 forwardedMessages = listOf()
             ))
         }
+        return response;
     }
 
     fun sendSticker(toId: Long, stickerId: Int) {
