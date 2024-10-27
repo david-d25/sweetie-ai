@@ -8,6 +8,7 @@ import space.davids_digital.sweetie.model.VkMessageModel
 class StopFunction: AssistantFunction<Unit> {
     override fun getName() = "stop"
     override fun getParametersClass() = Unit::class
+    override fun isVisible(message: VkMessageModel, invocationContext: InvocationContext) = false
 
     override fun getDescription() = """
         Ends current conversation.

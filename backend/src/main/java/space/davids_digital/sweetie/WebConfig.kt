@@ -145,7 +145,7 @@ class WebConfig {
             })
         }
         install(HttpRequestRetry) {
-            retryOnServerErrors(maxRetries = 3)
+            retryOnServerErrors(maxRetries = 5)
             exponentialDelay()
         }
     }

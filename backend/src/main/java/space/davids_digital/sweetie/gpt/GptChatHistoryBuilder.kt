@@ -23,6 +23,10 @@ class GptChatHistoryBuilder(private val model: String, private val openAiService
     private val tools: MutableList<Tool> = mutableListOf()
     private val gson = Gson()
 
+    fun getTokenLimit(): Int {
+        return tokenLimit
+    }
+
     fun setTokenLimit(tokenLimit: Int): GptChatHistoryBuilder {
         this.tokenLimit = tokenLimit
         return this
@@ -51,6 +55,10 @@ class GptChatHistoryBuilder(private val model: String, private val openAiService
     fun addHardMessage(message: ChatMessage): GptChatHistoryBuilder {
         wrappedMessages.add(WrappedMessage(message, true))
         return this
+    }
+
+    fun removeLastMessage() {
+        wrappedMessages.removeLastOrNull()
     }
 
     fun build(visionSupported: Boolean, audioSupported: Boolean): List<ChatMessage> {

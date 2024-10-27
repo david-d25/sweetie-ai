@@ -70,17 +70,6 @@ class SweetieService(
     @Suppress("unchecked_cast")
     private val assistantFunctions = assistantFunctionsGeneric as List<AssistantFunction<Any>>
 
-    private val tools = assistantFunctions.map {
-        val parameters = it.getParametersClass().let { c ->
-            if (c != Unit::class) {
-                Parameters.fromJsonString(ParameterSchemaGenerator().generateString(c))
-            } else {
-                null
-            }
-        }
-        Tool(function = FunctionTool(it.getName(), parameters, it.getDescription()))
-    }
-
     @PostConstruct
     fun init() {
         log.info("Detected assistant functions: " + assistantFunctions.joinToString(", ") { it.getName() })
@@ -121,7 +110,6 @@ class SweetieService(
         val builder = GptChatHistoryBuilder(chatSettings.gptModel, openAiService)
         builder.setTokenLimit(chatSettings.gptMaxInputTokens)
         builder.setSystemMessage(systemMessage)
-        builder.setTools(tools)
 
         val latestVkMessages = vkMessagesOrmService.getMessagesByPeerIdOrderByTimestampDesc(
             vkMessage.peerId,
@@ -179,6 +167,47 @@ class SweetieService(
                 } else {
                     vkMessageService.indicateActivity(vkMessage.peerId, SetActivityType.TYPING)
                 }
+                val messagesToAppend = mutableListOf<ChatMessage>()
+                val invocationContext = object : InvocationContext {
+                    override fun addAttachment(attachment: MessageAttachment) {
+                        attachments.add(attachment)
+                    }
+                    override fun requestStop() {
+                        continuationMode = "stop"
+                    }
+                    override fun requestVoiceMode() {
+                        voiceModeRequested = true
+                    }
+                    override fun voiceModeRequested(): Boolean {
+                        return voiceModeRequested
+                    }
+                    override fun appendMessage(message: ChatMessage) {
+                        messagesToAppend.add(message)
+                    }
+                    override fun chargeCredits(credits: Long) {
+                        creditsCost += credits
+                    }
+                    override fun lookupAttachment(attachmentId: Int): MessageAttachment? {
+                        for (searchItem in latestVkMessages) {
+                            for (attachment in searchItem.attachmentDtos) {
+                                if (attachment.getId() == attachmentId) {
+                                    return attachment
+                                }
+                            }
+                        }
+                        return null
+                    }
+                }
+                builder.setTools(assistantFunctions.filter { it.isVisible(vkMessage, invocationContext) }.map {
+                    val parameters = it.getParametersClass().let { c ->
+                        if (c != Unit::class) {
+                            Parameters.fromJsonString(ParameterSchemaGenerator().generateString(c))
+                        } else {
+                            null
+                        }
+                    }
+                    Tool(function = FunctionTool(it.getName(), parameters, it.getDescription()))
+                })
                 log.info("Requesting GPT in ${if (voiceModeRequested) "voice mode" else "normal mode"}" +
                         ", run ${currentRun+1}" +
                         ", passing ${history.size} messages and ${builder.getTools().size} tools")
@@ -206,35 +235,6 @@ class SweetieService(
 
                 continuationMode = "auto"
 
-                val messagesToAppend = mutableListOf<ChatMessage>()
-                val invocationContext = object : InvocationContext {
-                    override fun addAttachment(attachment: MessageAttachment) {
-                        attachments.add(attachment)
-                    }
-                    override fun requestStop() {
-                        continuationMode = "stop"
-                    }
-                    override fun requestVoiceMode() {
-                        voiceModeRequested = true
-                    }
-                    override fun appendMessage(message: ChatMessage) {
-                        messagesToAppend.add(message)
-                    }
-                    override fun chargeCredits(credits: Long) {
-                        creditsCost += credits
-                    }
-                    override fun lookupAttachment(attachmentId: Int): MessageAttachment? {
-                        for (searchItem in latestVkMessages) {
-                            for (attachment in searchItem.attachmentDtos) {
-                                if (attachment.getId() == attachmentId) {
-                                    return attachment
-                                }
-                            }
-                        }
-                        return null
-                    }
-                }
-
                 if (lastResponse.toolCalls?.isNotEmpty() == true) {
                     val toolCallsString = lastResponse.toolCalls.joinToString(", ") {
                         if (it is ToolCall.Function)
@@ -252,11 +252,22 @@ class SweetieService(
                     log.warn("Assistant response contains <| or |> tags, re-asking GPT")
                     builder.addHardMessage(
                         ChatMessage.user("""
-                                [SYSTEM MESSAGE] Your response contains text between `<|` and `|>`. 
-                                Repeat your answer without these symbols. 
-                                If you wanted to send an image or sticker, call functions.
+                                [INTERNAL] Your response contains `<|` and `|>` symbols, which is illegal. 
+                                Repeat without these symbols. 
                         """.trimIndent())
                     )
+                    continuationMode = "continue"
+                } else if (lastResponse.content != null
+                    && lastResponse.content is TextContent
+                    && (lastResponse.content as TextContent).content.isBlank()) {
+                    log.warn("Assistant response is empty, re-asking GPT")
+                    builder.addHardMessage(
+                        ChatMessage.user("[INTERNAL] Your response is empty. Try again.")
+                    )
+                } else if (voiceModeRequested && lastResponse.audio == null && lastResponse.toolCalls == null) {
+                    log.warn("Voice mode requested, but no audio response received, re-asking GPT")
+                    builder.removeLastMessage()
+                    builder.setTokenLimit(builder.getTokenLimit()/2) // Workaround for GPT-4o bug
                     continuationMode = "continue"
                 }
             } catch (e: Exception) {

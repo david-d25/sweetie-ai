@@ -26,6 +26,10 @@ class BeginSpeakingFunction: AssistantFunction<BeginSpeakingFunction.SpeakParame
         In speaking mode, you can't send other attachments, only text and voice.
     """.trimIndent()
 
+    override fun isVisible(message: VkMessageModel, invocationContext: InvocationContext): Boolean {
+        return !invocationContext.voiceModeRequested()
+    }
+
     override suspend fun call(
         parameters: SpeakParameters,
         message: VkMessageModel,

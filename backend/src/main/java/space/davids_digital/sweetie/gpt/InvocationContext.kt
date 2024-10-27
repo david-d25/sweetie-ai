@@ -10,4 +10,5 @@ interface InvocationContext {
     fun chargeCredits(credits: Long)
     fun lookupAttachment(attachmentId: Int): MessageAttachment?
     fun requestVoiceMode()
+    fun voiceModeRequested(): Boolean
 }
