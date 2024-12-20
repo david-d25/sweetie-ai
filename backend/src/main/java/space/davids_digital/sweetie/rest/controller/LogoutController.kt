@@ -23,7 +23,7 @@ class LogoutController(
     fun logout(): ResponseEntity<*> {
         try {
             userSessionOrmService.deleteUserSession(sessionService.requireSession().id)
-        } catch (ignored: SecurityException) {}
+        } catch (_: SecurityException) {}
         return ResponseEntity.ok().removeAuthCookies(cookiesDomain).build<Any>()
     }
 }

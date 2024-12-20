@@ -27,7 +27,7 @@ class BeginSpeakingFunction: AssistantFunction<BeginSpeakingFunction.SpeakParame
     """.trimIndent()
 
     override fun isVisible(message: VkMessageModel, invocationContext: InvocationContext): Boolean {
-        return !invocationContext.voiceModeRequested()
+        return true
     }
 
     override suspend fun call(
