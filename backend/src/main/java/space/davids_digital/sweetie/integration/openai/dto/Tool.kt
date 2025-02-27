@@ -11,7 +11,6 @@ data class Tool(
     @SerialName("function")
     val function: FunctionTool,
 ) {
-
     companion object {
         fun function(name: String, description: String? = null, parameters: Parameters) =
             Tool(function = FunctionTool(name = name, description = description, parameters = parameters))
