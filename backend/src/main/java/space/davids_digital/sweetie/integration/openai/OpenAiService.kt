@@ -5,12 +5,14 @@ import com.aallam.openai.api.audio.SpeechResponseFormat
 import com.aallam.openai.api.audio.TranscriptionRequest
 import com.aallam.openai.api.audio.Voice
 import com.aallam.openai.api.file.FileSource
+import com.aallam.openai.api.http.Timeout
 import com.aallam.openai.api.image.ImageCreation
 import com.aallam.openai.api.image.ImageSize
 import com.aallam.openai.api.logging.LogLevel
 import com.aallam.openai.api.model.ModelId
 import com.aallam.openai.client.LoggingConfig
 import com.aallam.openai.client.OpenAI
+import com.aallam.openai.client.RetryStrategy
 import com.knuddels.jtokkit.Encodings
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -29,6 +31,7 @@ import space.davids_digital.sweetie.integration.openai.dto.ChatCompletionRequest
 import space.davids_digital.sweetie.integration.openai.dto.ChatMessage
 import space.davids_digital.sweetie.integration.openai.dto.ErrorResponse
 import space.davids_digital.sweetie.integration.openai.dto.Tool
+import kotlin.time.Duration.Companion.minutes
 
 @Service
 class OpenAiService(
@@ -40,7 +43,13 @@ class OpenAiService(
         private val log = LoggerFactory.getLogger(OpenAiService::class.java)
     }
 
-    private val client: OpenAI = OpenAI(token = openaiSecretKey, logging = LoggingConfig(logLevel = LogLevel.None))
+    private val client: OpenAI = OpenAI(
+        token = openaiSecretKey,
+        logging = LoggingConfig(logLevel = LogLevel.None),
+        timeout = Timeout(5.minutes),
+        retry = RetryStrategy(maxRetries = 5)
+    )
+
     private val registry = Encodings.newDefaultEncodingRegistry()
 
     @Cacheable("OpenAiService.getAvailableGptOnlyModels")
