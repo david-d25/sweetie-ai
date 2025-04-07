@@ -59,10 +59,10 @@ class BotService(
         log.debug("Received a message")
         runBlocking {
             when {
-                isCommandMessage(message)                               -> processCommandMessage(message)
-                isPrivateMessagePeerId(message.peerId)                  -> processPrivateMessage(message)
-                isSweetieTagged(message) || isReplyToSweetie(message)   -> processTaggingMessage(message)
-                hasAudioMessage(message)                                -> processAudioMessage(message)
+                isCommandMessage(message)                                   -> processCommandMessage(message)
+                isPrivateMessagePeerId(message.peerId)                      -> processPrivateMessage(message)
+                isSweetieMentioned(message) || isReplyToSweetie(message)    -> processTaggingMessage(message)
+                hasAudioMessage(message)                                    -> processAudioMessage(message)
             }
         }
     }
@@ -183,7 +183,10 @@ class BotService(
         return message.attachmentDtos.any { it.type == MessageAttachmentType.AUDIO_MESSAGE }
     }
 
-    private fun isSweetieTagged(message: VkMessageModel): Boolean {
+    private fun isSweetieMentioned(message: VkMessageModel): Boolean {
         return message.text?.contains(Regex("\\[club${vkGroupId}\\|.*]")) == true
+                || message.text?.lowercase()?.startsWith("сладкий") == true
+                || message.text?.lowercase()?.startsWith("сладенький") == true
+                || message.text?.lowercase()?.startsWith("свити") == true
     }
 }

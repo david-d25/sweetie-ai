@@ -46,7 +46,7 @@ class OpenAiService(
     private val client: OpenAI = OpenAI(
         token = openaiSecretKey,
         logging = LoggingConfig(logLevel = LogLevel.None),
-        timeout = Timeout(5.minutes),
+        timeout = Timeout(15.minutes, 15.minutes, 15.minutes),
         retry = RetryStrategy(maxRetries = 5)
     )
 
@@ -55,7 +55,9 @@ class OpenAiService(
     @Cacheable("OpenAiService.getAvailableGptOnlyModels")
     suspend fun getAvailableGptOnlyModels(): List<String> {
         log.info("Getting available GPT models")
-        return client.models().map { it.id.id }.filter { it.startsWith("gpt") || it.startsWith("ft:gpt") }
+        return client.models().map { it.id.id }.filter {
+            it.startsWith("gpt") || it.startsWith("ft:gpt") || it.startsWith("o")
+        }
     }
 
     fun estimateTokenCount(text: String, model: String): Int {
@@ -73,27 +75,32 @@ class OpenAiService(
         tools: List<Tool>,
         model: String,
         maxTokens: Int,
-        temperature: Double,
+        temperature: Double?,
         topP: Double,
         frequencyPenalty: Double,
         presencePenalty: Double,
-        modalities: List<String>,
+        modalities: List<String>?,
         audioVoice: String,
     ): ChatMessage {
+        val audio = if (modalities?.contains("audio") == true) {
+            ChatCompletionRequest.Audio(
+                voice = audioVoice,
+                format = "mp3"
+            )
+        } else {
+            null
+        }
         val request = ChatCompletionRequest(
             model = model,
             messages = messages,
             tools = tools.ifEmpty { null },
             temperature = temperature,
-            maxTokens = maxTokens,
+            maxCompletionTokens = maxTokens,
             topP = topP,
             modalities = modalities,
             frequencyPenalty = frequencyPenalty,
             presencePenalty = presencePenalty,
-            audio = ChatCompletionRequest.Audio(
-                voice = audioVoice,
-                format = "mp3"
-            )
+            audio = audio
         )
         val response = httpClient.post("https://api.openai.com/v1/chat/completions") {
             headers.append(HttpHeaders.Authorization, "Bearer $openaiSecretKey")

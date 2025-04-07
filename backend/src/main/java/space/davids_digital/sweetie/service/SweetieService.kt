@@ -213,16 +213,23 @@ class SweetieService(
                         ", run ${currentRun+1}" +
                         ", passing ${history.size} messages and ${builder.getTools().size} tools")
                 val modelOverride = if (voiceModeRequested) "gpt-4o-audio-preview" else chatSettings.gptModel
+                val isReasoningModel = modelName.startsWith("o")
+                val modalities = if (isReasoningModel) {
+                    null
+                } else {
+                    listOf("text") + if (voiceModeRequested) listOf("audio") else emptyList()
+                }
+                val temperature = if (isReasoningModel) null else chatSettings.gptTemperature
                 lastResponse = openAiService.completion(
                     messages = history,
                     tools = builder.getTools(),
                     model = modelOverride,
                     maxTokens = chatSettings.gptMaxOutputTokens,
-                    temperature = chatSettings.gptTemperature,
+                    temperature = temperature,
                     topP = chatSettings.gptTopP,
                     frequencyPenalty = chatSettings.gptFrequencyPenalty,
                     presencePenalty = chatSettings.gptPresencePenalty,
-                    modalities = listOf("text") + if (voiceModeRequested) listOf("audio") else emptyList(),
+                    modalities = modalities,
                     audioVoice = chatSettings.ttsVoice,
                 )
                 builder.addHardMessage(lastResponse)
