@@ -148,6 +148,9 @@ class WebConfig {
             retryOnServerErrors(maxRetries = 5)
             exponentialDelay()
         }
+        engine {
+            requestTimeout = 10 * 60 * 1000L
+        }
     }
 
     @Bean
