@@ -104,7 +104,7 @@ class SweetieService(
         val visionSupported = modelName.contains("vision")
                 || modelName.startsWith("gpt-4-turbo")
                 || modelName.startsWith("gpt-4o")
-                || modelName.startsWith("gpt-4.5")
+                || modelName.startsWith("gpt-4.")
                 || modelName.startsWith("chatgpt-4o")
         val systemMessage = createSystemMessage(ZonedDateTime.now(), chatSettings.context)
 
