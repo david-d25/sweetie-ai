@@ -6,31 +6,27 @@ import com.aallam.openai.api.audio.TranscriptionRequest
 import com.aallam.openai.api.audio.Voice
 import com.aallam.openai.api.file.FileSource
 import com.aallam.openai.api.http.Timeout
-import com.aallam.openai.api.image.ImageCreation
-import com.aallam.openai.api.image.ImageSize
 import com.aallam.openai.api.logging.LogLevel
 import com.aallam.openai.api.model.ModelId
 import com.aallam.openai.client.LoggingConfig
 import com.aallam.openai.client.OpenAI
 import com.aallam.openai.client.RetryStrategy
 import com.knuddels.jtokkit.Encodings
-import io.ktor.client.HttpClient
-import io.ktor.client.call.body
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
-import io.ktor.http.HttpHeaders
-import io.ktor.http.contentType
-import io.ktor.http.isSuccess
+import io.ktor.client.*
+import io.ktor.client.call.*
+import io.ktor.client.request.*
+import io.ktor.client.request.forms.MultiPartFormDataContent
+import io.ktor.client.request.forms.formData
+import io.ktor.client.request.forms.submitFormWithBinaryData
+import io.ktor.http.*
+import io.ktor.http.content.ByteArrayContent
 import okio.source
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
-import space.davids_digital.sweetie.integration.openai.dto.ChatCompletion
-import space.davids_digital.sweetie.integration.openai.dto.ChatCompletionRequest
-import space.davids_digital.sweetie.integration.openai.dto.ChatMessage
-import space.davids_digital.sweetie.integration.openai.dto.ErrorResponse
-import space.davids_digital.sweetie.integration.openai.dto.Tool
+import space.davids_digital.sweetie.integration.openai.dto.*
+import java.io.ByteArrayOutputStream
 import kotlin.time.Duration.Companion.minutes
 
 @Service
@@ -104,7 +100,7 @@ class OpenAiService(
         )
         val response = httpClient.post("https://api.openai.com/v1/chat/completions") {
             headers.append(HttpHeaders.Authorization, "Bearer $openaiSecretKey")
-            contentType(io.ktor.http.ContentType.Application.Json)
+            contentType(ContentType.Application.Json)
             setBody(request)
         }
         if (!response.status.isSuccess()) {
@@ -126,15 +122,74 @@ class OpenAiService(
         )
     }
 
-    suspend fun image(prompt: String, size: String): String {
-        if (size !in listOf("1024x1024", "1792x1024", "1024x1792")) {
-            throw IllegalArgumentException("Size must be one of 1024x1024, 1792x1024, 1024x1792, but was $size")
+    suspend fun image(prompt: String, imagesNumber: Int, quality: String?, size: String): List<String> {
+        if (size !in listOf("1024x1024", "1536x1024", "1024x1536", "auto")) {
+            throw IllegalArgumentException("Size must be one of 1024x1024, 1536x1024, 1024x1536, auto, but was $size")
         }
-        return client.imageURL(ImageCreation(
+        val request = ImageGenerationRequest(
             prompt = prompt,
-            model = ModelId("dall-e-3"),
-            size = ImageSize(size)
-        )).first().url
+            background = "auto",
+            model = "gpt-image-1",
+            moderation = "low",
+            n = imagesNumber,
+            outputFormat = "png",
+            quality = quality,
+            size = size,
+        )
+        val response = httpClient.post("https://api.openai.com/v1/images/generations") {
+            headers.append(HttpHeaders.Authorization, "Bearer $openaiSecretKey")
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }
+        if (!response.status.isSuccess()) {
+            val message = response.body<ErrorResponse>().error.message
+            log.error("Failed to get image: $message")
+            throw IllegalStateException("OpenAI API Error: $message")
+        }
+        return response.body<ImageGenerationResponse>().data.map { it.base64Json }
+    }
+
+    suspend fun editImage(
+        images: List<ByteArray>,
+        prompt: String,
+        imagesNumber: Int,
+        quality: String?,
+        size: String
+    ): List<String> {
+        if (size !in listOf("1024x1024", "1536x1024", "1024x1536", "auto")) {
+            throw IllegalArgumentException("Size must be one of 1024x1024, 1536x1024, 1024x1536, auto, but was $size")
+        }
+
+        val multipartContent = MultiPartFormDataContent(formData {
+            images.forEachIndexed { idx, bytes ->
+                append("image[]", bytes, Headers.build {
+                    append(HttpHeaders.ContentType, ContentType.Image.PNG.toString())
+                    append(HttpHeaders.ContentDisposition, "form-data; name=\"image[]\"; filename=\"image$idx.png\"")
+                })
+            }
+
+            append("prompt", prompt)
+            append("model", "gpt-image-1")
+            append("n", imagesNumber.toString())
+            quality?.let { append("quality", it) }
+            append("size", size)
+        })
+
+        val response = httpClient.post("https://api.openai.com/v1/images/edits") {
+            headers {
+                append(HttpHeaders.Authorization, "Bearer $openaiSecretKey")
+            }
+            contentType(ContentType.MultiPart.FormData)
+            setBody(multipartContent)
+        }
+
+        if (!response.status.isSuccess()) {
+            val message = response.body<ErrorResponse>().error.message
+            log.error("Failed to edit image: $message")
+            throw IllegalStateException("OpenAI API Error: $message")
+        }
+
+        return response.body<ImageGenerationResponse>().data.map { it.base64Json }
     }
 
     suspend fun transcription(audio: ByteArray): String {

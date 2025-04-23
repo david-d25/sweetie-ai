@@ -46,6 +46,7 @@ import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.reflect.KClass
 import kotlin.reflect.KParameter
+import kotlin.reflect.KType
 import kotlin.reflect.full.primaryConstructor
 
 @Service
@@ -481,7 +482,7 @@ class SweetieService(
         }
     }
 
-    private suspend fun handleFunctionCall(
+    suspend fun handleFunctionCall(
         builder: GptChatHistoryBuilder,
         toolCall: ToolCall.Function,
         invocationContext: InvocationContext,
@@ -497,48 +498,62 @@ class SweetieService(
             )
             return
         }
-        val argumentsJson = toolCall.function.arguments
-        val parametersClass = function.getParametersClass()
-        val parameters = createParametersObject(parametersClass, argumentsJson)
+        val argsJson = toolCall.function.arguments
+        val paramsClass = function.getParametersClass()
+        val parameters = createParametersObject(paramsClass, Json.parseToJsonElement(argsJson))
         val response = function.call(parameters, message, invocationContext)
         builder.addHardMessage(ChatMessage.tool(content = response, toolCallId = toolCall.id))
     }
 
-    private fun createParametersObject(parametersClass: KClass<*>, jsonString: String): Any {
-        if (parametersClass == Unit::class) {
-            return Unit
-        }
-        val jsonElement = Json.parseToJsonElement(jsonString)
+    private fun createParametersObject(parametersClass: KClass<*>, jsonElement: JsonElement): Any {
+        if (parametersClass == Unit::class) return Unit
         if (jsonElement !is JsonObject) {
-            throw IllegalArgumentException("Expected JSON object, but was ${jsonElement::class.simpleName}")
+            throw IllegalArgumentException("Expected JSON object for ${parametersClass.simpleName}, but was ${jsonElement::class.simpleName}")
         }
-        val constructor = parametersClass.primaryConstructor
-            ?: throw IllegalArgumentException("Primary constructor not found for ${parametersClass.simpleName}")
-        val arguments = mutableMapOf<KParameter, Any?>()
-        for (parameter in constructor.parameters) {
-            val jsonValue = jsonElement[parameter.name]
-            if (jsonValue != null) {
-                val value = convertJsonElementToType(jsonValue, parameter.type.classifier as KClass<*>)
-                arguments[parameter] = value
-            } else if (!parameter.isOptional) {
-                throw IllegalArgumentException("Missing required parameter: ${parameter.name}")
+        val ctor = parametersClass.primaryConstructor
+            ?: throw IllegalArgumentException("No primary constructor for ${parametersClass.simpleName}")
+        val args = mutableMapOf<KParameter, Any?>()
+        ctor.parameters.forEach { param ->
+            val propJson = jsonElement[param.name]
+            if (propJson != null) {
+                val value = convertJsonElementToType(propJson, param.type)
+                args[param] = value
+            } else if (!param.isOptional) {
+                throw IllegalArgumentException("Missing required parameter: ${param.name}")
             }
         }
-        return constructor.callBy(arguments)
+        return ctor.callBy(args)
     }
 
-    private fun convertJsonElementToType(jsonElement: JsonElement, clazz: KClass<*>): Any {
-        return when (clazz) {
-            Int::class -> jsonElement.jsonPrimitive.int
-            String::class -> jsonElement.jsonPrimitive.content
-            Boolean::class -> jsonElement.jsonPrimitive.boolean
-            Double::class -> jsonElement.jsonPrimitive.double
-            Float::class -> jsonElement.jsonPrimitive.float
-            Long::class -> jsonElement.jsonPrimitive.long
-            else -> {
-                createParametersObject(clazz, jsonElement.toString())
+    private fun convertJsonElementToType(jsonElement: JsonElement, type: KType): Any? {
+        val classifier = type.classifier as? KClass<*>
+            ?: throw IllegalArgumentException("Unsupported classifier: ${type.classifier}")
+
+        // Handle list types
+        if (classifier == List::class || classifier == MutableList::class) {
+            if (jsonElement !is JsonArray) throw IllegalArgumentException("Expected JSON array for type $type")
+            val itemType = type.arguments.first().type
+                ?: throw IllegalArgumentException("Missing generic type for list $type")
+            return jsonElement.jsonArray.map { convertJsonElementToType(it, itemType) }
+        }
+
+        // Handle primitives
+        if (jsonElement is JsonPrimitive) {
+            return when {
+                classifier == Int::class -> jsonElement.int
+                classifier == Long::class -> jsonElement.long
+                classifier == Float::class -> jsonElement.float
+                classifier == Double::class -> jsonElement.double
+                classifier == Boolean::class -> jsonElement.boolean
+                classifier == String::class -> jsonElement.content
+                else -> null
             }
         }
+
+        // Fallback for nested objects/data classes
+        return if (jsonElement is JsonObject) {
+            createParametersObject(classifier, jsonElement)
+        } else null
     }
 
     private fun createSystemMessage(date: ZonedDateTime, context: String): String {
