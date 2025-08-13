@@ -214,7 +214,7 @@ class SweetieService(
                         ", run ${currentRun+1}" +
                         ", passing ${history.size} messages and ${builder.getTools().size} tools")
                 val modelOverride = if (voiceModeRequested) "gpt-4o-audio-preview" else chatSettings.gptModel
-                val isReasoningModel = modelName.startsWith("o")
+                val isReasoningModel = modelName.startsWith("o") || modelName.startsWith("gpt-5")
                 val modalities = if (isReasoningModel) {
                     null
                 } else {
